@@ -49,7 +49,6 @@ export {
 } from './components/common/TextContainer/TextContainer';
 export type { TextContainerProps } from './components/common/TextContainer/TextContainer';
 export { default as TextEditor } from './components/widgets/TextEditorWidget/TextEditor';
-export { default as TextEditorTooltip } from './components/widgets/TextEditorWidget/TextEditorTooltip';
 
 // SVG icon components
 export { default as ArchiveIcon } from './components/icons/ArchiveIcon';

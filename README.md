@@ -10,7 +10,7 @@ Overlays / self-contained UI: `Modal`, `Tooltip`, `CopyToClipboard`, `SidebarLis
 
 Branding: `UserAvatarButton`
 
-Content: `TextContainer` (markdown rendering), `TextEditor` (markdown editor), `TextEditorTooltip`
+Content: `TextContainer` (markdown rendering), `TextEditor` (markdown editor)
 
 SVG icons: `ArchiveIcon`, `LoginIcon`, `SettingsIcon`, `UserIcon`
 
