@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useState, ReactNode } from 'react';
 import styles from './SidebarListPanel.module.scss';
 
+// Exposed for consumers that render custom item content and want to reuse the
+// panel's detail/timestamp styling (same pattern as pageHeaderStyles).
+export { styles as sidebarListPanelStyles };
+
 export interface SidebarListItemAction {
   icon: ReactNode;
   label: string;

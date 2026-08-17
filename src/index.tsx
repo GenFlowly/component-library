@@ -24,6 +24,7 @@ export { default as CopyToClipboard } from './components/common/CopyToClipboard/
 export {
   default as SidebarListPanel,
   SidebarListLoadMore,
+  sidebarListPanelStyles,
 } from './components/common/SidebarListPanel/SidebarListPanel';
 export type {
   SidebarListItem,
