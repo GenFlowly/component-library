@@ -20,6 +20,7 @@ export const UserAvatarButton: React.FC<UserAvatarButtonProps> = ({
     <button
       className={`${styles.avatarButton} ${className}`}
       title={displayName}
+      aria-label={displayName}
       data-testid={testId}
       {...props}
     >
@@ -35,6 +36,7 @@ export const UserAvatarButton: React.FC<UserAvatarButtonProps> = ({
         <Icon
           src={ICONS.USER_CIRCLE}
           size={40}
+          aria-hidden={true}
           data-testid={testId ? `${testId}-icon` : undefined}
         />
       )}

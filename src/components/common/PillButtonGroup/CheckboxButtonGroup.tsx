@@ -18,6 +18,8 @@ interface CheckboxButtonGroupProps {
   allowEmpty?: boolean;
   /** Extra class name(s) forwarded to the underlying PillButtonGroup wrapper. */
   className?: string;
+  /** Accessible name for the group, forwarded to the underlying PillButtonGroup wrapper (announced by screen readers before the options). */
+  'aria-label'?: string;
   /** Test id forwarded to the underlying PillButtonGroup wrapper. */
   'data-testid'?: string;
 }
@@ -38,6 +40,7 @@ export default function CheckboxButtonGroup({
   maxSelection,
   allowEmpty = false,
   className = '',
+  'aria-label': ariaLabel,
   'data-testid': testId,
 }: CheckboxButtonGroupProps): React.ReactElement {
   return (
@@ -49,6 +52,7 @@ export default function CheckboxButtonGroup({
       maxSelection={maxSelection}
       replaceOldestAtMax
       className={className}
+      aria-label={ariaLabel}
       data-testid={testId}
     />
   );

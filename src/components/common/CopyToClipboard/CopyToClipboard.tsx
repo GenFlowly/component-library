@@ -54,6 +54,7 @@ export default function CopyToClipboard({
       disabled={isDisabled}
       className={`${styles.copyToClipboard} ${styles[size]} ${styles[variant]} ${className}`}
       title={resolvedLabel}
+      aria-label={!copied && icon && !buttonText ? resolvedLabel : undefined}
       data-testid="copy-to-clipboard-button"
       {...props}
     >
@@ -62,7 +63,7 @@ export default function CopyToClipboard({
       ) : buttonText ? (
         buttonText
       ) : icon ? (
-        <Icon src={icon} size="1.2em" />
+        <Icon src={icon} size="1.2em" aria-hidden={true} />
       ) : (
         resolvedLabel
       )}

@@ -47,6 +47,12 @@ interface PillButtonGroupProps {
   replaceOldestAtMax?: boolean;
   /** Extra class name(s) appended to the group's wrapper `<div>`. */
   className?: string;
+  /**
+   * Accessible name for the group, announced by screen readers before the
+   * options (e.g. "AI vendors"). Strongly recommended so users know what
+   * the toggles control.
+   */
+  'aria-label'?: string;
   /** Test id for the wrapper `<div>`; each button gets an `-option-<id>` suffixed id (and `-option-<id>-icon` for its icon). */
   'data-testid'?: string;
 }
@@ -68,6 +74,7 @@ export default function PillButtonGroup({
   maxSelection,
   replaceOldestAtMax = false,
   className = '',
+  'aria-label': ariaLabel,
   'data-testid': testId,
 }: PillButtonGroupProps): React.ReactElement {
   const { t } = useTranslation();
@@ -120,7 +127,12 @@ export default function PillButtonGroup({
   if (!options || options.length === 0) return <></>;
 
   return (
-    <div className={`${styles.toggleGroup} ${className}`} data-testid={testId}>
+    <div
+      className={`${styles.toggleGroup} ${className}`}
+      role="group"
+      aria-label={ariaLabel}
+      data-testid={testId}
+    >
       {options.map(option => {
         const isActive = selectedValues.includes(option.id);
         const isMaxReached =
@@ -145,6 +157,7 @@ export default function PillButtonGroup({
               <Icon
                 src={option.icon}
                 size={16}
+                aria-hidden={true}
                 data-testid={
                   testId ? `${testId}-option-${option.id}-icon` : undefined
                 }

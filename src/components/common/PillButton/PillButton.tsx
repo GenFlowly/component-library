@@ -38,6 +38,7 @@ export default function PillButton({
   icon,
   className = '',
   variant = 'primary',
+  type = 'button',
   'data-testid': testId,
   ...props
 }: PillButtonProps): React.ReactElement {
@@ -51,6 +52,7 @@ export default function PillButton({
   return (
     <button
       className={`${styles.pillButton} ${variantClass} ${className}`}
+      type={type}
       data-testid={testId}
       {...props}
     >
@@ -58,6 +60,7 @@ export default function PillButton({
         <Icon
           src={icon}
           size={16}
+          aria-hidden={true}
           data-testid={testId ? `${testId}-icon` : undefined}
         />
       )}
