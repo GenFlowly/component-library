@@ -3,26 +3,62 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '../Icon/Icon';
 import styles from './PillButtonGroup.module.scss';
 
+/**
+ * A single option in a button group (used by PillButtonGroup and its
+ * RadioButtonGroup / CheckboxButtonGroup presets).
+ */
 export interface ToggleOption {
+  /** Unique identifier for the option; this is the value reported in `selectedValues`. */
   id: string;
+  /** Visible text of the button, also used in the localized aria-label. */
   label: string;
+  /** Optional icon source rendered at 16px before the label. */
   icon?: string;
 }
 
 interface PillButtonGroupProps {
+  /** Options to render, in order. If the array is empty (or missing), the group renders nothing. */
   options: ToggleOption[];
+  /** Currently selected option ids (controlled). Order matters when `replaceOldestAtMax` is on — the first entry is the oldest. */
   selectedValues: string[];
+  /** Called with the next selection whenever a click changes it. Not called for no-op clicks (e.g. deselecting the last item when `allowEmpty` is false). */
   onChange: (selectedValues: string[]) => void;
+  /**
+   * Whether the selection may become empty. When false, clicking the last
+   * selected button does nothing.
+   * @default false
+   */
   allowEmpty?: boolean;
+  /**
+   * Radio-style mode: selecting an option replaces the whole selection, so
+   * at most one option is active.
+   * @default false
+   */
   singleSelection?: boolean;
+  /** Maximum number of simultaneously selected options (multi-select mode). Unlimited when undefined. */
   maxSelection?: number;
   // When the max is reached, selecting a new option drops the oldest
   // selection instead of disabling the remaining buttons
+  /**
+   * FIFO eviction at the `maxSelection` cap (see comment above). Without it,
+   * unselected buttons are disabled while the cap is reached.
+   * @default false
+   */
   replaceOldestAtMax?: boolean;
+  /** Extra class name(s) appended to the group's wrapper `<div>`. */
   className?: string;
+  /** Test id for the wrapper `<div>`; each button gets an `-option-<id>` suffixed id (and `-option-<id>-icon` for its icon). */
   'data-testid'?: string;
 }
 
+/**
+ * A controlled row of pill-style toggle buttons — the base of the button
+ * group family (RadioButtonGroup and CheckboxButtonGroup are thin presets of
+ * it). Use it directly for unlimited multi-select or custom cap behavior;
+ * selection state always lives in the parent via
+ * `selectedValues`/`onChange`. Button aria-labels are localized via
+ * react-i18next (`common.pillButtonGroup.toggleOption`).
+ */
 export default function PillButtonGroup({
   options,
   selectedValues,

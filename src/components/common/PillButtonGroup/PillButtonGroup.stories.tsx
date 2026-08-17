@@ -7,6 +7,56 @@ const meta: Meta<typeof PillButtonGroup> = {
   title: 'Components/Buttons/ButtonGroups/PillButtonGroup',
   component: PillButtonGroup,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component: `A controlled row of pill-style toggle buttons — the base component of the button group family. \`RadioButtonGroup\` and \`CheckboxButtonGroup\` are thin presets over it (see the **ButtonGroups/About** page for the full comparison).
+
+### Anatomy / Behavior
+
+- Fully controlled: you pass \`options: ToggleOption[]\` (\`{ id, label, icon? }\`), the current \`selectedValues: string[]\`, and an \`onChange(selectedValues)\` callback. No internal selection state.
+- **Multi-select (default):** clicking toggles an option in or out of the selection.
+- **\`singleSelection\`:** selecting an option replaces the whole selection (radio semantics); re-clicking the selected option deselects it only when \`allowEmpty\` is true.
+- **\`allowEmpty\`** (default \`false\`): when false, any click that would empty the selection is ignored — the group can never reach an empty selection.
+- **\`maxSelection\`:** caps the number of simultaneous selections. Without \`replaceOldestAtMax\`, the remaining unselected buttons become disabled (\`disabled\` + \`aria-disabled\`) while the cap is reached.
+- **\`replaceOldestAtMax\`** (default \`false\`): changes the cap behavior to first-in, first-out — picking a new option at capacity evicts the oldest selection instead of disabling buttons.
+- Empty or missing \`options\` renders nothing.
+- Each option can carry a 16px leading icon via \`icon\`.
+- i18n: button \`aria-label\`s are localized with \`useTranslation\` (react-i18next key \`common.pillButtonGroup.toggleOption\`), so a consuming app needs an i18next provider; \`aria-pressed\` reflects selection.
+
+### When to use
+
+- Unlimited multi-select, or custom cap behavior the presets don't cover.
+
+### When NOT to use
+
+- At most one active option (view switcher, mode picker) — use **RadioButtonGroup**.
+- Capped multi-select where the newest pick wins — use **CheckboxButtonGroup**.
+- A standalone action button — use **PillButton** (or **RectangleButton** for simple submits).
+
+### Usage
+
+\`\`\`tsx
+import { PillButtonGroup, ToggleOption } from '@genflowly/component-library';
+
+const options: ToggleOption[] = [
+  { id: 'chat', label: 'Chat' },
+  { id: 'notes', label: 'Notes' },
+  { id: 'files', label: 'Files' },
+];
+
+const [selected, setSelected] = useState<string[]>(['chat']);
+
+<PillButtonGroup
+  options={options}
+  selectedValues={selected}
+  onChange={setSelected}
+  allowEmpty
+/>
+\`\`\``,
+      },
+    },
+  },
 };
 
 export default meta;
@@ -38,6 +88,14 @@ export const MultiSelect: Story = {
     options,
     allowEmpty: true,
   },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Default multi-select mode with `allowEmpty`: each click toggles an option independently, with no cap, and the selection may become empty.',
+      },
+    },
+  },
 };
 
 const SingleSelectionDemo = (args: PillButtonGroupProps) => {
@@ -56,6 +114,14 @@ export const SingleSelection: Story = {
   args: {
     options,
     singleSelection: true,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Radio semantics via `singleSelection`: picking an option replaces the previous one, and since `allowEmpty` is off (default), re-clicking the selected option does nothing. This is exactly what the RadioButtonGroup preset does.',
+      },
+    },
   },
 };
 
@@ -76,6 +142,14 @@ export const MaxTwoSelections: Story = {
     options,
     maxSelection: 2,
     allowEmpty: true,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          '`maxSelection: 2` without `replaceOldestAtMax`: once two options are selected, the remaining buttons are disabled until something is deselected.',
+      },
+    },
   },
 };
 
@@ -99,5 +173,13 @@ export const WithIcons: Story = {
       { id: 'all', label: 'All' },
     ],
     allowEmpty: true,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Options with an `icon` render a 16px leading icon before their label; icon and text-only options can be mixed in the same group.',
+      },
+    },
   },
 };

@@ -3,12 +3,36 @@ import styles from './PillButton.module.scss';
 import { Icon } from '../Icon/Icon';
 
 export interface PillButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /**
+   * Content rendered inside the button. A plain string is wrapped in a
+   * `<span>` (with a `-text` test id suffix when `data-testid` is set);
+   * any other ReactNode is rendered as-is.
+   */
   label: React.ReactNode;
+  /**
+   * Optional icon source rendered at 16px before the label. Omit to render
+   * a text-only pill.
+   */
   icon?: string;
+  /**
+   * Visual style of the pill.
+   * @default 'primary'
+   */
   variant?: 'primary' | 'secondary' | 'danger';
+  /**
+   * Test id applied to the root `<button>`. Also derives `-icon` and
+   * `-text` suffixed ids for the icon and string-label span.
+   */
   'data-testid'?: string;
 }
 
+/**
+ * A rounded, pill-shaped action button with optional leading icon and
+ * primary/secondary/danger variants. Use it for standalone actions such as
+ * saving, cancelling, or deleting; it accepts all standard button attributes
+ * (`onClick`, `disabled`, `type`, ...) since it extends
+ * `ButtonHTMLAttributes<HTMLButtonElement>`.
+ */
 export default function PillButton({
   label,
   icon,
