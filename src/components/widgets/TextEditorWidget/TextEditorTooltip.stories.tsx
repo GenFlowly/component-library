@@ -1,15 +1,15 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import PromptEditorTooltip from './PromptEditorTooltip';
+import TextEditorTooltip from './TextEditorTooltip';
 
-const meta: Meta<typeof PromptEditorTooltip> = {
-  title: 'Components/PromptEditorTooltip',
-  component: PromptEditorTooltip,
+const meta: Meta<typeof TextEditorTooltip> = {
+  title: 'Components/TextEditorTooltip',
+  component: TextEditorTooltip,
   tags: ['autodocs'],
 };
 
 export default meta;
-type Story = StoryObj<typeof PromptEditorTooltip>;
+type Story = StoryObj<typeof TextEditorTooltip>;
 
 export const Default: Story = {
   args: {
@@ -52,7 +52,7 @@ export const FollowsSelection: Story = {
           the selection, just like it does over the prompt editor. Click
           elsewhere to dismiss it.
         </p>
-        <PromptEditorTooltip
+        <TextEditorTooltip
           top={pos?.top ?? 0}
           left={pos?.left ?? 0}
           visible={pos !== null}

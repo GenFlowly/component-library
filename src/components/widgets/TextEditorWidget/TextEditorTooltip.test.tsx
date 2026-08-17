@@ -1,12 +1,12 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import PromptEditorTooltip from './PromptEditorTooltip';
+import TextEditorTooltip from './TextEditorTooltip';
 import '@testing-library/jest-dom';
 
-describe('PromptEditorTooltip', () => {
+describe('TextEditorTooltip', () => {
   test('does not render when not visible', () => {
     render(
-      <PromptEditorTooltip
+      <TextEditorTooltip
         top={100}
         left={100}
         visible={false}
@@ -18,7 +18,7 @@ describe('PromptEditorTooltip', () => {
 
   test('renders when visible', () => {
     render(
-      <PromptEditorTooltip
+      <TextEditorTooltip
         top={100}
         left={100}
         visible={true}
@@ -31,7 +31,7 @@ describe('PromptEditorTooltip', () => {
   test('calls onMarkReusable when clicked', () => {
     const handleMark = jest.fn();
     render(
-      <PromptEditorTooltip
+      <TextEditorTooltip
         top={100}
         left={100}
         visible={true}
@@ -45,7 +45,7 @@ describe('PromptEditorTooltip', () => {
 
   test('renders at correct position', () => {
     render(
-      <PromptEditorTooltip
+      <TextEditorTooltip
         top={200}
         left={150}
         visible={true}
@@ -61,7 +61,7 @@ describe('PromptEditorTooltip', () => {
 
   test('prevents default on mouse down to avoid focus theft', () => {
     render(
-      <PromptEditorTooltip
+      <TextEditorTooltip
         top={100}
         left={100}
         visible={true}

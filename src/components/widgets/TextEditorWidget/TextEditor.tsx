@@ -1,11 +1,11 @@
 import React, { Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
-import styles from './PromptEditor.module.scss';
+import styles from './TextEditor.module.scss';
 
 // Lazy load the heavy Markdown editor component
-const PromptEditorCore = lazy(() => import('./PromptEditorCore'));
+const TextEditorCore = lazy(() => import('./TextEditorCore'));
 
-interface PromptEditorProps {
+interface TextEditorProps {
   id: string;
   value: string;
   onChange: (value: string) => void;
@@ -18,7 +18,7 @@ interface PromptEditorProps {
   variant?: 'default' | 'seamless';
 }
 
-export default function PromptEditor({
+export default function TextEditor({
   id,
   value,
   onChange,
@@ -29,7 +29,7 @@ export default function PromptEditor({
   readOnly = false,
   maxLength,
   variant = 'default',
-}: PromptEditorProps): React.ReactElement {
+}: TextEditorProps): React.ReactElement {
   const { t } = useTranslation();
 
   return (
@@ -58,13 +58,13 @@ export default function PromptEditor({
             }
           >
             <div style={{ color: 'var(--color-text-tertiary)' }}>
-              {t('editor.promptEditor.loadingEditor')}
+              {t('editor.textEditor.loadingEditor')}
             </div>
           </div>
         </div>
       }
     >
-      <PromptEditorCore
+      <TextEditorCore
         id={id}
         value={value}
         onChange={onChange}

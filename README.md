@@ -10,7 +10,7 @@ Overlays / self-contained UI: `Modal`, `Tooltip`, `CopyToClipboard`, `SidebarLis
 
 Branding: `BrandName` (+ OpenAI/Claude/Gemini/User variants), `UserAvatarButton`
 
-Content: `TextContainer` (markdown rendering), `PromptEditor` (markdown editor), `PromptEditorTooltip`
+Content: `TextContainer` (markdown rendering), `TextEditor` (markdown editor), `TextEditorTooltip`
 
 SVG icons: `ArchiveIcon`, `LoginIcon`, `SettingsIcon`, `UserIcon`
 

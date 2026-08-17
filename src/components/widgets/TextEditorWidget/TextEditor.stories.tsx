@@ -1,15 +1,15 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import PromptEditor from './PromptEditor';
+import TextEditor from './TextEditor';
 
-const meta: Meta<typeof PromptEditor> = {
-  title: 'Components/PromptEditor',
-  component: PromptEditor,
+const meta: Meta<typeof TextEditor> = {
+  title: 'Components/TextEditor',
+  component: TextEditor,
   tags: ['autodocs'],
 };
 
 export default meta;
-type Story = StoryObj<typeof PromptEditor>;
+type Story = StoryObj<typeof TextEditor>;
 
 const initialValue = `# System prompt
 
@@ -28,8 +28,8 @@ export const Default: Story = {
   render: function Render() {
     const [value, setValue] = React.useState(initialValue);
     return (
-      <PromptEditor
-        id="prompt-editor-default"
+      <TextEditor
+        id="text-editor-default"
         value={value}
         onChange={setValue}
         height="320px"
@@ -44,8 +44,8 @@ export const Seamless: Story = {
       'A *seamless* editor blends into its surroundings.'
     );
     return (
-      <PromptEditor
-        id="prompt-editor-seamless"
+      <TextEditor
+        id="text-editor-seamless"
         value={value}
         onChange={setValue}
         variant="seamless"
@@ -59,8 +59,8 @@ export const ReadOnly: Story = {
   render: function Render() {
     const [value, setValue] = React.useState(initialValue);
     return (
-      <PromptEditor
-        id="prompt-editor-readonly"
+      <TextEditor
+        id="text-editor-readonly"
         value={value}
         onChange={setValue}
         readOnly
@@ -76,8 +76,8 @@ export const WithMaxLength: Story = {
       'Type here — input is capped at 100 characters.'
     );
     return (
-      <PromptEditor
-        id="prompt-editor-maxlength"
+      <TextEditor
+        id="text-editor-maxlength"
         value={value}
         onChange={setValue}
         maxLength={100}

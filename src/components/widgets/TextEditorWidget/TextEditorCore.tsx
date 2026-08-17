@@ -4,9 +4,9 @@ import '@uiw/react-markdown-preview/markdown.css';
 import MarkdownEditor from '@uiw/react-markdown-editor';
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
-import styles from './PromptEditor.module.scss';
+import styles from './TextEditor.module.scss';
 
-interface PromptEditorCoreProps {
+interface TextEditorCoreProps {
   id: string;
   value: string;
   onChange: (value: string) => void;
@@ -19,7 +19,7 @@ interface PromptEditorCoreProps {
   variant?: 'default' | 'seamless';
 }
 
-export default function PromptEditorCore({
+export default function TextEditorCore({
   id,
   value,
   onChange,
@@ -30,7 +30,7 @@ export default function PromptEditorCore({
   readOnly = false,
   maxLength,
   variant = 'default',
-}: PromptEditorCoreProps): React.ReactElement {
+}: TextEditorCoreProps): React.ReactElement {
   const handleChange = (newValue: string) => {
     if (maxLength && newValue.length > maxLength) {
       onChange(newValue.slice(0, maxLength));

@@ -1,11 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import PromptEditor from './PromptEditor';
+import TextEditor from './TextEditor';
 import '@testing-library/jest-dom';
 
 // Mock the lazy-loaded Core module so Suspense resolves immediately in tests.
 // All assertions target this mock — no need for @uiw or @codemirror mocks.
-jest.mock('./PromptEditorCore', () => {
+jest.mock('./TextEditorCore', () => {
   const React = require('react');
   const { useState } = React;
 
@@ -43,12 +43,12 @@ jest.mock('./PromptEditorCore', () => {
   };
 });
 
-describe('PromptEditor Component', () => {
+describe('TextEditor Component', () => {
   const defaultProps = {
     id: 'test-editor',
     value: 'Initial Prompt',
     onChange: jest.fn(),
-    'data-testid': 'prompt-editor',
+    'data-testid': 'text-editor',
   };
 
   beforeEach(() => {
@@ -56,20 +56,20 @@ describe('PromptEditor Component', () => {
   });
 
   test('renders with initial value', async () => {
-    render(<PromptEditor {...defaultProps} />);
-    expect(screen.getByTestId('prompt-editor')).toBeInTheDocument();
+    render(<TextEditor {...defaultProps} />);
+    expect(screen.getByTestId('text-editor')).toBeInTheDocument();
     const textarea = await screen.findByTestId('mock-textarea');
     expect(textarea).toHaveValue('Initial Prompt');
   });
 
   test('renders left toolbars correctly', () => {
-    render(<PromptEditor {...defaultProps} />);
+    render(<TextEditor {...defaultProps} />);
     expect(screen.getByTestId('toolbar-item-addSteps')).toBeInTheDocument();
     expect(screen.getByTestId('toolbar-item-addExamples')).toBeInTheDocument();
   });
 
   test('renders right toolbars (preview, fullscreen, copy)', () => {
-    render(<PromptEditor {...defaultProps} />);
+    render(<TextEditor {...defaultProps} />);
     const rightToolbar = screen.getByTestId('mock-toolbar-right');
 
     expect(rightToolbar).toBeInTheDocument();
@@ -79,7 +79,7 @@ describe('PromptEditor Component', () => {
   });
 
   test('copy button provides feedback on click', () => {
-    render(<PromptEditor {...defaultProps} />);
+    render(<TextEditor {...defaultProps} />);
 
     const copyBtn = screen.getByTestId('custom-copy-button');
     expect(copyBtn).toHaveTextContent('Copy');
