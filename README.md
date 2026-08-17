@@ -4,7 +4,7 @@ Stateless/presentational React components extracted from `genai-react-app`, publ
 
 ## Components
 
-Primitives: `Icon`, `PillButton`, `MultiPurposeButton`, `InputTextWithHint`, `InputSelectWithHint`, `PillButtonGroup`, `CheckboxButtonGroup`, `RadioButtonGroup`, `PageHeader`, `Breadcrumbs`
+Primitives: `Icon`, `PillButton`, `RectangleButton`, `InputTextWithHint`, `InputSelectWithHint`, `PillButtonGroup`, `CheckboxButtonGroup`, `RadioButtonGroup`, `PageHeader`, `Breadcrumbs`
 
 Overlays / self-contained UI: `Modal`, `Tooltip`, `CopyToClipboard`, `SidebarListPanel`, `ResizableSidebar`, `Toast` + `ToastContainer`, `MobileFullPageModal`
 

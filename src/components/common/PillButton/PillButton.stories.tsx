@@ -3,7 +3,7 @@ import PillButton from './PillButton';
 import { ICONS } from '../../../constants/icons';
 
 const meta: Meta<typeof PillButton> = {
-  title: 'Components/PillButton',
+  title: 'Components/Buttons/PillButton',
   component: PillButton,
   tags: ['autodocs'],
 };

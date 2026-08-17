@@ -22,7 +22,21 @@ const preview: Preview = {
     options: {
       // Keep grouped-family folders reading top-down: overview docs first.
       storySort: {
-        order: ['Components', ['ButtonGroups', ['About', '*'], '*'], '*'],
+        order: [
+          'Components',
+          [
+            'Buttons',
+            [
+              'PillButton',
+              'RectangleButton',
+              'ButtonGroups',
+              ['About', '*'],
+              '*',
+            ],
+            '*',
+          ],
+          '*',
+        ],
       },
     },
     actions: { argTypesRegex: '^on[A-Z].*' },

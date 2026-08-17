@@ -4,7 +4,7 @@ import PillButtonGroup, { ToggleOption } from './PillButtonGroup';
 import { ICONS } from '../../../constants/icons';
 
 const meta: Meta<typeof PillButtonGroup> = {
-  title: 'Components/ButtonGroups/PillButtonGroup',
+  title: 'Components/Buttons/ButtonGroups/PillButtonGroup',
   component: PillButtonGroup,
   tags: ['autodocs'],
 };

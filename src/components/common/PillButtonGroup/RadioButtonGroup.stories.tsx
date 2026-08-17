@@ -4,7 +4,7 @@ import RadioButtonGroup from './RadioButtonGroup';
 import { ToggleOption } from './PillButtonGroup';
 
 const meta: Meta<typeof RadioButtonGroup> = {
-  title: 'Components/ButtonGroups/RadioButtonGroup',
+  title: 'Components/Buttons/ButtonGroups/RadioButtonGroup',
   component: RadioButtonGroup,
   tags: ['autodocs'],
 };

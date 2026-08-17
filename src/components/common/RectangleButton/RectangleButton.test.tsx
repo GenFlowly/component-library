@@ -1,10 +1,10 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import MultiPurposeButton from './MultiPurposeButton';
+import RectangleButton from './RectangleButton';
 import '@testing-library/jest-dom';
 
-describe('MultiPurposeButton Component', () => {
+describe('RectangleButton Component', () => {
   const mockOnClick = jest.fn();
   const defaultProps = {
     label: 'Test Button',
@@ -17,7 +17,7 @@ describe('MultiPurposeButton Component', () => {
   });
 
   test('renders with label', () => {
-    render(<MultiPurposeButton {...defaultProps} />);
+    render(<RectangleButton {...defaultProps} />);
 
     const button = screen.getByTestId('test-button');
     expect(button).toBeInTheDocument();
@@ -25,7 +25,7 @@ describe('MultiPurposeButton Component', () => {
   });
 
   test('renders with icon when provided', () => {
-    render(<MultiPurposeButton {...defaultProps} icon="fake-icon.svg" />);
+    render(<RectangleButton {...defaultProps} icon="fake-icon.svg" />);
 
     const icon = screen.getByTestId('test-button-icon');
     expect(icon).toBeInTheDocument();
@@ -34,7 +34,7 @@ describe('MultiPurposeButton Component', () => {
   });
 
   test('calls onClick when clicked', async () => {
-    render(<MultiPurposeButton {...defaultProps} />);
+    render(<RectangleButton {...defaultProps} />);
     const button = screen.getByTestId('test-button');
 
     await userEvent.click(button);
@@ -43,7 +43,7 @@ describe('MultiPurposeButton Component', () => {
   });
 
   test('does not call onClick when disabled', async () => {
-    render(<MultiPurposeButton {...defaultProps} disabled={true} />);
+    render(<RectangleButton {...defaultProps} disabled={true} />);
     const button = screen.getByTestId('test-button');
 
     expect(button).toBeDisabled();
@@ -54,7 +54,7 @@ describe('MultiPurposeButton Component', () => {
   });
 
   test('handles focus and blurred states', async () => {
-    render(<MultiPurposeButton {...defaultProps} />);
+    render(<RectangleButton {...defaultProps} />);
     const button = screen.getByTestId('test-button');
 
     expect(button).not.toHaveFocus();

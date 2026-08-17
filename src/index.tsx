@@ -2,7 +2,7 @@
 export { Icon } from './components/common/Icon/Icon';
 export { default as PillButton } from './components/common/PillButton/PillButton';
 export type { PillButtonProps } from './components/common/PillButton/PillButton';
-export { default as MultiPurposeButton } from './components/common/MultiPurposeButton/MultiPurposeButton';
+export { default as RectangleButton } from './components/common/RectangleButton/RectangleButton';
 export { InputTextWithHint } from './components/common/InputTextWithHint/InputTextWithHint';
 export { InputSelectWithHint } from './components/common/InputSelectWithHint/InputSelectWithHint';
 export type { SelectOption } from './components/common/InputSelectWithHint/InputSelectWithHint';

@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from './MultiPurposeButton.module.scss';
+import styles from './RectangleButton.module.scss';
 
 import { Icon } from '../Icon/Icon';
 
@@ -11,7 +11,7 @@ interface ButtonProps {
   'data-testid'?: string;
 }
 
-export default function MultiPurposeButton({
+export default function RectangleButton({
   label,
   onClick,
   disabled = false,
