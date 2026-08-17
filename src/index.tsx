@@ -49,9 +49,3 @@ export {
 } from './components/common/TextContainer/TextContainer';
 export type { TextContainerProps } from './components/common/TextContainer/TextContainer';
 export { default as TextEditor } from './components/widgets/TextEditorWidget/TextEditor';
-
-// SVG icon components
-export { default as ArchiveIcon } from './components/icons/ArchiveIcon';
-export { default as LoginIcon } from './components/icons/LoginIcon';
-export { default as SettingsIcon } from './components/icons/SettingsIcon';
-export { default as UserIcon } from './components/icons/UserIcon';

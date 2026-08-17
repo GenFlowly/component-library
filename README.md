@@ -12,8 +12,6 @@ Branding: `UserAvatarButton`
 
 Content: `TextContainer` (markdown rendering), `TextEditor` (markdown editor)
 
-SVG icons: `ArchiveIcon`, `LoginIcon`, `SettingsIcon`, `UserIcon`
-
 ## Usage
 
 ```bash
