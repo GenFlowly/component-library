@@ -19,6 +19,7 @@ interface CopyToClipboardProps extends React.ButtonHTMLAttributes<HTMLButtonElem
 export default function CopyToClipboard({
   content,
   label,
+  buttonText,
   successMessage,
   successDuration = 2000,
   disabled = false,
@@ -58,6 +59,8 @@ export default function CopyToClipboard({
     >
       {copied ? (
         resolvedSuccessMessage
+      ) : buttonText ? (
+        buttonText
       ) : icon ? (
         <Icon src={icon} size="1.2em" />
       ) : (
