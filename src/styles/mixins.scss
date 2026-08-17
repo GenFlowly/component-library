@@ -1,0 +1,316 @@
+@import './themes.scss';
+@import './variables.scss';
+
+// Responsive Mixins
+@mixin respond-to-tablet {
+  @media (max-width: $breakpoint-tablet) {
+    @content;
+  }
+}
+
+@mixin respond-to-mobile {
+  @media (max-width: $breakpoint-mobile) {
+    @content;
+  }
+}
+
+// Common visual and layout properties for chat message blocks (Request and Response)
+@mixin message-card-base {
+  position: relative;
+  border-radius: 8px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+  margin: 0 auto; // Center if flex container is flex-start
+
+  // Width constraints
+  min-width: 30rem;
+  max-width: $message-card-max-width;
+
+  @include respond-to-tablet {
+    min-width: 0;
+    width: calc(100% - 1rem) !important;
+    max-width: 100% !important;
+    border-radius: 8px;
+  }
+}
+
+// Mixin for specific flex behaviors if needed,
+// though layout context (row vs column) often dictates this.
+
+@mixin ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@mixin input-with-hint-container {
+  display: flex;
+  align-items: center;
+  border: 1px solid #dbdbda;
+  border-radius: 4px;
+  background-color: $white;
+  overflow: hidden;
+  height: 42px;
+  transition: border-color $transition-normal;
+
+  &:focus-within {
+    border-color: $color-primary;
+  }
+}
+
+@mixin input-with-hint-prefix {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #e8e8e7;
+  padding: 0 1rem;
+  height: 100%;
+  color: $text-secondary;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-right: 1px solid #dbdbda;
+  flex-shrink: 0;
+}
+
+@mixin input-with-hint-element {
+  flex: 1;
+  border: none;
+  padding: 0 1rem;
+  height: 100%;
+  outline: none;
+  font-size: 1rem;
+  color: $text-primary;
+  background: transparent;
+
+  &::placeholder {
+    color: $text-muted;
+  }
+}
+
+// Shared inner content area for sidebars (and their mobile modal variants)
+@mixin sidebar-content {
+  width: 100%;
+  height: 100%;
+  padding: 0.3rem;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+@mixin sidebar-base($border-side) {
+  // Default width
+  width: 10rem;
+  height: 100%;
+  flex-shrink: 0;
+
+  background-color: $color-sidebar-background;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 5;
+
+  // Parameterized border
+  @if $border-side ==left {
+    border-left: 1px solid $color-border;
+  } @else if $border-side ==right {
+    border-right: 1px solid $color-border;
+  }
+
+  // Inner Content Area
+  .sidebarContent {
+    @include sidebar-content;
+  }
+
+  // Collapse Button
+  .collapseButton {
+    position: absolute;
+    top: 0rem;
+    z-index: 10;
+    background: $color-background-secondary;
+    border: 1px solid $color-border;
+    border-top: none;
+    color: $color-text-secondary;
+    cursor: pointer;
+    padding: 0.5rem 0.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+    &:hover {
+      background-color: $color-background-hover;
+      color: $color-text-primary;
+
+      // Slide effect logic
+      @if $border-side ==left {
+        padding-right: 0.2rem;
+        padding-left: 0.5rem;
+      } @else {
+        padding-left: 0.2rem;
+        padding-right: 0.5rem;
+      }
+    }
+
+    // Positioning based on side
+    @if $border-side ==left {
+      right: 100%; // Outside to the left
+      border-right: none;
+      border-radius: 6px 0 0 6px; // Left rounded
+      box-shadow: -1px 1px 3px rgba(0, 0, 0, 0.05);
+    } @else {
+      left: 100%; // Outside to the right
+      border-left: none;
+      border-radius: 0 6px 6px 0; // Right rounded
+      box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.05);
+    }
+  }
+
+  // Collapsed state
+  &.collapsed {
+    width: 3.5rem;
+
+    .sidebarContent {
+      padding: 0.5rem 0.5rem;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    // Hide button when collapsed? Or center it?
+    // RightSidebar hides content but keeps button available to expand.
+    // Actually RightSidebar component handles the icon change.
+  }
+}
+
+// --- New Layout Mixins ---
+
+@mixin page-base {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: $color-background;
+  color: $color-text-primary;
+}
+
+@mixin content-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+@mixin card-base {
+  background: $color-background-secondary;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: 2rem;
+  box-shadow: $shadow-sm;
+  width: 100%;
+  max-width: 48rem;
+}
+
+@mixin title-base {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+  color: $color-text-primary;
+}
+
+@mixin input-field {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-background-secondary;
+  color: $color-text-primary;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+
+  &:focus {
+    border-color: $color-primary;
+    box-shadow: 0 0 0 2px rgba($color-primary, 0.1);
+  }
+}
+
+// Interactive Element Mixins (Hover/Focus/Active states)
+
+@mixin interactive-base {
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  // Focus visible standard
+  &:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
+    z-index: 10;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+    box-shadow: none;
+  }
+}
+
+@mixin interactive-primary-states {
+  &:hover:not(:disabled) {
+    background-color: $color-primary-hover-alt;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  &:active:not(:disabled),
+  &.active {
+    background: $color-primary-pressed;
+    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.15);
+  }
+}
+
+@mixin interactive-secondary-states {
+  &:hover:not(:disabled) {
+    background-color: $color-background-hover;
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1);
+    border-color: $color-border-focus;
+  }
+
+  // Secondary Pressed
+  &:active:not(:disabled) {
+    background: $color-background-selected;
+    box-shadow: inset 0px 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  // Focus override for secondary (often matches border color)
+  &:focus-visible {
+    outline: 2px solid $color-border-focus;
+    // z-index managed by base or context
+  }
+}
+
+// HOST CONTAINER for PromptEditor to ensure consistent width/centering
+@mixin prompt-editor-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  // Ensure the container allows PromptEditor's internal max-width (75rem) to center itself
+  align-items: center;
+
+  // Reset side padding if the host has it, because PromptEditor has its own internal padding (3rem)
+  // We expect the host to use vertical padding if needed, but horizontal padding should be handled carefully
+  // so we don't double-pad and shrink the editor.
+  padding-left: 0;
+  padding-right: 0;
+
+  background-color: $color-request-container-background; // Match the chat background
+
+  @include respond-to-tablet {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    // Ensure no border radius on full screen mobile view if valid
+    border-radius: 0;
+  }
+}
