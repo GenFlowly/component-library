@@ -30,12 +30,14 @@ describe('Icon Component', () => {
     expect(icon).toHaveAttribute('role', 'img');
   });
 
-  test('renders with default size and alt', () => {
+  test('is decorative by default: no alt means aria-hidden and no role', () => {
     render(<Icon src={TEST_ICON_SRC} data-testid="default-icon" />);
     const icon = screen.getByTestId('default-icon');
 
     expect(icon).toHaveStyle({ width: '1em', height: '1em' });
-    expect(icon).toHaveAttribute('aria-label', 'icon');
+    expect(icon).toHaveAttribute('aria-hidden', 'true');
+    expect(icon).not.toHaveAttribute('role');
+    expect(icon).not.toHaveAttribute('aria-label');
   });
 
   test('applies custom className', () => {

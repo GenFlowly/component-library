@@ -145,9 +145,6 @@
       "copied": "✓ Copied",
       "copy": "Copy"
     },
-    "icon": {
-      "defaultAlt": "icon"
-    },
     "inputSelectWithHint": {
       "placeholder": "Select an option"
     },
