@@ -21,7 +21,7 @@ const meta: Meta<typeof PillButtonGroup> = {
 - **\`maxSelection\`:** caps the number of simultaneous selections. Without \`replaceOldestAtMax\`, the remaining unselected buttons become disabled (\`disabled\` + \`aria-disabled\`) while the cap is reached.
 - **\`replaceOldestAtMax\`** (default \`false\`): changes the cap behavior to first-in, first-out — picking a new option at capacity evicts the oldest selection instead of disabling buttons.
 - Empty or missing \`options\` renders nothing.
-- Each option can carry a 16px leading icon via \`icon\`.
+- Each option can carry a 16px leading icon via \`icon\` (decorative: \`aria-hidden\`; the localized button \`aria-label\` carries the name). The wrapper is \`role="group"\` — pass \`aria-label\` to name it (e.g. "AI vendors").
 - i18n: button \`aria-label\`s are localized with \`useTranslation\` (react-i18next key \`common.pillButtonGroup.toggleOption\`), so a consuming app needs an i18next provider; \`aria-pressed\` reflects selection.
 
 ### When to use

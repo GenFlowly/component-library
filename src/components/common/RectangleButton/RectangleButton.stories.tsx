@@ -68,7 +68,7 @@ export const WithIcon: Story = {
     docs: {
       description: {
         story:
-          'Passing an `icon` source renders an icon after the label (trailing position).',
+          'Passing an `icon` source renders an icon after the label (decorative: \`aria-hidden\`, the label carries the accessible name) (trailing position).',
       },
     },
   },

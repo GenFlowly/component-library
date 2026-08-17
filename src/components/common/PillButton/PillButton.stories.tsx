@@ -14,7 +14,7 @@ const meta: Meta<typeof PillButton> = {
 ### Anatomy / Behavior
 
 - Renders a native \`<button>\`; because the props extend \`ButtonHTMLAttributes<HTMLButtonElement>\`, every standard button attribute (\`onClick\`, \`disabled\`, \`type\`, \`aria-*\`, ...) passes straight through.
-- \`icon\` (an icon source string) renders a 16px \`Icon\` before the label; omit it for a text-only pill.
+- \`icon\` (an icon source string) renders a 16px \`Icon\` before the label (decorative: \`aria-hidden\`, the label carries the accessible name); omit it for a text-only pill.
 - \`label\` accepts any ReactNode. A plain string is wrapped in a \`<span>\` so it can receive a \`-text\` suffixed test id; other nodes render as-is.
 - \`variant\` defaults to \`primary\`; \`secondary\` and \`danger\` swap the style class.
 - \`data-testid\` on the root also derives \`-icon\` and \`-text\` suffixed ids.
