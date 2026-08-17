@@ -1,0 +1,82 @@
+import { Meta, Canvas } from '@storybook/blocks';
+import * as ToggleGroupButtonStories from './ToggleGroupButton.stories';
+import * as CheckboxButtonGroupStories from './CheckboxButtonGroup.stories';
+import * as RadioButtonGroupStories from './RadioButtonGroup.stories';
+
+<Meta title="Components/ToggleGroup/About" />
+
+# ToggleGroup family
+
+Three components, one implementation: **`ToggleGroupButton`** is the real
+component — a controlled row of pill-style toggle buttons. **`RadioButtonGroup`**
+and **`CheckboxButtonGroup`** are thin presets that render `ToggleGroupButton`
+with a fixed behavior, so consumers get familiar radio/checkbox semantics
+without wiring the flags themselves.
+
+```
+ToggleGroupButton          ← base: options + selectedValues + behavior flags
+├── RadioButtonGroup       ← preset: singleSelection (at most one selected)
+└── CheckboxButtonGroup    ← preset: replaceOldestAtMax + required maxSelection
+```
+
+All three are fully controlled: you pass `options: ToggleOption[]`
+(`{ id, label, icon? }`), the current `selectedValues: string[]`, and an
+`onChange(selectedValues)` callback. Selection state always lives in the parent
+— even `RadioButtonGroup` reports its single selection as a one-element array,
+so swapping one variant for another never changes the callback contract.
+
+## How the presets map to the base
+
+| Prop                 | ToggleGroupButton    | RadioButtonGroup | CheckboxButtonGroup |
+| -------------------- | -------------------- | ---------------- | ------------------- |
+| `singleSelection`    | opt-in (default off) | **forced on**    | off                 |
+| `maxSelection`       | optional             | n/a              | **required**        |
+| `replaceOldestAtMax` | opt-in (default off) | n/a              | **forced on**       |
+| `allowEmpty`         | default `false`      | default `false`  | default `false`     |
+
+Behavior notes:
+
+- **`allowEmpty: false`** (the default everywhere) means clicking the last
+  selected button does nothing — the group can never reach an empty selection.
+- **`replaceOldestAtMax`** changes what happens at the `maxSelection` cap:
+  instead of the unselected buttons becoming inert, picking a new option evicts
+  the _oldest_ selection (first-in, first-out).
+- Without `replaceOldestAtMax`, hitting `maxSelection` simply ignores further
+  selections until something is deselected.
+
+## Which one should I use?
+
+- At most one active option (view switcher, mode picker) → **RadioButtonGroup**
+- Several active options up to a cap, newest wins (column pickers, filters
+  with limited slots) → **CheckboxButtonGroup**
+- Anything else (unlimited multi-select, custom cap behavior) → the base
+  **ToggleGroupButton**
+
+## Live examples
+
+### ToggleGroupButton (base)
+
+<Canvas of={ToggleGroupButtonStories.MultiSelect} />
+<Canvas of={ToggleGroupButtonStories.WithIcons} />
+
+### RadioButtonGroup
+
+<Canvas of={RadioButtonGroupStories.Default} />
+
+### CheckboxButtonGroup
+
+<Canvas of={CheckboxButtonGroupStories.MaxTwoReplacesOldest} />
+
+## Real-world usage
+
+In `genai-react-app`, the AI response block (`ResponseWidget/Response.tsx`)
+uses the two presets as its **vendor picker** (OpenAI / Claude / Gemini), and
+switches between them responsively:
+
+- more vendors available than response columns fit on screen →
+  `RadioButtonGroup` (view one vendor at a time)
+- everything fits → `CheckboxButtonGroup` with `maxSelection` set to the column
+  limit (show several side by side; the newest pick replaces the oldest)
+
+Both with `allowEmpty={false}`, so at least one vendor's response is always
+visible.

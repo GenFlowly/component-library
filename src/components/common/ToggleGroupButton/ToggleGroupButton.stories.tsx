@@ -4,7 +4,7 @@ import ToggleGroupButton, { ToggleOption } from './ToggleGroupButton';
 import { ICONS } from '../../../constants/icons';
 
 const meta: Meta<typeof ToggleGroupButton> = {
-  title: 'Components/ToggleGroupButton',
+  title: 'Components/ToggleGroup/ToggleGroupButton',
   component: ToggleGroupButton,
   tags: ['autodocs'],
 };

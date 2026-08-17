@@ -19,6 +19,12 @@ const ThemeDecorator = (
 
 const preview: Preview = {
   parameters: {
+    options: {
+      // Keep grouped-family folders reading top-down: overview docs first.
+      storySort: {
+        order: ['Components', ['ToggleGroup', ['About', '*'], '*'], '*'],
+      },
+    },
     actions: { argTypesRegex: '^on[A-Z].*' },
     controls: {
       matchers: {

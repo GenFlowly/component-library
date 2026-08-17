@@ -4,7 +4,7 @@ import CheckboxButtonGroup from './CheckboxButtonGroup';
 import { ToggleOption } from './ToggleGroupButton';
 
 const meta: Meta<typeof CheckboxButtonGroup> = {
-  title: 'Components/CheckboxButtonGroup',
+  title: 'Components/ToggleGroup/CheckboxButtonGroup',
   component: CheckboxButtonGroup,
   tags: ['autodocs'],
 };
