@@ -14,8 +14,12 @@ type Story = StoryObj<typeof Tooltip>;
 export const Default: Story = {
   args: {
     content: 'Helpful tooltip text',
-    children: <button>Hover me</button>,
   },
+  render: args => (
+    <Tooltip {...args}>
+      <button>Hover me</button>
+    </Tooltip>
+  ),
   decorators: [
     Story => (
       <div
@@ -55,8 +59,12 @@ export const FullWidth: Story = {
   args: {
     content: 'This trigger stretches to the full width of its container',
     fullWidth: true,
-    children: <button style={{ width: '100%' }}>Full-width trigger</button>,
   },
+  render: args => (
+    <Tooltip {...args}>
+      <button style={{ width: '100%' }}>Full-width trigger</button>
+    </Tooltip>
+  ),
   decorators: [
     Story => (
       <div style={{ padding: '6rem 2rem', width: 320 }}>

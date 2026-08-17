@@ -14,7 +14,6 @@ type Story = StoryObj<typeof MultiPurposeButton>;
 export const Default: Story = {
   args: {
     label: 'Submit',
-    onClick: () => {},
   },
 };
 
@@ -22,7 +21,6 @@ export const WithIcon: Story = {
   args: {
     label: 'Copy to clipboard',
     icon: ICONS.COPY,
-    onClick: () => {},
   },
 };
 
@@ -30,6 +28,5 @@ export const Disabled: Story = {
   args: {
     label: 'Submit',
     disabled: true,
-    onClick: () => {},
   },
 };

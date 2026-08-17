@@ -13,7 +13,6 @@ type Story = StoryObj<typeof UserAvatarButton>;
 export const Default: Story = {
   args: {
     displayName: 'Jane Doe',
-    onClick: () => console.log('avatar clicked'),
   },
 };
 
@@ -21,7 +20,6 @@ export const WithPicture: Story = {
   args: {
     displayName: 'Jane Doe',
     displayPicture: 'https://i.pravatar.cc/80?img=5',
-    onClick: () => console.log('avatar clicked'),
   },
 };
 

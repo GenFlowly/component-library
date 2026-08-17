@@ -100,25 +100,32 @@ const groups: SidebarListGroup[] = [
 export const Default: Story = {
   args: {
     title: 'History',
-    groups,
     isLoading: false,
     hasError: false,
     errorText: 'Could not load conversations.',
     emptyText: 'No conversations yet.',
     listAriaLabel: 'Conversation history',
   },
+  // `groups` contains callbacks and icon nodes, so it stays out of `args`.
+  render: args => <SidebarListPanel {...args} groups={groups} />,
 };
 
 export const WithLoadMore: Story = {
   args: {
     ...Default.args,
-    footer: (
-      <SidebarListLoadMore
-        label="Load more"
-        onClick={() => console.log('load more')}
-      />
-    ),
   },
+  render: args => (
+    <SidebarListPanel
+      {...args}
+      groups={groups}
+      footer={
+        <SidebarListLoadMore
+          label="Load more"
+          onClick={() => console.log('load more')}
+        />
+      }
+    />
+  ),
 };
 
 export const Loading: Story = {

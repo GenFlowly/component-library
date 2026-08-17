@@ -16,7 +16,6 @@ export const Default: Story = {
     top: 120,
     left: 160,
     visible: true,
-    onMarkReusable: () => console.log('mark as reusable'),
   },
   decorators: [
     Story => (

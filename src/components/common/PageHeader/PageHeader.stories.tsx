@@ -22,23 +22,33 @@ export const Default: Story = {
 export const WithActions: Story = {
   args: {
     title: 'Team settings',
-    actions: (
-      <>
-        <PillButton
-          label="Invite member"
-          icon={ICONS.USER_CIRCLE}
-          variant="primary"
-        />
-        <PillButton label="Export" icon={ICONS.COPY} variant="secondary" />
-      </>
-    ),
   },
+  render: args => (
+    <PageHeader
+      {...args}
+      actions={
+        <>
+          <PillButton
+            label="Invite member"
+            icon={ICONS.USER_CIRCLE}
+            variant="primary"
+          />
+          <PillButton label="Export" icon={ICONS.COPY} variant="secondary" />
+        </>
+      }
+    />
+  ),
 };
 
 export const LongTitle: Story = {
   args: {
     title:
       'A very long page title that should truncate gracefully when it runs out of horizontal space in the header',
-    actions: <PillButton label="Edit" variant="secondary" />,
   },
+  render: args => (
+    <PageHeader
+      {...args}
+      actions={<PillButton label="Edit" variant="secondary" />}
+    />
+  ),
 };

@@ -72,11 +72,18 @@ export const Loading: Story = {
 export const WithSubheader: Story = {
   args: {
     title: 'Assistant',
-    subheader: (
-      <div style={{ fontStyle: 'italic', opacity: 0.7, padding: '0.25rem 0' }}>
-        Thought for 12 seconds
-      </div>
-    ),
     content: markdownContent,
   },
+  render: args => (
+    <TextContainer
+      {...args}
+      subheader={
+        <div
+          style={{ fontStyle: 'italic', opacity: 0.7, padding: '0.25rem 0' }}
+        >
+          Thought for 12 seconds
+        </div>
+      }
+    />
+  ),
 };

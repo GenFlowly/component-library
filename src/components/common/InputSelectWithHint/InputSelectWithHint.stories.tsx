@@ -60,20 +60,22 @@ const WithCtaOptionDemo = (args: InputSelectWithHintProps) => {
   return <InputSelectWithHint {...args} value={value} onChange={setValue} />;
 };
 
+// Kept out of `args`: contains a ctaAction callback, which is not serializable.
+const projectOptions: SelectOption[] = [
+  { label: 'Website redesign', value: 'website' },
+  { label: 'Mobile app', value: 'mobile' },
+  {
+    label: '+ Create new project…',
+    value: '__create',
+    isCta: true,
+    ctaAction: () => alert('Create project clicked'),
+  },
+];
+
 export const WithCtaOption: Story = {
-  render: args => <WithCtaOptionDemo {...args} />,
+  render: args => <WithCtaOptionDemo {...args} options={projectOptions} />,
   args: {
     hint: 'Project',
-    options: [
-      { label: 'Website redesign', value: 'website' },
-      { label: 'Mobile app', value: 'mobile' },
-      {
-        label: '+ Create new project…',
-        value: '__create',
-        isCta: true,
-        ctaAction: () => alert('Create project clicked'),
-      },
-    ],
   },
 };
 

@@ -54,8 +54,8 @@ const navContent = (
 export const Default: Story = {
   args: {
     storageKey: 'storybook.resizable-sidebar.default',
-    children: navContent,
   },
+  render: args => <ResizableSidebar {...args}>{navContent}</ResizableSidebar>,
 };
 
 export const CustomBounds: Story = {
@@ -63,25 +63,29 @@ export const CustomBounds: Story = {
     storageKey: 'storybook.resizable-sidebar.custom-bounds',
     minWidth: 240,
     maxWidth: 360,
-    children: (
+  },
+  render: args => (
+    <ResizableSidebar {...args}>
       <div style={{ padding: '1rem' }}>
         <strong>Constrained panel</strong>
         <p>This sidebar can only be resized between 240px and 360px.</p>
       </div>
-    ),
-  },
+    </ResizableSidebar>
+  ),
 };
 
 export const WithLongContent: Story = {
   args: {
     storageKey: 'storybook.resizable-sidebar.long-content',
-    children: (
+  },
+  render: args => (
+    <ResizableSidebar {...args}>
       <div style={{ padding: '1rem', overflowY: 'auto', height: '100%' }}>
         <strong>Long content</strong>
         {Array.from({ length: 20 }).map((_, i) => (
           <p key={i}>Sidebar item {i + 1}</p>
         ))}
       </div>
-    ),
-  },
+    </ResizableSidebar>
+  ),
 };

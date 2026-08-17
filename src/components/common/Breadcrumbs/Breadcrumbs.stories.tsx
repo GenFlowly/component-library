@@ -1,3 +1,4 @@
+import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import Breadcrumbs from './Breadcrumbs';
 
@@ -11,13 +12,16 @@ export default meta;
 type Story = StoryObj<typeof Breadcrumbs>;
 
 export const Default: Story = {
-  args: {
-    items: [
-      { label: 'Menu', onClick: () => {} },
-      { label: 'Settings', onClick: () => {} },
-      { label: 'Profile' },
-    ],
-  },
+  render: args => (
+    <Breadcrumbs
+      {...args}
+      items={[
+        { label: 'Menu', onClick: () => {} },
+        { label: 'Settings', onClick: () => {} },
+        { label: 'Profile' },
+      ]}
+    />
+  ),
 };
 
 export const SingleLevel: Story = {
@@ -27,23 +31,29 @@ export const SingleLevel: Story = {
 };
 
 export const AllClickable: Story = {
-  args: {
-    items: [
-      { label: 'Workspace', onClick: () => {} },
-      { label: 'Projects', onClick: () => {} },
-      { label: 'Website redesign', onClick: () => {} },
-    ],
-  },
+  render: args => (
+    <Breadcrumbs
+      {...args}
+      items={[
+        { label: 'Workspace', onClick: () => {} },
+        { label: 'Projects', onClick: () => {} },
+        { label: 'Website redesign', onClick: () => {} },
+      ]}
+    />
+  ),
 };
 
 export const DeepTrail: Story = {
-  args: {
-    items: [
-      { label: 'Home', onClick: () => {} },
-      { label: 'Organization', onClick: () => {} },
-      { label: 'Teams', onClick: () => {} },
-      { label: 'Design', onClick: () => {} },
-      { label: 'Members' },
-    ],
-  },
+  render: args => (
+    <Breadcrumbs
+      {...args}
+      items={[
+        { label: 'Home', onClick: () => {} },
+        { label: 'Organization', onClick: () => {} },
+        { label: 'Teams', onClick: () => {} },
+        { label: 'Design', onClick: () => {} },
+        { label: 'Members' },
+      ]}
+    />
+  ),
 };
