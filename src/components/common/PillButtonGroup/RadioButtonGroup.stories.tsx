@@ -1,10 +1,10 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import RadioButtonGroup from './RadioButtonGroup';
-import { ToggleOption } from './ToggleGroupButton';
+import { ToggleOption } from './PillButtonGroup';
 
 const meta: Meta<typeof RadioButtonGroup> = {
-  title: 'Components/ToggleGroup/RadioButtonGroup',
+  title: 'Components/ButtonGroups/RadioButtonGroup',
   component: RadioButtonGroup,
   tags: ['autodocs'],
 };

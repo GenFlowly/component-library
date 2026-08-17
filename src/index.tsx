@@ -6,10 +6,10 @@ export { default as MultiPurposeButton } from './components/common/MultiPurposeB
 export { InputTextWithHint } from './components/common/InputTextWithHint/InputTextWithHint';
 export { InputSelectWithHint } from './components/common/InputSelectWithHint/InputSelectWithHint';
 export type { SelectOption } from './components/common/InputSelectWithHint/InputSelectWithHint';
-export { default as ToggleGroupButton } from './components/common/ToggleGroupButton/ToggleGroupButton';
-export type { ToggleOption } from './components/common/ToggleGroupButton/ToggleGroupButton';
-export { default as CheckboxButtonGroup } from './components/common/ToggleGroupButton/CheckboxButtonGroup';
-export { default as RadioButtonGroup } from './components/common/ToggleGroupButton/RadioButtonGroup';
+export { default as PillButtonGroup } from './components/common/PillButtonGroup/PillButtonGroup';
+export type { ToggleOption } from './components/common/PillButtonGroup/PillButtonGroup';
+export { default as CheckboxButtonGroup } from './components/common/PillButtonGroup/CheckboxButtonGroup';
+export { default as RadioButtonGroup } from './components/common/PillButtonGroup/RadioButtonGroup';
 export {
   default as PageHeader,
   pageHeaderStyles,

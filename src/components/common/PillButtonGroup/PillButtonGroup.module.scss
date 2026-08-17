@@ -62,7 +62,7 @@
 
     // This suggests I should perhaps copy the props or make the mixin accept content or just apply props directly.
     // Or, assume usage is consistent.
-    // Since `ToggleGroupButton` has specific `.active` exclusion for hover styles (to avoid overriding active primary style),
+    // Since `PillButtonGroup` has specific `.active` exclusion for hover styles (to avoid overriding active primary style),
     // using the mixin as-is might be tricky if the mixin selector isn't specific enough.
 
     // Strategy: Use mixin to generate the styles but override specific selectors if needed?
@@ -121,7 +121,7 @@
     // We just need color/border explicit if mixin doesn't set them (it sets bg/shadow).
     // Mixin: `background: $color-primary-pressed` (for active/active class).
     // Wait, PillButton Primary Active is `$color-primary-pressed`.
-    // But ToggleGroup Active usually just means "On" (Primary Color), not necessarily "Pressed" (Darker Primary).
+    // But PillButtonGroup Active usually just means "On" (Primary Color), not necessarily "Pressed" (Darker Primary).
     // User said "Active ... same as Pill Button".
     // PillButton.active IS `$color-primary-pressed`.
     // But usually a "Selected" toggle button is just Primary Color, not the Pressed variant of Primary.
@@ -131,7 +131,7 @@
     // So it should look like PillButton (Default), not PillButton (Pressed).
     // Unless "Active" here means "currently being clicked".
 
-    // "Active" in ToggleGroup usually means "Selected".
+    // "Active" in PillButtonGroup usually means "Selected".
     // If I make it Look like "Pressed PillButton", it will look dark/dull.
     // I should probably make it look like "Default PillButton".
 

@@ -1,10 +1,10 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import CheckboxButtonGroup from './CheckboxButtonGroup';
-import { ToggleOption } from './ToggleGroupButton';
+import { ToggleOption } from './PillButtonGroup';
 
 const meta: Meta<typeof CheckboxButtonGroup> = {
-  title: 'Components/ToggleGroup/CheckboxButtonGroup',
+  title: 'Components/ButtonGroups/CheckboxButtonGroup',
   component: CheckboxButtonGroup,
   tags: ['autodocs'],
 };

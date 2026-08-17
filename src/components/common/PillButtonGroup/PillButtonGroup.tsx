@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../Icon/Icon';
-import styles from './ToggleGroupButton.module.scss';
+import styles from './PillButtonGroup.module.scss';
 
 export interface ToggleOption {
   id: string;
@@ -9,7 +9,7 @@ export interface ToggleOption {
   icon?: string;
 }
 
-interface ToggleGroupButtonProps {
+interface PillButtonGroupProps {
   options: ToggleOption[];
   selectedValues: string[];
   onChange: (selectedValues: string[]) => void;
@@ -23,7 +23,7 @@ interface ToggleGroupButtonProps {
   'data-testid'?: string;
 }
 
-export default function ToggleGroupButton({
+export default function PillButtonGroup({
   options,
   selectedValues,
   onChange,
@@ -33,7 +33,7 @@ export default function ToggleGroupButton({
   replaceOldestAtMax = false,
   className = '',
   'data-testid': testId,
-}: ToggleGroupButtonProps): React.ReactElement {
+}: PillButtonGroupProps): React.ReactElement {
   const { t } = useTranslation();
 
   const handleToggle = (optionId: string) => {
@@ -98,7 +98,7 @@ export default function ToggleGroupButton({
             onClick={() => !isDisabled && handleToggle(option.id)}
             type="button"
             aria-pressed={isActive}
-            aria-label={t('common.toggleGroupButton.toggleOption', {
+            aria-label={t('common.pillButtonGroup.toggleOption', {
               label: option.label,
             })}
             aria-disabled={isDisabled}

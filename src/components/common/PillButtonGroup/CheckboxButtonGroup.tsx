@@ -1,5 +1,5 @@
 import React from 'react';
-import ToggleGroupButton, { ToggleOption } from './ToggleGroupButton';
+import PillButtonGroup, { ToggleOption } from './PillButtonGroup';
 
 interface CheckboxButtonGroupProps {
   options: ToggleOption[];
@@ -12,7 +12,7 @@ interface CheckboxButtonGroupProps {
 }
 
 /**
- * Checkbox-style view of ToggleGroupButton: options toggle independently
+ * Checkbox-style view of PillButtonGroup: options toggle independently
  * and other selected buttons are left alone until maxSelection is reached —
  * from then on, selecting a new option drops the oldest selection.
  */
@@ -26,7 +26,7 @@ export default function CheckboxButtonGroup({
   'data-testid': testId,
 }: CheckboxButtonGroupProps): React.ReactElement {
   return (
-    <ToggleGroupButton
+    <PillButtonGroup
       options={options}
       selectedValues={selectedValues}
       onChange={onChange}

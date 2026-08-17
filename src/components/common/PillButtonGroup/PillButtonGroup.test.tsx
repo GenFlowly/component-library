@@ -1,10 +1,10 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import ToggleGroupButton from './ToggleGroupButton';
+import PillButtonGroup from './PillButtonGroup';
 import '@testing-library/jest-dom';
 
-describe('ToggleGroupButton Component', () => {
+describe('PillButtonGroup Component', () => {
   const mockOnChange = jest.fn();
   const options = [
     { id: 'opt1', label: 'Option 1' },
@@ -22,7 +22,7 @@ describe('ToggleGroupButton Component', () => {
   });
 
   test('renders all options correctly', () => {
-    render(<ToggleGroupButton {...defaultProps} />);
+    render(<PillButtonGroup {...defaultProps} />);
 
     const group = screen.getByTestId('test-group');
     expect(group).toBeInTheDocument();
@@ -49,7 +49,7 @@ describe('ToggleGroupButton Component', () => {
   });
 
   test('calls onChange when unselected option is clicked (select)', async () => {
-    render(<ToggleGroupButton {...defaultProps} />);
+    render(<PillButtonGroup {...defaultProps} />);
     const opt2 = screen.getByTestId('test-group-option-opt2');
 
     await userEvent.click(opt2);
@@ -60,7 +60,7 @@ describe('ToggleGroupButton Component', () => {
 
   test('calls onChange when selected option is clicked (deselect)', async () => {
     render(
-      <ToggleGroupButton {...defaultProps} selectedValues={['opt1', 'opt2']} />
+      <PillButtonGroup {...defaultProps} selectedValues={['opt1', 'opt2']} />
     );
     const opt2 = screen.getByTestId('test-group-option-opt2');
 
@@ -72,7 +72,7 @@ describe('ToggleGroupButton Component', () => {
 
   test('respects allowEmpty=false (cannot deselect last item)', async () => {
     render(
-      <ToggleGroupButton
+      <PillButtonGroup
         {...defaultProps}
         selectedValues={['opt1']}
         allowEmpty={false}
@@ -87,7 +87,7 @@ describe('ToggleGroupButton Component', () => {
 
   test('respects allowEmpty=true (can deselect last item)', async () => {
     render(
-      <ToggleGroupButton
+      <PillButtonGroup
         {...defaultProps}
         selectedValues={['opt1']}
         allowEmpty={true}
@@ -102,7 +102,7 @@ describe('ToggleGroupButton Component', () => {
   });
 
   test('handles focus navigation', async () => {
-    render(<ToggleGroupButton {...defaultProps} />);
+    render(<PillButtonGroup {...defaultProps} />);
     const opt1 = screen.getByTestId('test-group-option-opt1');
     const opt2 = screen.getByTestId('test-group-option-opt2');
 
@@ -118,7 +118,7 @@ describe('ToggleGroupButton Component', () => {
 
   test('singleSelection mode: only one option selected at a time', async () => {
     render(
-      <ToggleGroupButton
+      <PillButtonGroup
         {...defaultProps}
         selectedValues={['opt1']}
         singleSelection={true}
@@ -135,7 +135,7 @@ describe('ToggleGroupButton Component', () => {
 
   test('singleSelection mode: clicking selected item does nothing', async () => {
     render(
-      <ToggleGroupButton
+      <PillButtonGroup
         {...defaultProps}
         selectedValues={['opt1']}
         singleSelection={true}
@@ -152,7 +152,7 @@ describe('ToggleGroupButton Component', () => {
 
   test('singleSelection mode: works with allowEmpty=true', async () => {
     render(
-      <ToggleGroupButton
+      <PillButtonGroup
         {...defaultProps}
         selectedValues={['opt1']}
         singleSelection={true}

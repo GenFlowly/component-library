@@ -1,16 +1,16 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import ToggleGroupButton, { ToggleOption } from './ToggleGroupButton';
+import PillButtonGroup, { ToggleOption } from './PillButtonGroup';
 import { ICONS } from '../../../constants/icons';
 
-const meta: Meta<typeof ToggleGroupButton> = {
-  title: 'Components/ToggleGroup/ToggleGroupButton',
-  component: ToggleGroupButton,
+const meta: Meta<typeof PillButtonGroup> = {
+  title: 'Components/ButtonGroups/PillButtonGroup',
+  component: PillButtonGroup,
   tags: ['autodocs'],
 };
 
 export default meta;
-type Story = StoryObj<typeof ToggleGroupButton>;
+type Story = StoryObj<typeof PillButtonGroup>;
 
 const options: ToggleOption[] = [
   { id: 'chat', label: 'Chat' },
@@ -19,12 +19,12 @@ const options: ToggleOption[] = [
   { id: 'settings', label: 'Settings' },
 ];
 
-type ToggleGroupButtonProps = React.ComponentProps<typeof ToggleGroupButton>;
+type PillButtonGroupProps = React.ComponentProps<typeof PillButtonGroup>;
 
-const MultiSelectDemo = (args: ToggleGroupButtonProps) => {
+const MultiSelectDemo = (args: PillButtonGroupProps) => {
   const [selected, setSelected] = React.useState<string[]>(['chat']);
   return (
-    <ToggleGroupButton
+    <PillButtonGroup
       {...args}
       selectedValues={selected}
       onChange={setSelected}
@@ -40,10 +40,10 @@ export const MultiSelect: Story = {
   },
 };
 
-const SingleSelectionDemo = (args: ToggleGroupButtonProps) => {
+const SingleSelectionDemo = (args: PillButtonGroupProps) => {
   const [selected, setSelected] = React.useState<string[]>(['notes']);
   return (
-    <ToggleGroupButton
+    <PillButtonGroup
       {...args}
       selectedValues={selected}
       onChange={setSelected}
@@ -59,10 +59,10 @@ export const SingleSelection: Story = {
   },
 };
 
-const MaxTwoSelectionsDemo = (args: ToggleGroupButtonProps) => {
+const MaxTwoSelectionsDemo = (args: PillButtonGroupProps) => {
   const [selected, setSelected] = React.useState<string[]>(['chat', 'notes']);
   return (
-    <ToggleGroupButton
+    <PillButtonGroup
       {...args}
       selectedValues={selected}
       onChange={setSelected}
@@ -79,10 +79,10 @@ export const MaxTwoSelections: Story = {
   },
 };
 
-const WithIconsDemo = (args: ToggleGroupButtonProps) => {
+const WithIconsDemo = (args: PillButtonGroupProps) => {
   const [selected, setSelected] = React.useState<string[]>(['me']);
   return (
-    <ToggleGroupButton
+    <PillButtonGroup
       {...args}
       selectedValues={selected}
       onChange={setSelected}

@@ -1,5 +1,5 @@
 import React from 'react';
-import ToggleGroupButton, { ToggleOption } from './ToggleGroupButton';
+import PillButtonGroup, { ToggleOption } from './PillButtonGroup';
 
 interface RadioButtonGroupProps {
   options: ToggleOption[];
@@ -11,7 +11,7 @@ interface RadioButtonGroupProps {
 }
 
 /**
- * Radio-style view of ToggleGroupButton: selecting a button toggles any
+ * Radio-style view of PillButtonGroup: selecting a button toggles any
  * other selected button off, so at most one option is selected.
  */
 export default function RadioButtonGroup({
@@ -23,7 +23,7 @@ export default function RadioButtonGroup({
   'data-testid': testId,
 }: RadioButtonGroupProps): React.ReactElement {
   return (
-    <ToggleGroupButton
+    <PillButtonGroup
       options={options}
       selectedValues={selectedValues}
       onChange={onChange}

@@ -1,20 +1,20 @@
 import { Meta, Canvas } from '@storybook/blocks';
-import * as ToggleGroupButtonStories from './ToggleGroupButton.stories';
+import * as PillButtonGroupStories from './PillButtonGroup.stories';
 import * as CheckboxButtonGroupStories from './CheckboxButtonGroup.stories';
 import * as RadioButtonGroupStories from './RadioButtonGroup.stories';
 
-<Meta title="Components/ToggleGroup/About" />
+<Meta title="Components/ButtonGroups/About" />
 
-# ToggleGroup family
+# PillButtonGroup family
 
-Three components, one implementation: **`ToggleGroupButton`** is the real
+Three components, one implementation: **`PillButtonGroup`** is the real
 component — a controlled row of pill-style toggle buttons. **`RadioButtonGroup`**
-and **`CheckboxButtonGroup`** are thin presets that render `ToggleGroupButton`
+and **`CheckboxButtonGroup`** are thin presets that render `PillButtonGroup`
 with a fixed behavior, so consumers get familiar radio/checkbox semantics
 without wiring the flags themselves.
 
 ```
-ToggleGroupButton          ← base: options + selectedValues + behavior flags
+PillButtonGroup          ← base: options + selectedValues + behavior flags
 ├── RadioButtonGroup       ← preset: singleSelection (at most one selected)
 └── CheckboxButtonGroup    ← preset: replaceOldestAtMax + required maxSelection
 ```
@@ -27,7 +27,7 @@ so swapping one variant for another never changes the callback contract.
 
 ## How the presets map to the base
 
-| Prop                 | ToggleGroupButton    | RadioButtonGroup | CheckboxButtonGroup |
+| Prop                 | PillButtonGroup      | RadioButtonGroup | CheckboxButtonGroup |
 | -------------------- | -------------------- | ---------------- | ------------------- |
 | `singleSelection`    | opt-in (default off) | **forced on**    | off                 |
 | `maxSelection`       | optional             | n/a              | **required**        |
@@ -50,14 +50,14 @@ Behavior notes:
 - Several active options up to a cap, newest wins (column pickers, filters
   with limited slots) → **CheckboxButtonGroup**
 - Anything else (unlimited multi-select, custom cap behavior) → the base
-  **ToggleGroupButton**
+  **PillButtonGroup**
 
 ## Live examples
 
-### ToggleGroupButton (base)
+### PillButtonGroup (base)
 
-<Canvas of={ToggleGroupButtonStories.MultiSelect} />
-<Canvas of={ToggleGroupButtonStories.WithIcons} />
+<Canvas of={PillButtonGroupStories.MultiSelect} />
+<Canvas of={PillButtonGroupStories.WithIcons} />
 
 ### RadioButtonGroup
 
