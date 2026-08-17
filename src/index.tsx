@@ -39,16 +39,6 @@ export type { ToastMessage } from './components/common/Toast/Toast';
 export { default as MobileFullPageModal } from './components/common/MobileFullPageModal/MobileFullPageModal';
 
 // Branding
-export {
-  default as BrandName,
-  OpenAIBrandName,
-  ClaudeBrandName,
-  GeminiBrandName,
-  CollapsedOpenAIBrandName,
-  CollapsedClaudeBrandName,
-  CollapsedGeminiBrandName,
-  UserBrandName,
-} from './components/common/BrandName/BrandName';
 export { UserAvatarButton } from './components/common/UserAvatarButton/UserAvatarButton';
 
 // Content rendering / editing

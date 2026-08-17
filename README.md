@@ -8,7 +8,7 @@ Primitives: `Icon`, `PillButton`, `MultiPurposeButton`, `InputTextWithHint`, `In
 
 Overlays / self-contained UI: `Modal`, `Tooltip`, `CopyToClipboard`, `SidebarListPanel`, `ResizableSidebar`, `Toast` + `ToastContainer`, `MobileFullPageModal`
 
-Branding: `BrandName` (+ OpenAI/Claude/Gemini/User variants), `UserAvatarButton`
+Branding: `UserAvatarButton`
 
 Content: `TextContainer` (markdown rendering), `TextEditor` (markdown editor), `TextEditorTooltip`
 
