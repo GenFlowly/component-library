@@ -1,9 +1,9 @@
 import React, { useLayoutEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import PillButton from '../PillButton/PillButton';
-import styles from './RightSidebarMobileModal.module.scss';
+import styles from './MobileFullPageModal.module.scss';
 
-interface RightSidebarMobileModalProps {
+interface MobileFullPageModalProps {
   children: React.ReactNode;
   onClose: () => void;
   'data-testid'?: string;
@@ -15,11 +15,11 @@ interface RightSidebarMobileModalProps {
  * page's contexts and can interact with the page state.
  * Covers everything below the navbar — the navbar itself stays visible.
  */
-export default function RightSidebarMobileModal({
+export default function MobileFullPageModal({
   children,
   onClose,
   'data-testid': testId,
-}: RightSidebarMobileModalProps): React.ReactElement {
+}: MobileFullPageModalProps): React.ReactElement {
   const { t } = useTranslation();
   // Pin the modal directly below the navbar, whatever its rendered height is
   const [topOffset, setTopOffset] = useState(0);
@@ -40,17 +40,17 @@ export default function RightSidebarMobileModal({
       style={{ top: topOffset }}
       role="dialog"
       aria-modal="true"
-      aria-label={t('layout.rightSidebarMobileModal.aiSettings')}
-      data-testid={testId || 'right-sidebar-mobile-modal'}
+      aria-label={t('layout.mobileFullPageModal.aiSettings')}
+      data-testid={testId || 'mobile-full-page-modal'}
     >
       <div className={styles.sidebarContent}>{children}</div>
       <div className={styles.mobileFooter}>
         <PillButton
-          label={t('layout.rightSidebarMobileModal.closeSettings')}
+          label={t('layout.mobileFullPageModal.closeSettings')}
           variant="secondary"
           onClick={onClose}
           className={styles.closeSettingsButton}
-          data-testid="right-sidebar-close"
+          data-testid="mobile-full-page-modal-close"
         />
       </div>
     </div>

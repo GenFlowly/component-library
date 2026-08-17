@@ -1,10 +1,10 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import RightSidebarMobileModal from './RightSidebarMobileModal';
+import MobileFullPageModal from './MobileFullPageModal';
 
-const meta: Meta<typeof RightSidebarMobileModal> = {
-  title: 'Components/RightSidebarMobileModal',
-  component: RightSidebarMobileModal,
+const meta: Meta<typeof MobileFullPageModal> = {
+  title: 'Components/MobileFullPageModal',
+  component: MobileFullPageModal,
   tags: ['autodocs'],
   parameters: {
     // The component is a full-screen mobile overlay pinned below the page's <nav>
@@ -14,7 +14,7 @@ const meta: Meta<typeof RightSidebarMobileModal> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof RightSidebarMobileModal>;
+type Story = StoryObj<typeof MobileFullPageModal>;
 
 export const Default: Story = {
   render: function Render() {
@@ -23,7 +23,7 @@ export const Default: Story = {
       <div style={{ minHeight: '100vh' }}>
         <button onClick={() => setIsOpen(true)}>Open settings</button>
         {isOpen && (
-          <RightSidebarMobileModal onClose={() => setIsOpen(false)}>
+          <MobileFullPageModal onClose={() => setIsOpen(false)}>
             <div
               style={{
                 padding: '1rem',
@@ -51,7 +51,7 @@ export const Default: Story = {
                 />
               </label>
             </div>
-          </RightSidebarMobileModal>
+          </MobileFullPageModal>
         )}
       </div>
     );
@@ -82,7 +82,7 @@ export const BelowNavbar: Story = {
           <button onClick={() => setIsOpen(true)}>Open settings</button>
         </div>
         {isOpen && (
-          <RightSidebarMobileModal onClose={() => setIsOpen(false)}>
+          <MobileFullPageModal onClose={() => setIsOpen(false)}>
             <div style={{ padding: '1rem' }}>
               <strong>Sidebar widgets</strong>
               <p>
@@ -90,7 +90,7 @@ export const BelowNavbar: Story = {
                 below it.
               </p>
             </div>
-          </RightSidebarMobileModal>
+          </MobileFullPageModal>
         )}
       </div>
     );

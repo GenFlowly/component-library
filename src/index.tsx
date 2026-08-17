@@ -36,7 +36,7 @@ export { default as ResizableSidebar } from './components/common/ResizableSideba
 export type { ResizableSidebarProps } from './components/common/ResizableSidebar/ResizableSidebar';
 export { Toast, ToastContainer } from './components/common/Toast/Toast';
 export type { ToastMessage } from './components/common/Toast/Toast';
-export { default as RightSidebarMobileModal } from './components/common/RightSidebarMobileModal/RightSidebarMobileModal';
+export { default as MobileFullPageModal } from './components/common/MobileFullPageModal/MobileFullPageModal';
 
 // Branding
 export {

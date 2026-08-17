@@ -6,7 +6,7 @@ Stateless/presentational React components extracted from `genai-react-app`, publ
 
 Primitives: `Icon`, `PillButton`, `MultiPurposeButton`, `InputTextWithHint`, `InputSelectWithHint`, `ToggleGroupButton`, `CheckboxButtonGroup`, `RadioButtonGroup`, `PageHeader`, `Breadcrumbs`
 
-Overlays / self-contained UI: `Modal`, `Tooltip`, `CopyToClipboard`, `SidebarListPanel`, `ResizableSidebar`, `Toast` + `ToastContainer`, `RightSidebarMobileModal`
+Overlays / self-contained UI: `Modal`, `Tooltip`, `CopyToClipboard`, `SidebarListPanel`, `ResizableSidebar`, `Toast` + `ToastContainer`, `MobileFullPageModal`
 
 Branding: `BrandName` (+ OpenAI/Claude/Gemini/User variants), `UserAvatarButton`
 

@@ -360,7 +360,7 @@
       "collapseSidebar": "Collapse Sidebar",
       "expandSidebar": "Expand Sidebar"
     },
-    "rightSidebarMobileModal": {
+    "mobileFullPageModal": {
       "aiSettings": "AI Settings",
       "closeSettings": "Close Settings"
     }
