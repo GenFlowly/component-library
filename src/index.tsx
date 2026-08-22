@@ -41,6 +41,13 @@ export { default as MobileFullPageModal } from './components/common/MobileFullPa
 // Branding
 export { UserAvatarButton } from './components/common/UserAvatarButton/UserAvatarButton';
 
+// Cards
+export { default as InstructionTile } from './components/common/InstructionTile/InstructionTile';
+export type {
+  InstructionTileProps,
+  InstructionTileOwner,
+} from './components/common/InstructionTile/InstructionTile';
+
 // Content rendering / editing
 export {
   default as TextContainer,
