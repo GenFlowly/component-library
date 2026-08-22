@@ -3,6 +3,8 @@ import styles from './InstructionEditor.module.scss';
 import PillButton from '../../common/PillButton/PillButton';
 import { InputTextWithHint } from '../../common/InputTextWithHint/InputTextWithHint';
 import TextEditor from '../TextEditorWidget/TextEditor';
+import ResizableSidebar from '../../common/ResizableSidebar/ResizableSidebar';
+import SidebarListPanel from '../../common/SidebarListPanel/SidebarListPanel';
 
 export interface InstructionEditorLabels {
   back: string;
@@ -16,6 +18,9 @@ export interface InstructionEditorLabels {
   nameHint: string;
   namePlaceholder: string;
   instructionPrompt: string;
+  versionsTitle: string;
+  versionsEmpty: string;
+  versionsError: string;
 }
 
 const DEFAULT_LABELS: InstructionEditorLabels = {
@@ -30,7 +35,18 @@ const DEFAULT_LABELS: InstructionEditorLabels = {
   nameHint: 'Name',
   namePlaceholder: 'e.g. Marketing copy editor',
   instructionPrompt: 'Instruction',
+  versionsTitle: 'Versions',
+  versionsEmpty: 'No versions yet.',
+  versionsError: 'Failed to load versions.',
 };
+
+export interface InstructionVersionItem {
+  version: number;
+  /** Row label; defaults to `v{version}`. */
+  label?: string;
+  /** Second line under the label (name, timestamp, badges, ...). */
+  details?: React.ReactNode;
+}
 
 export interface InstructionEditorProps {
   /** Instruction name (controlled). */
@@ -66,6 +82,25 @@ export interface InstructionEditorProps {
   labels?: Partial<InstructionEditorLabels>;
   /** DOM id passed to the underlying TextEditor. @default 'instruction-editor' */
   editorId?: string;
+  /**
+   * Version history of the loaded instruction. When provided, a resizable
+   * sidebar listing the versions is rendered next to the editor. Omit
+   * (undefined) to hide the sidebar entirely, e.g. while creating a new
+   * instruction.
+   */
+  versions?: InstructionVersionItem[];
+  /** Version highlighted as active in the sidebar. */
+  selectedVersion?: number;
+  onSelectVersion?: (version: number) => void;
+  /** Shows the sidebar's loading skeleton while the history is fetched. */
+  versionsLoading?: boolean;
+  /** Shows the sidebar's error state when the history failed to load. */
+  versionsError?: boolean;
+  /**
+   * localStorage key the sidebar width is persisted under.
+   * @default 'instructionEditor.versionsWidth'
+   */
+  versionsStorageKey?: string;
   'data-testid'?: string;
 }
 
@@ -93,11 +128,18 @@ export default function InstructionEditor({
   onBack,
   labels,
   editorId = 'instruction-editor',
+  versions,
+  selectedVersion,
+  onSelectVersion,
+  versionsLoading = false,
+  versionsError = false,
+  versionsStorageKey = 'instructionEditor.versionsWidth',
   'data-testid': testId,
 }: InstructionEditorProps): React.ReactElement {
   const text: InstructionEditorLabels = { ...DEFAULT_LABELS, ...labels };
   const showShare = !readOnly && !isNew && canShare && !!onShare;
   const showDelete = !readOnly && !isNew && canDelete && !!onDelete;
+  const showVersions = versions !== undefined;
 
   return (
     <div className={styles.instructionEditor} data-testid={testId}>
@@ -146,37 +188,74 @@ export default function InstructionEditor({
         </div>
       </div>
 
-      <div className={styles.content}>
-        {readOnly && (
-          <div
-            className={styles.readonlyBanner}
-            data-testid={testId ? `${testId}-readonly-banner` : undefined}
+      <div className={styles.body}>
+        {showVersions && (
+          <ResizableSidebar
+            storageKey={versionsStorageKey}
+            data-testid={testId ? `${testId}-versions-sidebar` : undefined}
           >
-            {text.readonlyBanner}
-          </div>
+            <SidebarListPanel
+              title={text.versionsTitle}
+              isLoading={versionsLoading}
+              hasError={versionsError}
+              errorText={text.versionsError}
+              emptyText={text.versionsEmpty}
+              listAriaLabel={text.versionsTitle}
+              data-testid={testId ? `${testId}-versions` : undefined}
+              groups={[
+                {
+                  id: 'versions',
+                  label: '',
+                  items: (versions ?? []).map(v => ({
+                    id: `v${v.version}`,
+                    label: v.label ?? `v${v.version}`,
+                    details: v.details,
+                    isActive: v.version === selectedVersion,
+                    onSelect: () => onSelectVersion?.(v.version),
+                    testId: testId
+                      ? `${testId}-version-${v.version}`
+                      : undefined,
+                  })),
+                },
+              ]}
+            />
+          </ResizableSidebar>
         )}
-        <div className={styles.inputGroup}>
-          <InputTextWithHint
-            hint={text.nameHint}
-            value={name}
-            onChange={e => onNameChange(e.target.value)}
-            placeholder={text.namePlaceholder}
-            disabled={readOnly}
-            data-testid={testId ? `${testId}-name` : undefined}
-          />
-        </div>
 
-        <div className={styles.editorContainer}>
-          <label className={styles.editorLabel}>{text.instructionPrompt}</label>
-          <TextEditor
-            id={editorId}
-            value={instructionText}
-            onChange={onInstructionTextChange}
-            disableCache={true}
-            height="100%"
-            readOnly={readOnly}
-            data-testid={testId ? `${testId}-editor` : undefined}
-          />
+        <div className={styles.content}>
+          {readOnly && (
+            <div
+              className={styles.readonlyBanner}
+              data-testid={testId ? `${testId}-readonly-banner` : undefined}
+            >
+              {text.readonlyBanner}
+            </div>
+          )}
+          <div className={styles.inputGroup}>
+            <InputTextWithHint
+              hint={text.nameHint}
+              value={name}
+              onChange={e => onNameChange(e.target.value)}
+              placeholder={text.namePlaceholder}
+              disabled={readOnly}
+              data-testid={testId ? `${testId}-name` : undefined}
+            />
+          </div>
+
+          <div className={styles.editorContainer}>
+            <label className={styles.editorLabel}>
+              {text.instructionPrompt}
+            </label>
+            <TextEditor
+              id={editorId}
+              value={instructionText}
+              onChange={onInstructionTextChange}
+              disableCache={true}
+              height="100%"
+              readOnly={readOnly}
+              data-testid={testId ? `${testId}-editor` : undefined}
+            />
+          </div>
         </div>
       </div>
     </div>

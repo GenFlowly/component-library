@@ -55,4 +55,5 @@ export { default as InstructionEditor } from './components/widgets/InstructionEd
 export type {
   InstructionEditorProps,
   InstructionEditorLabels,
+  InstructionVersionItem,
 } from './components/widgets/InstructionEditorWidget/InstructionEditor';

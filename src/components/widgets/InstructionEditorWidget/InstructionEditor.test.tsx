@@ -121,6 +121,47 @@ describe('InstructionEditor', () => {
     );
   });
 
+  test('renders the version sidebar only when versions are provided', () => {
+    const { rerender } = render(<InstructionEditor {...baseProps} />);
+    expect(screen.queryByText('Versions')).not.toBeInTheDocument();
+
+    rerender(
+      <InstructionEditor
+        {...baseProps}
+        versions={[{ version: 2, details: 'Latest name' }, { version: 1 }]}
+        selectedVersion={2}
+      />
+    );
+    expect(screen.getByText('Versions')).toBeInTheDocument();
+    expect(screen.getByText('v2')).toBeInTheDocument();
+    expect(screen.getByText('Latest name')).toBeInTheDocument();
+    expect(screen.getByText('v1')).toBeInTheDocument();
+    expect(screen.getByText('v2').closest('button')).toHaveAttribute(
+      'aria-current',
+      'true'
+    );
+  });
+
+  test('selecting a version fires onSelectVersion', async () => {
+    const onSelectVersion = jest.fn();
+    render(
+      <InstructionEditor
+        {...baseProps}
+        versions={[{ version: 2 }, { version: 1 }]}
+        selectedVersion={2}
+        onSelectVersion={onSelectVersion}
+      />
+    );
+
+    await userEvent.click(screen.getByText('v1'));
+    expect(onSelectVersion).toHaveBeenCalledWith(1);
+  });
+
+  test('shows the empty state when the version list is empty', () => {
+    render(<InstructionEditor {...baseProps} versions={[]} />);
+    expect(screen.getByText('No versions yet.')).toBeInTheDocument();
+  });
+
   test('overrides default labels', () => {
     render(
       <InstructionEditor
