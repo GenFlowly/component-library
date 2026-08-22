@@ -7,32 +7,24 @@ import ResizableSidebar from '../../common/ResizableSidebar/ResizableSidebar';
 import SidebarListPanel from '../../common/SidebarListPanel/SidebarListPanel';
 
 export interface InstructionEditorLabels {
-  back: string;
-  createTitle: string;
-  editTitle: string;
   delete: string;
   save: string;
   saving: string;
   readonlyBanner: string;
   nameHint: string;
   namePlaceholder: string;
-  instructionPrompt: string;
   versionsTitle: string;
   versionsEmpty: string;
   versionsError: string;
 }
 
 const DEFAULT_LABELS: InstructionEditorLabels = {
-  back: '← Back',
-  createTitle: 'Create Instruction',
-  editTitle: 'Edit Instruction',
   delete: 'Delete',
   save: 'Save',
   saving: 'Saving…',
   readonlyBanner: 'You have view-only access to this instruction.',
   nameHint: 'Name',
   namePlaceholder: 'e.g. Marketing copy editor',
-  instructionPrompt: 'Instruction',
   versionsTitle: 'Versions',
   versionsEmpty: 'No versions yet.',
   versionsError: 'Failed to load versions.',
@@ -71,8 +63,6 @@ export interface InstructionEditorProps {
   canDelete?: boolean;
   onSave: () => void;
   onDelete?: () => void;
-  /** Renders a back button in the header when provided. */
-  onBack?: () => void;
   /** Override any of the default English strings (e.g. with i18n values). */
   labels?: Partial<InstructionEditorLabels>;
   /** DOM id passed to the underlying TextEditor. @default 'instruction-editor' */
@@ -117,7 +107,6 @@ export default function InstructionEditor({
   canDelete = false,
   onSave,
   onDelete,
-  onBack,
   labels,
   editorId = 'instruction-editor',
   versions,
@@ -137,21 +126,6 @@ export default function InstructionEditor({
 
   return (
     <div className={styles.instructionEditor} data-testid={testId}>
-      <div className={styles.header}>
-        <div className={styles.titleGroup}>
-          {onBack && (
-            <button
-              className={styles.backButton}
-              onClick={onBack}
-              data-testid={testId ? `${testId}-back` : undefined}
-            >
-              {text.back}
-            </button>
-          )}
-          <h2>{isNew ? text.createTitle : text.editTitle}</h2>
-        </div>
-      </div>
-
       <div className={styles.body}>
         <ResizableSidebar
           storageKey={versionsStorageKey}
@@ -211,9 +185,6 @@ export default function InstructionEditor({
           </div>
 
           <div className={styles.editorContainer}>
-            <label className={styles.editorLabel}>
-              {text.instructionPrompt}
-            </label>
             <TextEditor
               id={editorId}
               value={instructionText}
@@ -221,6 +192,7 @@ export default function InstructionEditor({
               disableCache={true}
               height="100%"
               readOnly={readOnly}
+              fullWidth
               data-testid={testId ? `${testId}-editor` : undefined}
             />
           </div>

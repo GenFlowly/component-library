@@ -34,7 +34,6 @@ describe('InstructionEditor', () => {
   test('shows Delete and Save for an owner editing an instruction', () => {
     render(<InstructionEditor {...baseProps} canDelete onDelete={jest.fn()} />);
 
-    expect(screen.getByText('Edit Instruction')).toBeInTheDocument();
     expect(screen.getByText('Delete')).toBeInTheDocument();
     expect(screen.getByText('Save')).toBeInTheDocument();
   });
@@ -44,7 +43,6 @@ describe('InstructionEditor', () => {
       <InstructionEditor {...baseProps} isNew canDelete onDelete={jest.fn()} />
     );
 
-    expect(screen.getByText('Create Instruction')).toBeInTheDocument();
     expect(screen.queryByText('Delete')).not.toBeInTheDocument();
     expect(screen.getByText('Save')).toBeInTheDocument();
   });
@@ -82,15 +80,11 @@ describe('InstructionEditor', () => {
     expect(screen.getByText('Save').closest('button')).toBeDisabled();
   });
 
-  test('fires callbacks for save, back and input changes', async () => {
-    const onBack = jest.fn();
-    render(<InstructionEditor {...baseProps} onBack={onBack} />);
+  test('fires callbacks for save and input changes', async () => {
+    render(<InstructionEditor {...baseProps} />);
 
     await userEvent.click(screen.getByText('Save'));
     expect(baseProps.onSave).toHaveBeenCalled();
-
-    await userEvent.click(screen.getByText('← Back'));
-    expect(onBack).toHaveBeenCalled();
 
     await userEvent.type(screen.getByDisplayValue('My persona'), '!');
     expect(baseProps.onNameChange).toHaveBeenCalledWith('My persona!');
@@ -146,11 +140,11 @@ describe('InstructionEditor', () => {
       <InstructionEditor
         {...baseProps}
         isNew
-        labels={{ createTitle: 'New public instruction', save: 'Publish' }}
+        labels={{ save: 'Publish', versionsTitle: 'History' }}
       />
     );
 
-    expect(screen.getByText('New public instruction')).toBeInTheDocument();
     expect(screen.getByText('Publish')).toBeInTheDocument();
+    expect(screen.getByText('History')).toBeInTheDocument();
   });
 });
