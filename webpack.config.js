@@ -37,6 +37,8 @@ module.exports = {
               modules: {
                 auto: /\.module\.\w+$/i,
                 exportLocalsConvention: 'asIs',
+                // Keep DOM class names readable for consumers/devtools
+                localIdentName: '[name]__[local]--[hash:base64:5]',
               },
             },
           },
