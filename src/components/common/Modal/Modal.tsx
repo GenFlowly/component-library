@@ -6,10 +6,22 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  /**
+   * Maximum width of the dialog (any CSS length). The modal still shrinks
+   * to 90% of the viewport on small screens.
+   * @default '500px'
+   */
+  maxWidth?: string;
   children: React.ReactNode;
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  maxWidth,
+  children,
+}) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,6 +49,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
       <div
         className={styles.modal}
         ref={modalRef}
+        style={maxWidth ? { maxWidth } : undefined}
         onClick={e => e.stopPropagation()}
       >
         <div className={styles.header}>
