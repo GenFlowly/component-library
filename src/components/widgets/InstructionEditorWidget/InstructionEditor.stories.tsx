@@ -62,9 +62,32 @@ export const WithVersionHistory: Story = {
       onDelete={() => {}}
 
       versions={[
-        { version: 3, details: 'Marketing copy editor' },
-        { version: 2, details: 'Marketing copy editor' },
-        { version: 1, details: 'Copy editor' },
+        {
+          version: 3,
+          details: 'Physics Wave Expert',
+          icon: '🔍⚡',
+          color: '#059669',
+          role: 'OWNER',
+          category: 'Research',
+          tags: ['physics', 'electromagnetic waves', 'citations'],
+        },
+        {
+          version: 2,
+          details: 'Applied Electromagnetics Physicist',
+          icon: '🔍⚡',
+          color: '#059669',
+          role: 'OWNER',
+          category: 'Research',
+          tags: ['physics', 'electromagnetism'],
+        },
+        {
+          version: 1,
+          details: 'Applied Electromagnetics Physicist',
+          icon: '🗄️',
+          color: '#475569',
+          role: 'OWNER',
+          category: 'Data work',
+        },
       ]}
       selectedVersion={3}
       onSelectVersion={() => {}}

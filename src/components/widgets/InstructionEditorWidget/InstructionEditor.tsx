@@ -36,6 +36,16 @@ export interface InstructionVersionItem {
   label?: string;
   /** Second line under the label (name, timestamp, badges, ...). */
   details?: React.ReactNode;
+  /** Emoji/icon shown before the details text. */
+  icon?: string;
+  /** Hex color of the version, rendered as a small swatch. */
+  color?: string;
+  /** Access role on this version (OWNER, EDIT, VIEW, ...), shown as a chip. */
+  role?: string;
+  /** Category of the version, shown as a chip. */
+  category?: string;
+  /** Tags of the version, shown as chips. */
+  tags?: string[];
 }
 
 export interface InstructionEditorProps {
@@ -143,22 +153,69 @@ export default function InstructionEditor({
               {
                 id: 'versions',
                 label: '',
-                items: versionList.map(v => ({
-                  id: `v${v.version}`,
-                  label: v.label ?? `v${v.version}`,
-                  details:
-                    v.version === latestVersion || v.details != null ? (
-                      <span className={styles.versionDetails}>
-                        {v.version === latestVersion && (
-                          <span className={styles.latestBadge}>Latest</span>
-                        )}
-                        {v.details}
-                      </span>
-                    ) : undefined,
-                  isActive: v.version === selectedVersion,
-                  onSelect: () => onSelectVersion?.(v.version),
-                  testId: testId ? `${testId}-version-${v.version}` : undefined,
-                })),
+                items: versionList.map(v => {
+                  const hasSummary =
+                    v.version === latestVersion ||
+                    v.details != null ||
+                    !!v.icon ||
+                    !!v.color;
+                  const hasMeta = !!v.role || !!v.category || !!v.tags?.length;
+                  return {
+                    id: `v${v.version}`,
+                    label: v.label ?? `v${v.version}`,
+                    details:
+                      hasSummary || hasMeta ? (
+                        <span className={styles.versionDetails}>
+                          {hasSummary && (
+                            <span className={styles.versionSummary}>
+                              {v.version === latestVersion && (
+                                <span className={styles.latestBadge}>
+                                  Latest
+                                </span>
+                              )}
+                              {v.icon && (
+                                <span className={styles.versionIcon}>
+                                  {v.icon}
+                                </span>
+                              )}
+                              {v.details}
+                              {v.color && (
+                                <span
+                                  className={styles.colorSwatch}
+                                  style={{ backgroundColor: v.color }}
+                                  title={v.color}
+                                />
+                              )}
+                            </span>
+                          )}
+                          {hasMeta && (
+                            <span className={styles.versionMeta}>
+                              {v.role && (
+                                <span className={styles.metaChip}>
+                                  {v.role}
+                                </span>
+                              )}
+                              {v.category && (
+                                <span className={styles.metaChip}>
+                                  {v.category}
+                                </span>
+                              )}
+                              {v.tags?.map(tag => (
+                                <span key={tag} className={styles.metaChip}>
+                                  #{tag}
+                                </span>
+                              ))}
+                            </span>
+                          )}
+                        </span>
+                      ) : undefined,
+                    isActive: v.version === selectedVersion,
+                    onSelect: () => onSelectVersion?.(v.version),
+                    testId: testId
+                      ? `${testId}-version-${v.version}`
+                      : undefined,
+                  };
+                }),
               },
             ]}
           />
