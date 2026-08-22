@@ -3,7 +3,8 @@ import styles from './InputTextWithHint.module.scss';
 import { Icon } from '../Icon/Icon';
 
 interface InputTextWithHintProps {
-  hint: string;
+  /** Prefix label; omit (with no icon) to render a plain input. */
+  hint?: string;
   icon?: string;
   placeholder?: string;
   value?: string;
@@ -32,22 +33,26 @@ export const InputTextWithHint: React.FC<InputTextWithHintProps> = ({
       className={`${styles.container} ${className}`}
       data-testid={testId ? `${testId}-container` : undefined}
     >
-      <div className={styles.prefixArea}>
-        {icon && (
-          <Icon
-            src={icon}
-            size={16}
-            className={styles.icon}
-            data-testid={testId ? `${testId}-icon` : undefined}
-          />
-        )}
-        <span
-          className={styles.hintText}
-          data-testid={testId ? `${testId}-hint` : undefined}
-        >
-          {hint}
-        </span>
-      </div>
+      {(icon || hint) && (
+        <div className={styles.prefixArea}>
+          {icon && (
+            <Icon
+              src={icon}
+              size={16}
+              className={styles.icon}
+              data-testid={testId ? `${testId}-icon` : undefined}
+            />
+          )}
+          {hint && (
+            <span
+              className={styles.hintText}
+              data-testid={testId ? `${testId}-hint` : undefined}
+            >
+              {hint}
+            </span>
+          )}
+        </div>
+      )}
       <input
         type={type}
         className={styles.inputElement}

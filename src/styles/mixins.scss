@@ -74,6 +74,7 @@
 
 @mixin input-with-hint-element {
   flex: 1;
+  min-width: 0; // Let the input shrink inside narrow containers (modals)
   border: none;
   padding: 0 1rem;
   height: 100%;
