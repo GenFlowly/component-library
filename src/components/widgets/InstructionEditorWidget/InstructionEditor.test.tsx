@@ -114,6 +114,35 @@ describe('InstructionEditor', () => {
     );
   });
 
+  test('renders icon, color swatch, role, category and tags on version rows', () => {
+    render(
+      <InstructionEditor
+        {...baseProps}
+        versions={[
+          {
+            version: 3,
+            details: 'Physics Wave Expert',
+            icon: '🔍⚡',
+            color: '#059669',
+            role: 'OWNER',
+            category: 'Research',
+            tags: ['physics', 'citations'],
+          },
+        ]}
+        selectedVersion={3}
+      />
+    );
+
+    expect(screen.getByText('🔍⚡')).toBeInTheDocument();
+    expect(screen.getByTitle('#059669')).toHaveStyle(
+      'background-color: #059669'
+    );
+    expect(screen.getByText('OWNER')).toBeInTheDocument();
+    expect(screen.getByText('Research')).toBeInTheDocument();
+    expect(screen.getByText('#physics')).toBeInTheDocument();
+    expect(screen.getByText('#citations')).toBeInTheDocument();
+  });
+
   test('selecting a version fires onSelectVersion', async () => {
     const onSelectVersion = jest.fn();
     render(
