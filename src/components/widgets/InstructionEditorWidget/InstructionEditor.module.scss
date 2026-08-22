@@ -58,53 +58,60 @@
 }
 
 .versionDetails {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.35rem;
-}
-
-.versionSummary {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
 }
 
-.versionIcon {
+// Access level of the loaded instruction, pinned to the panel's top right
+.accessLevel {
+  align-self: flex-end;
+  font-size: 0.8rem;
+  color: $color-text-muted;
+  margin-bottom: -0.75rem; // Tuck closer to the row below despite the panel gap
+
+  strong {
+    color: $color-text-primary;
+    font-weight: 600;
+  }
+}
+
+// Metadata row of the loaded instruction (icon, color, category, tags)
+.instructionMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.metaIcon {
   flex-shrink: 0;
+  font-size: 1.1rem;
   line-height: 1;
 }
 
-.versionMeta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-
 .metaChip {
-  padding: 0.05rem 0.45rem;
+  padding: 0.15rem 0.6rem;
   border-radius: 100px;
   background-color: $color-background-tertiary;
   color: $color-text-muted;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 500;
   white-space: nowrap;
 }
 
 .colorSwatch {
   flex-shrink: 0;
-  width: 0.75rem;
-  height: 0.75rem;
+  width: 1rem;
+  height: 1rem;
   border-radius: 4px;
   border: 1px solid $color-border;
   display: inline-block;
 }
 
-.latestBadge {
-  padding: 0.05rem 0.45rem;
-  border-radius: 100px;
-  background-color: $color-primary-light;
+.latestStar {
+  margin-left: 0.25rem;
   color: $color-primary;
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-weight: 700;
+  cursor: help;
 }

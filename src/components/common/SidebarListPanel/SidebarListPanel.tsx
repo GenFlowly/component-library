@@ -14,7 +14,8 @@ export interface SidebarListItemAction {
 
 export interface SidebarListItem {
   id: string;
-  label: string;
+  // Row label; non-string nodes lose the hover-title fallback
+  label: ReactNode;
   // Extra content for the item's second line (timestamps, badges, ...)
   details?: ReactNode;
   isActive?: boolean;
@@ -152,7 +153,9 @@ export default function SidebarListPanel({
                     <button
                       className={`${styles.item} ${item.isActive ? styles.active : ''}`}
                       onClick={item.onSelect}
-                      title={item.label}
+                      title={
+                        typeof item.label === 'string' ? item.label : undefined
+                      }
                       aria-current={
                         item.isActive ? (item.ariaCurrent ?? 'true') : undefined
                       }

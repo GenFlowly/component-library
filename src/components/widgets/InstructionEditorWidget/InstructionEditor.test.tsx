@@ -95,7 +95,7 @@ describe('InstructionEditor', () => {
     );
   });
 
-  test('always renders the version sidebar and marks the latest version', () => {
+  test('always renders the version sidebar and stars the latest version', () => {
     render(
       <InstructionEditor
         {...baseProps}
@@ -106,41 +106,51 @@ describe('InstructionEditor', () => {
     expect(screen.getByText('Versions')).toBeInTheDocument();
     expect(screen.getByText('v2')).toBeInTheDocument();
     expect(screen.getByText('Latest name')).toBeInTheDocument();
-    expect(screen.getByText('Latest')).toBeInTheDocument();
     expect(screen.getByText('v1')).toBeInTheDocument();
     expect(screen.getByText('v2').closest('button')).toHaveAttribute(
       'aria-current',
       'true'
     );
+
+    // Latest is marked with a starred label and tooltip, not a "Latest" badge
+    expect(screen.queryByText('Latest')).not.toBeInTheDocument();
+    const star = screen.getByText('*');
+    expect(star).toHaveAttribute('title', 'latest version');
+    expect(screen.getByText('v2').closest('button')).toContainElement(star);
+    expect(screen.getByText('v1').closest('button')).not.toContainElement(star);
   });
 
-  test('renders icon, color swatch, role, category and tags on version rows', () => {
+  test('renders icon, color swatch, role, category and tags in the main section', () => {
     render(
       <InstructionEditor
         {...baseProps}
-        versions={[
-          {
-            version: 3,
-            details: 'Physics Wave Expert',
-            icon: '🔍⚡',
-            color: '#059669',
-            role: 'OWNER',
-            category: 'Research',
-            tags: ['physics', 'citations'],
-          },
-        ]}
-        selectedVersion={3}
+        icon="🔍⚡"
+        color="#059669"
+        role="OWNER"
+        category="Research"
+        tags={['physics', 'citations']}
+        data-testid="editor"
       />
     );
 
-    expect(screen.getByText('🔍⚡')).toBeInTheDocument();
-    expect(screen.getByTitle('#059669')).toHaveStyle(
+    const meta = screen.getByTestId('editor-meta');
+    expect(meta).toContainElement(screen.getByText('🔍⚡'));
+    expect(screen.getByTestId('editor-color')).toHaveStyle(
       'background-color: #059669'
     );
-    expect(screen.getByText('OWNER')).toBeInTheDocument();
     expect(screen.getByText('Research')).toBeInTheDocument();
     expect(screen.getByText('#physics')).toBeInTheDocument();
     expect(screen.getByText('#citations')).toBeInTheDocument();
+
+    // Role is not a chip: it renders top-right as "Access Level: <role>"
+    const accessLevel = screen.getByTestId('editor-access-level');
+    expect(accessLevel).toHaveTextContent('Access Level: OWNER');
+    expect(meta).not.toContainElement(screen.getByText('OWNER'));
+  });
+
+  test('omits the metadata row when no metadata is passed', () => {
+    render(<InstructionEditor {...baseProps} data-testid="editor" />);
+    expect(screen.queryByTestId('editor-meta')).not.toBeInTheDocument();
   });
 
   test('selecting a version fires onSelectVersion', async () => {
