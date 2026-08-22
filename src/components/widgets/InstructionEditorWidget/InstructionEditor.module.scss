@@ -91,3 +91,18 @@
   font-weight: 500;
   color: $color-text-muted;
 }
+
+.versionDetails {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.latestBadge {
+  padding: 0.05rem 0.45rem;
+  border-radius: 100px;
+  background-color: $color-primary-light;
+  color: $color-primary;
+  font-size: 0.7rem;
+  font-weight: 600;
+}

@@ -83,10 +83,9 @@ export interface InstructionEditorProps {
   /** DOM id passed to the underlying TextEditor. @default 'instruction-editor' */
   editorId?: string;
   /**
-   * Version history of the loaded instruction. When provided, a resizable
-   * sidebar listing the versions is rendered next to the editor. Omit
-   * (undefined) to hide the sidebar entirely, e.g. while creating a new
-   * instruction.
+   * Version history of the loaded instruction, shown in the resizable
+   * sidebar that is always part of the page. Defaults to an empty history
+   * (e.g. while creating a new instruction), which renders the empty state.
    */
   versions?: InstructionVersionItem[];
   /** Version highlighted as active in the sidebar. */
@@ -139,7 +138,10 @@ export default function InstructionEditor({
   const text: InstructionEditorLabels = { ...DEFAULT_LABELS, ...labels };
   const showShare = !readOnly && !isNew && canShare && !!onShare;
   const showDelete = !readOnly && !isNew && canDelete && !!onDelete;
-  const showVersions = versions !== undefined;
+  const versionList = versions ?? [];
+  const latestVersion = versionList.length
+    ? Math.max(...versionList.map(v => v.version))
+    : undefined;
 
   return (
     <div className={styles.instructionEditor} data-testid={testId}>
@@ -189,38 +191,42 @@ export default function InstructionEditor({
       </div>
 
       <div className={styles.body}>
-        {showVersions && (
-          <ResizableSidebar
-            storageKey={versionsStorageKey}
-            data-testid={testId ? `${testId}-versions-sidebar` : undefined}
-          >
-            <SidebarListPanel
-              title={text.versionsTitle}
-              isLoading={versionsLoading}
-              hasError={versionsError}
-              errorText={text.versionsError}
-              emptyText={text.versionsEmpty}
-              listAriaLabel={text.versionsTitle}
-              data-testid={testId ? `${testId}-versions` : undefined}
-              groups={[
-                {
-                  id: 'versions',
-                  label: '',
-                  items: (versions ?? []).map(v => ({
-                    id: `v${v.version}`,
-                    label: v.label ?? `v${v.version}`,
-                    details: v.details,
-                    isActive: v.version === selectedVersion,
-                    onSelect: () => onSelectVersion?.(v.version),
-                    testId: testId
-                      ? `${testId}-version-${v.version}`
-                      : undefined,
-                  })),
-                },
-              ]}
-            />
-          </ResizableSidebar>
-        )}
+        <ResizableSidebar
+          storageKey={versionsStorageKey}
+          data-testid={testId ? `${testId}-versions-sidebar` : undefined}
+        >
+          <SidebarListPanel
+            title={text.versionsTitle}
+            isLoading={versionsLoading}
+            hasError={versionsError}
+            errorText={text.versionsError}
+            emptyText={text.versionsEmpty}
+            listAriaLabel={text.versionsTitle}
+            data-testid={testId ? `${testId}-versions` : undefined}
+            groups={[
+              {
+                id: 'versions',
+                label: '',
+                items: versionList.map(v => ({
+                  id: `v${v.version}`,
+                  label: v.label ?? `v${v.version}`,
+                  details:
+                    v.version === latestVersion || v.details != null ? (
+                      <span className={styles.versionDetails}>
+                        {v.version === latestVersion && (
+                          <span className={styles.latestBadge}>Latest</span>
+                        )}
+                        {v.details}
+                      </span>
+                    ) : undefined,
+                  isActive: v.version === selectedVersion,
+                  onSelect: () => onSelectVersion?.(v.version),
+                  testId: testId ? `${testId}-version-${v.version}` : undefined,
+                })),
+              },
+            ]}
+          />
+        </ResizableSidebar>
 
         <div className={styles.content}>
           {readOnly && (

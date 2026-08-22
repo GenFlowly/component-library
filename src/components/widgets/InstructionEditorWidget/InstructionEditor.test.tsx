@@ -121,11 +121,8 @@ describe('InstructionEditor', () => {
     );
   });
 
-  test('renders the version sidebar only when versions are provided', () => {
-    const { rerender } = render(<InstructionEditor {...baseProps} />);
-    expect(screen.queryByText('Versions')).not.toBeInTheDocument();
-
-    rerender(
+  test('always renders the version sidebar and marks the latest version', () => {
+    render(
       <InstructionEditor
         {...baseProps}
         versions={[{ version: 2, details: 'Latest name' }, { version: 1 }]}
@@ -135,6 +132,7 @@ describe('InstructionEditor', () => {
     expect(screen.getByText('Versions')).toBeInTheDocument();
     expect(screen.getByText('v2')).toBeInTheDocument();
     expect(screen.getByText('Latest name')).toBeInTheDocument();
+    expect(screen.getByText('Latest')).toBeInTheDocument();
     expect(screen.getByText('v1')).toBeInTheDocument();
     expect(screen.getByText('v2').closest('button')).toHaveAttribute(
       'aria-current',
@@ -157,8 +155,9 @@ describe('InstructionEditor', () => {
     expect(onSelectVersion).toHaveBeenCalledWith(1);
   });
 
-  test('shows the empty state when the version list is empty', () => {
-    render(<InstructionEditor {...baseProps} versions={[]} />);
+  test('shows the empty state when no versions are passed', () => {
+    render(<InstructionEditor {...baseProps} />);
+    expect(screen.getByText('Versions')).toBeInTheDocument();
     expect(screen.getByText('No versions yet.')).toBeInTheDocument();
   });
 
