@@ -31,46 +31,29 @@ describe('InstructionEditor', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
-  test('shows Share, Delete and Save for an owner editing an instruction', () => {
-    render(
-      <InstructionEditor
-        {...baseProps}
-        canShare
-        canDelete
-        onShare={jest.fn()}
-        onDelete={jest.fn()}
-      />
-    );
+  test('shows Delete and Save for an owner editing an instruction', () => {
+    render(<InstructionEditor {...baseProps} canDelete onDelete={jest.fn()} />);
 
     expect(screen.getByText('Edit Instruction')).toBeInTheDocument();
-    expect(screen.getByText('Share')).toBeInTheDocument();
     expect(screen.getByText('Delete')).toBeInTheDocument();
     expect(screen.getByText('Save')).toBeInTheDocument();
   });
 
-  test('hides Share and Delete when creating a new instruction', () => {
+  test('hides Delete when creating a new instruction', () => {
     render(
-      <InstructionEditor
-        {...baseProps}
-        isNew
-        canShare
-        canDelete
-        onShare={jest.fn()}
-        onDelete={jest.fn()}
-      />
+      <InstructionEditor {...baseProps} isNew canDelete onDelete={jest.fn()} />
     );
 
     expect(screen.getByText('Create Instruction')).toBeInTheDocument();
-    expect(screen.queryByText('Share')).not.toBeInTheDocument();
     expect(screen.queryByText('Delete')).not.toBeInTheDocument();
     expect(screen.getByText('Save')).toBeInTheDocument();
   });
 
-  test('hides Share when canShare is false', () => {
-    render(<InstructionEditor {...baseProps} canDelete onDelete={jest.fn()} />);
+  test('hides Delete when canDelete is false', () => {
+    render(<InstructionEditor {...baseProps} />);
 
-    expect(screen.queryByText('Share')).not.toBeInTheDocument();
-    expect(screen.getByText('Delete')).toBeInTheDocument();
+    expect(screen.queryByText('Delete')).not.toBeInTheDocument();
+    expect(screen.getByText('Save')).toBeInTheDocument();
   });
 
   test('readOnly hides all actions, disables inputs and shows the banner', () => {
@@ -78,14 +61,11 @@ describe('InstructionEditor', () => {
       <InstructionEditor
         {...baseProps}
         readOnly
-        canShare
         canDelete
-        onShare={jest.fn()}
         onDelete={jest.fn()}
       />
     );
 
-    expect(screen.queryByText('Share')).not.toBeInTheDocument();
     expect(screen.queryByText('Delete')).not.toBeInTheDocument();
     expect(screen.queryByText('Save')).not.toBeInTheDocument();
     expect(

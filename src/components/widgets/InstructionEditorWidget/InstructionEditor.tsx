@@ -10,7 +10,6 @@ export interface InstructionEditorLabels {
   back: string;
   createTitle: string;
   editTitle: string;
-  share: string;
   delete: string;
   save: string;
   saving: string;
@@ -27,7 +26,6 @@ const DEFAULT_LABELS: InstructionEditorLabels = {
   back: '← Back',
   createTitle: 'Create Instruction',
   editTitle: 'Edit Instruction',
-  share: 'Share',
   delete: 'Delete',
   save: 'Save',
   saving: 'Saving…',
@@ -67,14 +65,11 @@ export interface InstructionEditorProps {
    * @default false
    */
   readOnly?: boolean;
-  /** Disables all actions while a save/share/delete request is in flight. */
+  /** Disables all actions while a save/delete request is in flight. */
   isLoading?: boolean;
-  /** Show the Share action (requires `onShare`). @default false */
-  canShare?: boolean;
   /** Show the Delete action (requires `onDelete`). @default false */
   canDelete?: boolean;
   onSave: () => void;
-  onShare?: () => void;
   onDelete?: () => void;
   /** Renders a back button in the header when provided. */
   onBack?: () => void;
@@ -119,10 +114,8 @@ export default function InstructionEditor({
   isNew = false,
   readOnly = false,
   isLoading = false,
-  canShare = false,
   canDelete = false,
   onSave,
-  onShare,
   onDelete,
   onBack,
   labels,
@@ -136,7 +129,6 @@ export default function InstructionEditor({
   'data-testid': testId,
 }: InstructionEditorProps): React.ReactElement {
   const text: InstructionEditorLabels = { ...DEFAULT_LABELS, ...labels };
-  const showShare = !readOnly && !isNew && canShare && !!onShare;
   const showDelete = !readOnly && !isNew && canDelete && !!onDelete;
   const versionList = versions ?? [];
   const latestVersion = versionList.length
@@ -157,36 +149,6 @@ export default function InstructionEditor({
             </button>
           )}
           <h2>{isNew ? text.createTitle : text.editTitle}</h2>
-        </div>
-
-        <div className={styles.actions}>
-          {showShare && (
-            <PillButton
-              label={text.share}
-              variant="secondary"
-              onClick={onShare}
-              disabled={isLoading}
-              data-testid={testId ? `${testId}-share` : undefined}
-            />
-          )}
-          {showDelete && (
-            <PillButton
-              label={text.delete}
-              variant="danger"
-              onClick={onDelete}
-              disabled={isLoading}
-              data-testid={testId ? `${testId}-delete` : undefined}
-            />
-          )}
-          {!readOnly && (
-            <PillButton
-              label={isLoading ? text.saving : text.save}
-              variant="primary"
-              onClick={onSave}
-              disabled={isLoading || !instructionText.trim()}
-              data-testid={testId ? `${testId}-save` : undefined}
-            />
-          )}
         </div>
       </div>
 
@@ -262,6 +224,27 @@ export default function InstructionEditor({
               data-testid={testId ? `${testId}-editor` : undefined}
             />
           </div>
+
+          {!readOnly && (
+            <div className={styles.footerActions}>
+              {showDelete && (
+                <PillButton
+                  label={text.delete}
+                  variant="danger"
+                  onClick={onDelete}
+                  disabled={isLoading}
+                  data-testid={testId ? `${testId}-delete` : undefined}
+                />
+              )}
+              <PillButton
+                label={isLoading ? text.saving : text.save}
+                variant="primary"
+                onClick={onSave}
+                disabled={isLoading || !instructionText.trim()}
+                data-testid={testId ? `${testId}-save` : undefined}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

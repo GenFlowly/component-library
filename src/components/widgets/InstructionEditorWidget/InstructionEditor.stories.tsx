@@ -41,13 +41,7 @@ function ControlledEditor(
 
 export const EditAsOwner: Story = {
   render: () => (
-    <ControlledEditor
-      canShare
-      canDelete
-      onShare={() => {}}
-      onDelete={() => {}}
-      onBack={() => {}}
-    />
+    <ControlledEditor canDelete onDelete={() => {}} onBack={() => {}} />
   ),
 };
 
@@ -65,9 +59,7 @@ export const Saving: Story = {
   render: () => (
     <ControlledEditor
       isLoading
-      canShare
       canDelete
-      onShare={() => {}}
       onDelete={() => {}}
       onBack={() => {}}
     />
@@ -77,9 +69,7 @@ export const Saving: Story = {
 export const WithVersionHistory: Story = {
   render: () => (
     <ControlledEditor
-      canShare
       canDelete
-      onShare={() => {}}
       onDelete={() => {}}
       onBack={() => {}}
       versions={[
