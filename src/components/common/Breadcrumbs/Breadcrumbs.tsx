@@ -10,6 +10,11 @@ export interface BreadcrumbItem {
 
 interface BreadcrumbsProps {
   items: BreadcrumbItem[];
+  /**
+   * 'onHeader' renders in the header band's text color for use inside
+   * PageHeader; 'default' uses the regular body text tokens.
+   */
+  variant?: 'default' | 'onHeader';
   className?: string;
   'data-testid'?: string;
 }
@@ -21,13 +26,14 @@ interface BreadcrumbsProps {
  */
 export default function Breadcrumbs({
   items,
+  variant = 'default',
   className = '',
   'data-testid': testId,
 }: BreadcrumbsProps) {
   const { t } = useTranslation();
   return (
     <nav
-      className={`${styles.breadcrumbs} ${className}`}
+      className={`${styles.breadcrumbs} ${variant === 'onHeader' ? styles.onHeader : ''} ${className}`}
       aria-label={t('common.breadcrumbs.ariaLabel')}
       data-testid={testId || 'breadcrumbs'}
     >
