@@ -9,6 +9,8 @@ export { styles as pageHeaderStyles };
 
 interface PageHeaderProps {
   title: string;
+  /** Rendered horizontally centered on the header band. */
+  center?: React.ReactNode;
   actions?: React.ReactNode;
   children?: React.ReactNode;
   'data-testid'?: string;
@@ -16,6 +18,7 @@ interface PageHeaderProps {
 
 export default function PageHeader({
   title,
+  center,
   actions,
   children,
   'data-testid': testId,
@@ -25,6 +28,7 @@ export default function PageHeader({
       <h1 className={styles.title} title={title}>
         {title}
       </h1>
+      {center != null && <div className={styles.center}>{center}</div>}
       <div className={styles.actions}>{actions}</div>
       {children}
     </div>
