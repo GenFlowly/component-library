@@ -49,3 +49,10 @@ export {
 } from './components/common/TextContainer/TextContainer';
 export type { TextContainerProps } from './components/common/TextContainer/TextContainer';
 export { default as TextEditor } from './components/widgets/TextEditorWidget/TextEditor';
+
+// Pages
+export { default as InstructionEditor } from './components/widgets/InstructionEditorWidget/InstructionEditor';
+export type {
+  InstructionEditorProps,
+  InstructionEditorLabels,
+} from './components/widgets/InstructionEditorWidget/InstructionEditor';
