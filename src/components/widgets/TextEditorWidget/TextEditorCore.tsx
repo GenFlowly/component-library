@@ -17,6 +17,7 @@ interface TextEditorCoreProps {
   readOnly?: boolean;
   maxLength?: number;
   variant?: 'default' | 'seamless';
+  fullWidth?: boolean;
 }
 
 export default function TextEditorCore({
@@ -30,6 +31,7 @@ export default function TextEditorCore({
   readOnly = false,
   maxLength,
   variant = 'default',
+  fullWidth = false,
 }: TextEditorCoreProps): React.ReactElement {
   const handleChange = (newValue: string) => {
     if (maxLength && newValue.length > maxLength) {
@@ -41,7 +43,7 @@ export default function TextEditorCore({
 
   return (
     <div
-      className={`${styles.container} ${variant === 'seamless' ? styles.seamless : ''} ${className}`}
+      className={`${styles.container} ${variant === 'seamless' ? styles.seamless : ''} ${fullWidth ? styles.fullWidth : ''} ${className}`}
       data-testid={testId}
       style={height === '100%' ? { height: '100%' } : {}}
     >

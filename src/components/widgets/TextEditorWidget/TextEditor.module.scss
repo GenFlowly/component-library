@@ -21,6 +21,22 @@ $editor-width: 75rem;
   position: relative; // For absolute positioning of copy button
 }
 
+// Stretch the editor to its parent's full width (no page-centering rails)
+.fullWidth {
+  padding-left: 0;
+  padding-right: 0;
+
+  .innerContainer,
+  .mdxEditorRoot {
+    max-width: none;
+  }
+
+  .spacer,
+  .controlsRow {
+    display: none;
+  }
+}
+
 .innerContainer {
   width: 100%;
   max-width: $editor-width; // Outer constraint

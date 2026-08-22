@@ -40,30 +40,19 @@ function ControlledEditor(
 }
 
 export const EditAsOwner: Story = {
-  render: () => (
-    <ControlledEditor canDelete onDelete={() => {}} onBack={() => {}} />
-  ),
+  render: () => <ControlledEditor canDelete onDelete={() => {}} />,
 };
 
 export const CreateNew: Story = {
-  render: () => (
-    <ControlledEditor isNew name="" instructionText="" onBack={() => {}} />
-  ),
+  render: () => <ControlledEditor isNew name="" instructionText="" />,
 };
 
 export const ReadOnly: Story = {
-  render: () => <ControlledEditor readOnly onBack={() => {}} />,
+  render: () => <ControlledEditor readOnly />,
 };
 
 export const Saving: Story = {
-  render: () => (
-    <ControlledEditor
-      isLoading
-      canDelete
-      onDelete={() => {}}
-      onBack={() => {}}
-    />
-  ),
+  render: () => <ControlledEditor isLoading canDelete onDelete={() => {}} />,
 };
 
 export const WithVersionHistory: Story = {
@@ -71,7 +60,7 @@ export const WithVersionHistory: Story = {
     <ControlledEditor
       canDelete
       onDelete={() => {}}
-      onBack={() => {}}
+
       versions={[
         { version: 3, details: 'Marketing copy editor' },
         { version: 2, details: 'Marketing copy editor' },
@@ -84,9 +73,7 @@ export const WithVersionHistory: Story = {
 };
 
 export const VersionsLoading: Story = {
-  render: () => (
-    <ControlledEditor versions={[]} versionsLoading onBack={() => {}} />
-  ),
+  render: () => <ControlledEditor versions={[]} versionsLoading />,
 };
 
 export const CustomLabels: Story = {
@@ -94,7 +81,6 @@ export const CustomLabels: Story = {
     <ControlledEditor
       isNew
       labels={{
-        createTitle: 'New public instruction',
         save: 'Save as public instruction',
         namePlaceholder: 'e.g. Support tone-of-voice',
       }}

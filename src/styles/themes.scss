@@ -79,6 +79,9 @@
   // reads these so radius and spacing stay consistent.
   --widget-radius: var(--radius-lg);
   --widget-gap: 0.0625rem; // 1px expressed in rem
+  // PAGE WIDGET SPACING: gap between page-level widgets (sidebar <-> panel),
+  // matching the chat page's sidebar/conversation spacing
+  --page-widget-spacing: var(--widget-gap);
   // Page canvas visible behind/between the panels — matches PageHeader
   --color-page-background: var(--color-conversation-header-bg);
 
@@ -228,6 +231,7 @@ $radius-xl: var(--radius-xl);
 // Widget panels
 $widget-radius: var(--widget-radius);
 $widget-gap: var(--widget-gap);
+$page-widget-spacing: var(--page-widget-spacing);
 $color-page-background: var(--color-page-background);
 
 // Transitions

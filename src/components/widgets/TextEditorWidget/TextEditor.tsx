@@ -16,6 +16,8 @@ interface TextEditorProps {
   readOnly?: boolean;
   maxLength?: number;
   variant?: 'default' | 'seamless';
+  // Fill the parent's width instead of the page-centered 75rem column
+  fullWidth?: boolean;
 }
 
 export default function TextEditor({
@@ -29,6 +31,7 @@ export default function TextEditor({
   readOnly = false,
   maxLength,
   variant = 'default',
+  fullWidth = false,
 }: TextEditorProps): React.ReactElement {
   const { t } = useTranslation();
 
@@ -36,7 +39,7 @@ export default function TextEditor({
     <Suspense
       fallback={
         <div
-          className={`${styles.container} ${variant === 'seamless' ? styles.seamless : ''} ${className}`}
+          className={`${styles.container} ${variant === 'seamless' ? styles.seamless : ''} ${fullWidth ? styles.fullWidth : ''} ${className}`}
           data-testid={testId}
           style={height === '100%' ? { height: '100%' } : {}}
         >
@@ -75,6 +78,7 @@ export default function TextEditor({
         readOnly={readOnly}
         maxLength={maxLength}
         variant={variant}
+        fullWidth={fullWidth}
       />
     </Suspense>
   );
