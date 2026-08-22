@@ -16,6 +16,8 @@ export interface InstructionEditorLabels {
   versionsTitle: string;
   versionsEmpty: string;
   versionsError: string;
+  accessLevel: string;
+  latestTooltip: string;
 }
 
 const DEFAULT_LABELS: InstructionEditorLabels = {
@@ -28,6 +30,8 @@ const DEFAULT_LABELS: InstructionEditorLabels = {
   versionsTitle: 'Versions',
   versionsEmpty: 'No versions yet.',
   versionsError: 'Failed to load versions.',
+  accessLevel: 'Access Level',
+  latestTooltip: 'latest version',
 };
 
 export interface InstructionVersionItem {
@@ -36,16 +40,6 @@ export interface InstructionVersionItem {
   label?: string;
   /** Second line under the label (name, timestamp, badges, ...). */
   details?: React.ReactNode;
-  /** Emoji/icon shown before the details text. */
-  icon?: string;
-  /** Hex color of the version, rendered as a small swatch. */
-  color?: string;
-  /** Access role on this version (OWNER, EDIT, VIEW, ...), shown as a chip. */
-  role?: string;
-  /** Category of the version, shown as a chip. */
-  category?: string;
-  /** Tags of the version, shown as chips. */
-  tags?: string[];
 }
 
 export interface InstructionEditorProps {
@@ -73,6 +67,16 @@ export interface InstructionEditorProps {
   canDelete?: boolean;
   onSave: () => void;
   onDelete?: () => void;
+  /** Emoji/icon of the loaded instruction, shown beside the name input. */
+  icon?: string;
+  /** Hex color of the loaded instruction, rendered as a swatch beside the name. */
+  color?: string;
+  /** Access role on the loaded instruction (OWNER, EDIT, VIEW, ...), shown as a chip. */
+  role?: string;
+  /** Category of the loaded instruction, shown as a chip. */
+  category?: string;
+  /** Tags of the loaded instruction, shown as chips. */
+  tags?: string[];
   /** Override any of the default English strings (e.g. with i18n values). */
   labels?: Partial<InstructionEditorLabels>;
   /** DOM id passed to the underlying TextEditor. @default 'instruction-editor' */
@@ -117,6 +121,11 @@ export default function InstructionEditor({
   canDelete = false,
   onSave,
   onDelete,
+  icon,
+  color,
+  role,
+  category,
+  tags,
   labels,
   editorId = 'instruction-editor',
   versions,
@@ -129,6 +138,7 @@ export default function InstructionEditor({
 }: InstructionEditorProps): React.ReactElement {
   const text: InstructionEditorLabels = { ...DEFAULT_LABELS, ...labels };
   const showDelete = !readOnly && !isNew && canDelete && !!onDelete;
+  const hasMeta = !!icon || !!color || !!category || !!tags?.length;
   const versionList = versions ?? [];
   const latestVersion = versionList.length
     ? Math.max(...versionList.map(v => v.version))
@@ -154,59 +164,27 @@ export default function InstructionEditor({
                 id: 'versions',
                 label: '',
                 items: versionList.map(v => {
-                  const hasSummary =
-                    v.version === latestVersion ||
-                    v.details != null ||
-                    !!v.icon ||
-                    !!v.color;
-                  const hasMeta = !!v.role || !!v.category || !!v.tags?.length;
+                  const labelText = v.label ?? `v${v.version}`;
                   return {
                     id: `v${v.version}`,
-                    label: v.label ?? `v${v.version}`,
+                    label:
+                      v.version === latestVersion ? (
+                        <>
+                          {labelText}
+                          <span
+                            className={styles.latestStar}
+                            title={text.latestTooltip}
+                          >
+                            *
+                          </span>
+                        </>
+                      ) : (
+                        labelText
+                      ),
                     details:
-                      hasSummary || hasMeta ? (
+                      v.details != null ? (
                         <span className={styles.versionDetails}>
-                          {hasSummary && (
-                            <span className={styles.versionSummary}>
-                              {v.version === latestVersion && (
-                                <span className={styles.latestBadge}>
-                                  Latest
-                                </span>
-                              )}
-                              {v.icon && (
-                                <span className={styles.versionIcon}>
-                                  {v.icon}
-                                </span>
-                              )}
-                              {v.details}
-                              {v.color && (
-                                <span
-                                  className={styles.colorSwatch}
-                                  style={{ backgroundColor: v.color }}
-                                  title={v.color}
-                                />
-                              )}
-                            </span>
-                          )}
-                          {hasMeta && (
-                            <span className={styles.versionMeta}>
-                              {v.role && (
-                                <span className={styles.metaChip}>
-                                  {v.role}
-                                </span>
-                              )}
-                              {v.category && (
-                                <span className={styles.metaChip}>
-                                  {v.category}
-                                </span>
-                              )}
-                              {v.tags?.map(tag => (
-                                <span key={tag} className={styles.metaChip}>
-                                  #{tag}
-                                </span>
-                              ))}
-                            </span>
-                          )}
+                          {v.details}
                         </span>
                       ) : undefined,
                     isActive: v.version === selectedVersion,
@@ -222,6 +200,14 @@ export default function InstructionEditor({
         </ResizableSidebar>
 
         <div className={styles.content}>
+          {role && (
+            <div
+              className={styles.accessLevel}
+              data-testid={testId ? `${testId}-access-level` : undefined}
+            >
+              {text.accessLevel}: <strong>{role}</strong>
+            </div>
+          )}
           {readOnly && (
             <div
               className={styles.readonlyBanner}
@@ -240,6 +226,29 @@ export default function InstructionEditor({
               data-testid={testId ? `${testId}-name` : undefined}
             />
           </div>
+
+          {hasMeta && (
+            <div
+              className={styles.instructionMeta}
+              data-testid={testId ? `${testId}-meta` : undefined}
+            >
+              {icon && <span className={styles.metaIcon}>{icon}</span>}
+              {color && (
+                <span
+                  className={styles.colorSwatch}
+                  style={{ backgroundColor: color }}
+                  title={color}
+                  data-testid={testId ? `${testId}-color` : undefined}
+                />
+              )}
+              {category && <span className={styles.metaChip}>{category}</span>}
+              {tags?.map(tag => (
+                <span key={tag} className={styles.metaChip}>
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
 
           <div className={styles.editorContainer}>
             <TextEditor

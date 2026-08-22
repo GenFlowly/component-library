@@ -39,6 +39,28 @@ function ControlledEditor(
   );
 }
 
+export const Default: Story = {
+  render: () => (
+    <ControlledEditor
+      canDelete
+      onDelete={() => {}}
+      name="Physics Wave Expert"
+      icon="🔍⚡"
+      color="#059669"
+      role="OWNER"
+      category="Research"
+      tags={['physics', 'electromagnetic waves', 'citations']}
+      versions={[
+        { version: 3, details: 'Physics Wave Expert' },
+        { version: 2, details: 'Applied Electromagnetics Physicist' },
+        { version: 1, details: 'Applied Electromagnetics Physicist' },
+      ]}
+      selectedVersion={3}
+      onSelectVersion={() => {}}
+    />
+  ),
+};
+
 export const EditAsOwner: Story = {
   render: () => <ControlledEditor canDelete onDelete={() => {}} />,
 };
@@ -53,46 +75,6 @@ export const ReadOnly: Story = {
 
 export const Saving: Story = {
   render: () => <ControlledEditor isLoading canDelete onDelete={() => {}} />,
-};
-
-export const WithVersionHistory: Story = {
-  render: () => (
-    <ControlledEditor
-      canDelete
-      onDelete={() => {}}
-
-      versions={[
-        {
-          version: 3,
-          details: 'Physics Wave Expert',
-          icon: '🔍⚡',
-          color: '#059669',
-          role: 'OWNER',
-          category: 'Research',
-          tags: ['physics', 'electromagnetic waves', 'citations'],
-        },
-        {
-          version: 2,
-          details: 'Applied Electromagnetics Physicist',
-          icon: '🔍⚡',
-          color: '#059669',
-          role: 'OWNER',
-          category: 'Research',
-          tags: ['physics', 'electromagnetism'],
-        },
-        {
-          version: 1,
-          details: 'Applied Electromagnetics Physicist',
-          icon: '🗄️',
-          color: '#475569',
-          role: 'OWNER',
-          category: 'Data work',
-        },
-      ]}
-      selectedVersion={3}
-      onSelectVersion={() => {}}
-    />
-  ),
 };
 
 export const VersionsLoading: Story = {
