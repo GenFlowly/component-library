@@ -19,6 +19,15 @@
   display: flex;
   align-items: center;
   max-width: 40%;
+
+  /* 📱 Mobile: not enough room to float over the band — become a regular
+     flex item so the title truncates instead of overlapping */
+  @media (max-width: 768px) {
+    position: static;
+    transform: none;
+    max-width: none;
+    flex: 0 0 auto;
+  }
 }
 
 .title {
