@@ -110,6 +110,44 @@ export const Default: Story = {
   render: args => <SidebarListPanel {...args} groups={groups} />,
 };
 
+const pinIcon = (
+  <span aria-hidden="true" style={{ fontSize: '0.9em' }}>
+    📌
+  </span>
+);
+
+// Pin is revealOnHover (hidden until the row is hovered/focused); delete stays visible
+export const WithHoverRevealAction: Story = {
+  args: {
+    ...Default.args,
+  },
+  render: args => (
+    <SidebarListPanel
+      {...args}
+      groups={groups.map(group => ({
+        ...group,
+        items: group.items.map(item => ({
+          ...item,
+          action: undefined,
+          actions: [
+            {
+              icon: pinIcon,
+              label: 'Pin conversation',
+              onClick: () => console.log(`pin ${item.id}`),
+              revealOnHover: true,
+            },
+            {
+              icon: deleteIcon,
+              label: 'Delete conversation',
+              onClick: () => console.log(`delete ${item.id}`),
+            },
+          ],
+        })),
+      }))}
+    />
+  ),
+};
+
 export const WithLoadMore: Story = {
   args: {
     ...Default.args,

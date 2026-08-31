@@ -9,6 +9,8 @@ export interface SidebarListItemAction {
   icon: ReactNode;
   label: string;
   onClick: (e: React.MouseEvent) => void;
+  // Hidden until the row is hovered or focused (always shown on touch devices)
+  revealOnHover?: boolean;
   testId?: string;
 }
 
@@ -22,8 +24,11 @@ export interface SidebarListItem {
   // aria-current value applied when the item is active ('page' for nav lists)
   ariaCurrent?: 'page' | 'true';
   onSelect: () => void;
-  // Optional trailing button (archive, delete, ...) shown at the row's right edge
+  // Optional trailing button (archive, delete, ...) shown at the row's right edge.
+  // Deprecated: use `actions` instead; ignored when `actions` is set.
   action?: SidebarListItemAction;
+  // Trailing buttons shown at the row's right edge, in order
+  actions?: SidebarListItemAction[];
   testId?: string;
 }
 
@@ -148,43 +153,61 @@ export default function SidebarListPanel({
             <div key={group.id} className={styles.group}>
               <div className={styles.groupHeader}>{group.label}</div>
               <ul className={styles.groupList}>
-                {group.items.map(item => (
-                  <li key={item.id} className={styles.itemRow}>
-                    <button
-                      className={`${styles.item} ${item.isActive ? styles.active : ''}`}
-                      onClick={item.onSelect}
-                      title={
-                        typeof item.label === 'string' ? item.label : undefined
-                      }
-                      aria-current={
-                        item.isActive ? (item.ariaCurrent ?? 'true') : undefined
-                      }
-                      data-testid={item.testId}
+                {group.items.map(item => {
+                  const itemActions =
+                    item.actions ?? (item.action ? [item.action] : []);
+                  return (
+                    <li
+                      key={item.id}
+                      className={`${styles.itemRow} ${itemActions.length > 1 ? styles.multiAction : ''}`}
                     >
-                      <div className={styles.itemContent}>
-                        <div className={styles.itemHeader}>
-                          <span className={styles.itemLabel}>{item.label}</span>
-                        </div>
-                        {item.details != null && (
-                          <div className={styles.itemDetails}>
-                            {item.details}
-                          </div>
-                        )}
-                      </div>
-                    </button>
-                    {item.action && (
                       <button
-                        className={styles.actionBtn}
-                        onClick={item.action.onClick}
-                        title={item.action.label}
-                        aria-label={item.action.label}
-                        data-testid={item.action.testId}
+                        className={`${styles.item} ${item.isActive ? styles.active : ''}`}
+                        onClick={item.onSelect}
+                        title={
+                          typeof item.label === 'string'
+                            ? item.label
+                            : undefined
+                        }
+                        aria-current={
+                          item.isActive
+                            ? (item.ariaCurrent ?? 'true')
+                            : undefined
+                        }
+                        data-testid={item.testId}
                       >
-                        {item.action.icon}
+                        <div className={styles.itemContent}>
+                          <div className={styles.itemHeader}>
+                            <span className={styles.itemLabel}>
+                              {item.label}
+                            </span>
+                          </div>
+                          {item.details != null && (
+                            <div className={styles.itemDetails}>
+                              {item.details}
+                            </div>
+                          )}
+                        </div>
                       </button>
-                    )}
-                  </li>
-                ))}
+                      {itemActions.length > 0 && (
+                        <div className={styles.actionsWrap}>
+                          {itemActions.map((action, index) => (
+                            <button
+                              key={index}
+                              className={`${styles.actionBtn} ${action.revealOnHover ? styles.hoverReveal : ''}`}
+                              onClick={action.onClick}
+                              title={action.label}
+                              aria-label={action.label}
+                              data-testid={action.testId}
+                            >
+                              {action.icon}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}

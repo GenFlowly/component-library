@@ -231,9 +231,22 @@
   align-items: center;
 }
 
-.actionBtn {
+.actionsWrap {
   position: absolute;
   right: 4px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  z-index: 1;
+}
+
+// The default 2rem right padding on .item only clears one action button;
+// rows with two or more need the label to truncate earlier
+.multiAction .item {
+  padding-right: 3.5rem;
+}
+
+.actionBtn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -248,8 +261,8 @@
   opacity: 1;
   transition:
     color 0.15s ease,
-    background 0.15s ease;
-  z-index: 1;
+    background 0.15s ease,
+    opacity 0.15s ease;
 
   &:hover {
     background-color: $color-background-hover;
@@ -259,5 +272,25 @@
   svg {
     width: 14px;
     height: 14px;
+  }
+}
+
+// Actions flagged revealOnHover stay hidden until the row is hovered or
+// holds keyboard focus; touch devices have no hover, so always show them
+.hoverReveal {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.itemRow:hover .hoverReveal,
+.itemRow:focus-within .hoverReveal {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .hoverReveal {
+    opacity: 1;
+    pointer-events: auto;
   }
 }
