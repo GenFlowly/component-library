@@ -68,3 +68,22 @@
   flex-direction: column;
   overflow-y: auto;
 }
+
+// App-menu level keeps the dark navbar look; the context level (history,
+// saved notes) stays on the standard surface so its lists render normally
+.appView {
+  background-color: $color-navbar-background;
+  color: $color-navbar-text;
+
+  .title {
+    color: $color-navbar-text;
+  }
+
+  .iconButton {
+    color: $color-navbar-text;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.12);
+    }
+  }
+}

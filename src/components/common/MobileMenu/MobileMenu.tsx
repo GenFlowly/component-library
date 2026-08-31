@@ -41,7 +41,7 @@ export default function MobileMenu({
 
   return (
     <div
-      className={styles.mobileMenu}
+      className={`${styles.mobileMenu} ${showAppMenu ? styles.appView : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label={showAppMenu ? appMenuTitle : title}
