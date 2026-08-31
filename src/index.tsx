@@ -38,6 +38,8 @@ export { Toast, ToastContainer } from './components/common/Toast/Toast';
 export type { ToastMessage } from './components/common/Toast/Toast';
 export { default as MobileFullPageModal } from './components/common/MobileFullPageModal/MobileFullPageModal';
 export { default as MobileHeader } from './components/common/MobileHeader/MobileHeader';
+export { default as MobileMenu } from './components/common/MobileMenu/MobileMenu';
+export type { MobileMenuProps } from './components/common/MobileMenu/MobileMenu';
 export type {
   MobileHeaderProps,
   MobileHeaderMenuItem,
