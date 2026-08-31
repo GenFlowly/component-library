@@ -1,0 +1,163 @@
+@import '../../../styles/themes.scss';
+
+// Transparent overlay bar: the bar itself is invisible — only the floating
+// controls (circles and the center pill) have a translucent surface, and only
+// they catch taps. Pages that render this header pad their mobile layout down
+// by the bar's 3.5rem height (40px circle buttons + 0.5rem vertical padding)
+// so content starts below it.
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50; // Above page content; below full-screen overlays (z=100)
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
+}
+
+// Neutral translucent circle that stays legible over both themes' content
+.circleButton {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: $color-text-primary;
+  background-color: rgba(127, 127, 127, 0.18);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  &:active {
+    background-color: rgba(127, 127, 127, 0.32);
+  }
+}
+
+.circlePlaceholder {
+  width: 40px;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.center {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  pointer-events: none; // The pill below re-enables taps for itself
+}
+
+// Same translucent surface as the circle buttons, hugging the title width
+.centerPill {
+  pointer-events: auto;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 40px; // Lines up with the circle buttons when there's no subtitle
+  justify-content: center;
+  padding: 0.25rem 0.9rem;
+  border-radius: 20px;
+  text-align: center;
+  background-color: rgba(127, 127, 127, 0.18);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.title {
+  max-width: 100%;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: $color-text-primary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+%subtitle-base {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+  min-width: 0;
+  font-size: 0.75rem;
+  color: $color-text-secondary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subtitle {
+  @extend %subtitle-base;
+}
+
+.subtitleButton {
+  @extend %subtitle-base;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+
+  &:active {
+    color: $color-text-primary;
+  }
+}
+
+.kebabWrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+// The popup itself needs a solid surface to stay readable over content
+.dropdown {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  min-width: 10rem;
+  padding: 0.25rem 0;
+  background-color: $color-background-secondary;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  z-index: 60;
+}
+
+.dropdownItem {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: $color-text-primary;
+  white-space: nowrap;
+
+  &:hover,
+  &:active {
+    background-color: $color-background-hover;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

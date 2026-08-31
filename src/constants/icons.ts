@@ -3,8 +3,12 @@
 // src/constants/icons.ts so component imports stay unchanged.
 import userCircle from '../assets/icons/user-circle.svg';
 import copyIcon from '../assets/icons/copy-icon.svg';
+import menuIcon from '../assets/icons/menu.svg';
+import moreVerticalIcon from '../assets/icons/more-vertical.svg';
 
 export const ICONS = {
   USER_CIRCLE: userCircle,
   COPY: copyIcon,
+  MENU: menuIcon,
+  MORE_VERTICAL: moreVerticalIcon,
 };

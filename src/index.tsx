@@ -37,6 +37,11 @@ export type { ResizableSidebarProps } from './components/common/ResizableSidebar
 export { Toast, ToastContainer } from './components/common/Toast/Toast';
 export type { ToastMessage } from './components/common/Toast/Toast';
 export { default as MobileFullPageModal } from './components/common/MobileFullPageModal/MobileFullPageModal';
+export { default as MobileHeader } from './components/common/MobileHeader/MobileHeader';
+export type {
+  MobileHeaderProps,
+  MobileHeaderMenuItem,
+} from './components/common/MobileHeader/MobileHeader';
 
 // Branding
 export { UserAvatarButton } from './components/common/UserAvatarButton/UserAvatarButton';
