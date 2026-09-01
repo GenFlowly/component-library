@@ -363,8 +363,8 @@
 }
 
 .handle {
-  width: 0.6rem;
-  height: 0.6rem;
+  width: 0.8rem;
+  height: 0.8rem;
   background-color: $color-text-muted;
   border: 2px solid $color-background-secondary;
 }
@@ -377,21 +377,25 @@
   background-color: $color-error;
 }
 
+// Route labels sit INSIDE the node, to the left of their handle — never on
+// top of it. Text over the handle blocks the (small) grab target and makes
+// connections impossible to start.
 .handleLabel {
   position: absolute;
-  right: -0.25rem;
-  transform: translateX(100%);
+  right: 0.625rem;
   font-size: 0.625rem;
+  line-height: 1;
   color: $color-text-muted;
   pointer-events: none;
+  user-select: none;
 }
 
 .handleLabelTrue {
-  top: calc(32% - 0.5rem);
+  top: calc(32% - 0.3125rem);
 }
 
 .handleLabelFalse {
-  top: calc(72% - 0.5rem);
+  top: calc(72% - 0.3125rem);
 }
 
 // ---------------------------------------------------------------------------
