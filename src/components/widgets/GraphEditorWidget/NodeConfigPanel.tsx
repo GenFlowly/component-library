@@ -95,8 +95,6 @@ export default function NodeConfigPanel({
     typeof parsed.instruction_version === 'number'
       ? parsed.instruction_version
       : null;
-  const systemPrompt =
-    typeof parsed.system_prompt === 'string' ? parsed.system_prompt : '';
   const inputTemplate =
     typeof parsed.input_template === 'string' ? parsed.input_template : '';
   const modelOverride =
@@ -290,22 +288,6 @@ export default function NodeConfigPanel({
             >
               {labels.createInstruction}
             </button>
-          )}
-
-          {!instructionId && systemPrompt && (
-            <div className={styles.legacyPrompt}>
-              <div className={styles.fieldLabel}>
-                {labels.legacyPromptLabel}
-              </div>
-              <textarea
-                className={styles.fieldTextarea}
-                value={systemPrompt}
-                readOnly
-                rows={4}
-                data-testid="graph-editor-config-system-prompt"
-              />
-              <p className={styles.hintText}>{labels.legacyPromptHint}</p>
-            </div>
           )}
         </section>
       )}

@@ -135,7 +135,7 @@ describe('GraphEditor', () => {
     ).toBeInTheDocument();
   });
 
-  test('shows the entry-point badge and instruction/inline-prompt summaries', () => {
+  test('shows the entry-point badge and instruction summary', () => {
     render(<GraphEditor {...defaultProps} graph={buildGraph()} />);
 
     expect(
@@ -144,9 +144,11 @@ describe('GraphEditor', () => {
     expect(
       screen.getByTestId('graph-editor-node-n-analyzer-instruction')
     ).toHaveTextContent('Analyzer prompt');
+    // Legacy inline system_prompt configs get no badge — instructions are
+    // the only prompt affordance surfaced on the canvas.
     expect(
-      screen.getByTestId('graph-editor-node-n-rewriter-inline-prompt')
-    ).toBeInTheDocument();
+      screen.queryByTestId('graph-editor-node-n-rewriter-inline-prompt')
+    ).not.toBeInTheDocument();
   });
 
   test('save is disabled while pristine and enables after an edit', () => {

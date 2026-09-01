@@ -122,9 +122,6 @@ export interface GraphEditorLabels {
   pinToVersion: string;
   previewToggle: string;
   createInstruction: string;
-  legacyPromptLabel: string;
-  legacyPromptHint: string;
-  inlinePromptBadge: string;
   inputTemplateLabel: string;
   modelOverrideLabel: string;
   rawConfigToggle: string;

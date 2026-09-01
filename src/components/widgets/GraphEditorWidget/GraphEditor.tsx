@@ -74,10 +74,6 @@ const DEFAULT_LABELS: GraphEditorLabels = {
   pinToVersion: 'Pin to version',
   previewToggle: 'Preview instruction',
   createInstruction: '+ Create new instruction',
-  legacyPromptLabel: 'Inline prompt (legacy)',
-  legacyPromptHint:
-    'This node uses a legacy inline prompt. Convert it to an instruction to share and version it — selecting an instruction above replaces the inline prompt.',
-  inlinePromptBadge: 'inline prompt',
   inputTemplateLabel: 'Input template',
   modelOverrideLabel: 'Model override',
   rawConfigToggle: 'Advanced config (JSON)',
@@ -449,14 +445,9 @@ function GraphEditorInner({
             ...node.data,
             typeLabel: catalogEntry?.label ?? node.data.nodeType,
             instructionName: instruction?.name ?? (instructionId || null),
-            hasInlinePrompt:
-              !instructionId &&
-              typeof config.system_prompt === 'string' &&
-              config.system_prompt.length > 0,
             isEntry: node.id === entryPoint,
             editable: !readOnly,
             entryBadgeLabel: labels.entryPointBadge,
-            inlinePromptBadgeLabel: labels.inlinePromptBadge,
             trueRouteLabel: labels.trueRoute,
             falseRouteLabel: labels.falseRoute,
             onRename: renameNode,

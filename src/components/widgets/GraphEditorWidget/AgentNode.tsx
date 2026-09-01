@@ -17,12 +17,9 @@ export interface AgentNodeDisplayData extends AgentNodeData {
   typeLabel: string;
   /** Resolved instruction name when the config references one. */
   instructionName: string | null;
-  /** Config carries a legacy inline system_prompt (and no instruction_id). */
-  hasInlinePrompt: boolean;
   isEntry: boolean;
   editable: boolean;
   entryBadgeLabel: string;
-  inlinePromptBadgeLabel: string;
   trueRouteLabel: string;
   falseRouteLabel: string;
   onRename: (nodeId: string, name: string) => void;
@@ -116,13 +113,6 @@ export default function AgentNode({
           data-testid={`graph-editor-node-${id}-instruction`}
         >
           {data.instructionName}
-        </span>
-      ) : data.hasInlinePrompt ? (
-        <span
-          className={styles.inlinePromptBadge}
-          data-testid={`graph-editor-node-${id}-inline-prompt`}
-        >
-          {data.inlinePromptBadgeLabel}
         </span>
       ) : null}
 
