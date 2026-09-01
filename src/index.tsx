@@ -71,3 +71,12 @@ export type {
   InstructionEditorLabels,
   InstructionVersionItem,
 } from './components/widgets/InstructionEditorWidget/InstructionEditor';
+
+// Settings
+export { default as VendorApiKeysManager } from './components/widgets/VendorApiKeysManager/VendorApiKeysManager';
+export type {
+  VendorApiKeysManagerProps,
+  VendorApiKeyRowData,
+  VendorKeySaveResult,
+  VendorApiKeysManagerStrings,
+} from './components/widgets/VendorApiKeysManager/VendorApiKeysManager';
