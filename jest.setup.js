@@ -42,6 +42,11 @@ Object.defineProperty(window, 'ResizeObserver', {
 
 window.HTMLElement.prototype.scrollIntoView = jest.fn();
 
+// jsdom does not expose structuredClone (used by @dagrejs/dagre for layouts)
+if (typeof global.structuredClone !== 'function') {
+  global.structuredClone = obj => JSON.parse(JSON.stringify(obj));
+}
+
 // Mock react-markdown and plugins to avoid ESM syntax errors in Jest
 jest.mock('react-markdown', () => props => {
   const React = require('react');

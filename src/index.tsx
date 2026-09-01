@@ -72,6 +72,25 @@ export type {
   InstructionVersionItem,
 } from './components/widgets/InstructionEditorWidget/InstructionEditor';
 
+// Graph editing
+export { default as GraphEditor } from './components/widgets/GraphEditorWidget/GraphEditor';
+export {
+  END_NODE_ID,
+  REFLECTION_NODE_TYPE,
+} from './components/widgets/GraphEditorWidget/types';
+export type {
+  AgentGraph,
+  AgentGraphNode,
+  NodeCatalogEntry,
+  InstructionOption,
+  ConditionOption,
+  ConditionType,
+  GraphEditorProps,
+  GraphEditorLabels,
+  ValidationIssue,
+} from './components/widgets/GraphEditorWidget/types';
+export { validateAgentGraph } from './components/widgets/GraphEditorWidget/validation';
+
 // Settings
 export { default as VendorApiKeysManager } from './components/widgets/VendorApiKeysManager/VendorApiKeysManager';
 export type {

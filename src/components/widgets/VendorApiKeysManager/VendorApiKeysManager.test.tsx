@@ -87,10 +87,10 @@ describe('VendorApiKeysManager', () => {
 
     await waitFor(() => {
       expect(onSaveKey).toHaveBeenCalledWith('CLAUDE', 'sk-123');
-      expect(
-        screen.getByTestId('vendor-api-keys-CLAUDE-message')
-      ).toHaveTextContent('Key validated and saved');
     });
+    expect(
+      await screen.findByTestId('vendor-api-keys-CLAUDE-message')
+    ).toHaveTextContent('Key validated and saved');
   });
 
   test('shows the rejection message when a key is not accepted', async () => {
@@ -122,10 +122,10 @@ describe('VendorApiKeysManager', () => {
 
     await waitFor(() => {
       expect(onSaveConfig).toHaveBeenCalledWith('OPENAI', 'gpt-5', 1);
-      expect(
-        screen.getByTestId('vendor-api-keys-OPENAI-message')
-      ).toHaveTextContent('Saved: gpt-5 at priority 1');
     });
+    expect(
+      await screen.findByTestId('vendor-api-keys-OPENAI-message')
+    ).toHaveTextContent('Saved: gpt-5 at priority 1');
   });
 
   test('a cancelled delete (resolving false) shows no message', async () => {
@@ -147,10 +147,10 @@ describe('VendorApiKeysManager', () => {
 
     await waitFor(() => {
       expect(onDeleteKey).toHaveBeenCalledWith('OPENAI');
-      expect(
-        screen.getByTestId('vendor-api-keys-OPENAI-message')
-      ).toHaveTextContent('Key removed');
     });
+    expect(
+      await screen.findByTestId('vendor-api-keys-OPENAI-message')
+    ).toHaveTextContent('Key removed');
   });
 
   test('surfaces callback errors as row messages', async () => {

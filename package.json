@@ -1,6 +1,6 @@
 {
   "name": "@genflowly/component-library",
-  "version": "0.1.30",
+  "version": "0.1.31",
   "type": "commonjs",
   "files": [
     "dist"
@@ -66,8 +66,10 @@
   "dependencies": {
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.39.8",
+    "@dagrejs/dagre": "^3.1.1",
     "@uiw/react-markdown-editor": "^6.1.4",
     "@uiw/react-markdown-preview": "^5.1.5",
+    "@xyflow/react": "^12.11.6",
     "highlight.js": "^11.11.1",
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
