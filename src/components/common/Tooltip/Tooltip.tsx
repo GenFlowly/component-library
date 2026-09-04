@@ -1,12 +1,25 @@
-import React, { useState, useRef, ReactNode } from 'react';
+import React, { useState, useRef, useEffect, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './Tooltip.module.scss';
 
+/** Grace period before an interactive tooltip hides, so the cursor can travel
+ *  from the trigger into the tooltip content without it closing. */
+const INTERACTIVE_CLOSE_DELAY_MS = 150;
+
 interface TooltipProps {
-  content: string;
+  /** Tooltip body. Plain strings render as before; interactive tooltips
+   *  typically pass rich content (lists, buttons, …). */
+  content: ReactNode;
   children: ReactNode;
   position?: 'top' | 'bottom' | 'left' | 'right';
   fullWidth?: boolean;
+  /**
+   * Keeps the tooltip open while the cursor is over the trigger OR the tooltip
+   * content itself (with a small close delay in between), and makes the content
+   * clickable. Default false: the tooltip closes as soon as the trigger is
+   * left and its content ignores pointer events (previous behavior).
+   */
+  interactive?: boolean;
   'data-testid'?: string;
 }
 
@@ -15,6 +28,7 @@ export default function Tooltip({
   children,
   position = 'right',
   fullWidth = false,
+  interactive = false,
   'data-testid': testId,
 }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
@@ -24,6 +38,37 @@ export default function Tooltip({
   >(position);
   const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Never leave a pending hide timer behind after unmount
+  useEffect(
+    () => () => {
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    },
+    []
+  );
+
+  const show = () => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+    setIsVisible(true);
+  };
+
+  const hide = () => {
+    if (!interactive) {
+      setIsVisible(false);
+      return;
+    }
+    // Interactive: give the cursor time to reach the tooltip content —
+    // entering it (show above) cancels this timer.
+    if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    hideTimeoutRef.current = setTimeout(() => {
+      hideTimeoutRef.current = null;
+      setIsVisible(false);
+    }, INTERACTIVE_CLOSE_DELAY_MS);
+  };
 
   // Using useLayoutEffect to prevent flickering
   React.useLayoutEffect(() => {
@@ -79,10 +124,10 @@ export default function Tooltip({
       <div
         ref={containerRef}
         className={`${styles.tooltipContainer} ${fullWidth ? styles.fullWidth : ''}`}
-        onMouseEnter={() => setIsVisible(true)}
-        onMouseLeave={() => setIsVisible(false)}
-        onFocus={() => setIsVisible(true)}
-        onBlur={() => setIsVisible(false)}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        onFocus={show}
+        onBlur={hide}
         data-testid={testId}
       >
         {children}
@@ -92,13 +137,15 @@ export default function Tooltip({
         createPortal(
           <div
             ref={tooltipRef}
-            className={`${styles.tooltip} ${styles[`placement-${placement}`]} `}
+            className={`${styles.tooltip} ${styles[`placement-${placement}`]} ${interactive ? styles.interactive : ''}`}
             style={{
               top: `${tooltipPosition.top}px`,
               left: `${tooltipPosition.left}px`,
               // transform is now handled by CSS classes based on placement
             }}
             role="tooltip"
+            onMouseEnter={interactive ? show : undefined}
+            onMouseLeave={interactive ? hide : undefined}
             data-testid={testId ? `${testId}-content` : undefined}
           >
             {content}

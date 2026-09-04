@@ -148,7 +148,8 @@ describe('validateAgentGraph', () => {
     ).toContain('multiple-outgoing');
   });
 
-  test('conditional edges require a reflection generator node', () => {
+  test('acyclic branching needs NO reflection node', () => {
+    // a routes conditionally to b or END; no cycle anywhere.
     const graph = buildGraph({
       edges: [{ from: 'b', to: END_NODE_ID }],
       conditionalEdges: [
@@ -159,20 +160,181 @@ describe('validateAgentGraph', () => {
         },
       ],
     });
-    expect(codes(graph)).toContain('reflection-node-required');
+    expect(codes(graph)).not.toContain('reflection-node-required');
+  });
 
-    const withReflection = buildGraph({
+  test('a directed cycle without a reflection node is rejected', () => {
+    // a → b, b conditionally back to a: a directed cycle.
+    const graph = buildGraph({
+      edges: [{ from: 'a', to: 'b' }],
+      conditionalEdges: [
+        {
+          from: 'b',
+          condition_key: 'retry',
+          routes: { true: 'a', false: END_NODE_ID },
+        },
+      ],
+    });
+    expect(codes(graph)).toContain('reflection-node-required');
+  });
+
+  test('a directed cycle WITH a reflection node is accepted', () => {
+    const graph = buildGraph({
       nodeTypes: { b: REFLECTION_NODE_TYPE },
+      edges: [{ from: 'a', to: 'b' }],
+      conditionalEdges: [
+        {
+          from: 'b',
+          condition_key: 'retry',
+          routes: { true: 'a', false: END_NODE_ID },
+        },
+      ],
+    });
+    expect(codes(graph)).not.toContain('reflection-node-required');
+  });
+
+  test('cycles over plain edges alone also require a reflection node', () => {
+    const graph = buildGraph({
+      nodeIds: ['a', 'b', 'c'],
+      edges: [
+        { from: 'a', to: 'b' },
+        { from: 'b', to: 'c' },
+        { from: 'c', to: 'a' },
+      ],
+    });
+    expect(codes(graph)).toContain('reflection-node-required');
+  });
+
+  test('any non-blank condition key is accepted (no whitelist)', () => {
+    const graph = buildGraph({
       edges: [{ from: 'b', to: END_NODE_ID }],
       conditionalEdges: [
         {
           from: 'a',
-          condition_key: 'needs_rewrite',
+          condition_key: 'my_totally_custom_output_key',
           routes: { true: 'b', false: END_NODE_ID },
         },
       ],
     });
-    expect(codes(withReflection)).not.toContain('reflection-node-required');
+    expect(codes(graph)).not.toContain('condition-key-blank');
+    expect(validateAgentGraph(graph)).toEqual([]);
+  });
+
+  test('a blank condition key is rejected', () => {
+    const graph = buildGraph({
+      edges: [{ from: 'b', to: END_NODE_ID }],
+      conditionalEdges: [
+        {
+          from: 'a',
+          condition_key: '   ',
+          routes: { true: 'b', false: END_NODE_ID },
+        },
+      ],
+    });
+    expect(codes(graph)).toContain('condition-key-blank');
+  });
+
+  test('bool conditions must have exactly true and false routes', () => {
+    const extra = buildGraph({
+      edges: [{ from: 'b', to: END_NODE_ID }],
+      conditionalEdges: [
+        {
+          from: 'a',
+          condition_key: 'flag',
+          routes: { true: 'b', false: END_NODE_ID, maybe: 'b' },
+        },
+      ],
+    });
+    expect(codes(extra)).toContain('condition-routes-invalid');
+
+    const missing = buildGraph({
+      edges: [{ from: 'b', to: END_NODE_ID }],
+      conditionalEdges: [
+        { from: 'a', condition_key: 'flag', routes: { true: 'b' } },
+      ],
+    });
+    expect(codes(missing)).toContain('condition-routes-invalid');
+    // The absent "false" route is also reported as unconnected.
+    expect(codes(missing)).toContain('route-target-missing');
+  });
+
+  test('value conditions accept arbitrary labels and __default__', () => {
+    const graph = buildGraph({
+      nodeIds: ['a', 'b', 'c'],
+      edges: [
+        { from: 'b', to: END_NODE_ID },
+        { from: 'c', to: END_NODE_ID },
+      ],
+      conditionalEdges: [
+        {
+          from: 'a',
+          condition_key: 'intent',
+          condition_type: 'value',
+          routes: { search: 'b', summarize: 'c', __default__: END_NODE_ID },
+        },
+      ],
+    });
+    expect(validateAgentGraph(graph)).toEqual([]);
+  });
+
+  test('value conditions need at least one route', () => {
+    const graph = buildGraph({
+      edges: [{ from: 'b', to: END_NODE_ID }],
+      conditionalEdges: [
+        {
+          from: 'a',
+          condition_key: 'intent',
+          condition_type: 'value',
+          routes: {},
+        },
+      ],
+    });
+    expect(codes(graph)).toContain('condition-routes-invalid');
+  });
+
+  test('value route targets must exist', () => {
+    const graph = buildGraph({
+      edges: [{ from: 'b', to: END_NODE_ID }],
+      conditionalEdges: [
+        {
+          from: 'a',
+          condition_key: 'intent',
+          condition_type: 'value',
+          routes: { search: 'b', summarize: 'ghost' },
+        },
+      ],
+    });
+    expect(codes(graph)).toContain('edge-to-unknown');
+  });
+
+  test('unconnected value routes are reported', () => {
+    const graph = buildGraph({
+      edges: [{ from: 'b', to: END_NODE_ID }],
+      conditionalEdges: [
+        {
+          from: 'a',
+          condition_key: 'intent',
+          condition_type: 'value',
+          routes: { search: 'b', summarize: '' },
+        },
+      ],
+    });
+    expect(codes(graph)).toContain('route-target-missing');
+  });
+
+  test('cycles through value routes are detected', () => {
+    const graph = buildGraph({
+      edges: [{ from: 'a', to: 'b' }],
+      conditionalEdges: [
+        {
+          from: 'b',
+          condition_key: 'intent',
+          condition_type: 'value',
+          routes: { retry: 'a', __default__: END_NODE_ID },
+        },
+      ],
+    });
+    expect(codes(graph)).toContain('reflection-node-required');
   });
 
   test('both conditional routes must be connected', () => {

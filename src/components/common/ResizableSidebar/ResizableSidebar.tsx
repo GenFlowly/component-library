@@ -14,6 +14,8 @@ export interface ResizableSidebarProps {
   storageKey: string;
   minWidth?: number;
   maxWidth?: number;
+  /** Initial width (px) before the user first resizes; defaults to minWidth. */
+  defaultWidth?: number;
   children: ReactNode;
   'data-testid'?: string;
   handleTestId?: string;
@@ -28,6 +30,7 @@ export default function ResizableSidebar({
   storageKey,
   minWidth = DEFAULT_MIN_WIDTH,
   maxWidth = DEFAULT_MAX_WIDTH,
+  defaultWidth,
   children,
   'data-testid': testId,
   handleTestId,
@@ -46,7 +49,7 @@ export default function ResizableSidebar({
     } catch {
       // localStorage unavailable (private mode, etc.) — fall through to default
     }
-    return minWidth;
+    return clampWidth(defaultWidth ?? minWidth);
   });
   const panelRef = useRef<HTMLDivElement>(null);
 

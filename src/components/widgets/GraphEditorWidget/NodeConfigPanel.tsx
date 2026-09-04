@@ -4,9 +4,14 @@ import { parseNodeConfig } from './serialization';
 import {
   AgentFlowNode,
   ConditionOption,
+  ConditionType,
+  DEFAULT_ROUTE_LABEL,
   GraphEditorLabels,
   InstructionOption,
   NodeCatalogEntry,
+  NodeConfigField,
+  NodeConditional,
+  TOOL_ROUTE_LABELS,
 } from './types';
 
 /** Config keys the panel edits with dedicated fields; everything else is "raw". */
@@ -16,16 +21,29 @@ const KNOWN_CONFIG_KEYS = [
   'system_prompt',
   'input_template',
   'model_override',
+  'output_key',
 ];
 
-function splitConfig(config: string): {
+/** Route labels of a freshly enabled condition of the given type. */
+function defaultRoutesFor(type: ConditionType): string[] {
+  if (type === 'value') return [DEFAULT_ROUTE_LABEL];
+  if (type === 'tool_route') return [...TOOL_ROUTE_LABELS];
+  return ['true', 'false'];
+}
+
+function splitConfig(
+  config: string,
+  fieldKeys: string[]
+): {
   parsed: Record<string, unknown>;
   rest: Record<string, unknown>;
 } {
   const parsed = parseNodeConfig(config);
   const rest: Record<string, unknown> = {};
   Object.keys(parsed).forEach(key => {
-    if (!KNOWN_CONFIG_KEYS.includes(key)) rest[key] = parsed[key];
+    if (!KNOWN_CONFIG_KEYS.includes(key) && !fieldKeys.includes(key)) {
+      rest[key] = parsed[key];
+    }
   });
   return { parsed, rest };
 }
@@ -34,15 +52,25 @@ interface NodeConfigPanelProps {
   node: AgentFlowNode;
   isEntry: boolean;
   catalogEntry?: NodeCatalogEntry;
+  /** Dedicated inputs for type/preset-declared config keys. */
+  configFields?: NodeConfigField[];
   instructions: InstructionOption[];
   conditionOptions: ConditionOption[];
   labels: GraphEditorLabels;
   onRename: (name: string) => void;
   onConfigChange: (config: string) => void;
   onSetEntryPoint: () => void;
-  onConditionalChange: (option: ConditionOption | null) => void;
+  /**
+   * `renames` maps old route labels to new ones so the editor can rewire
+   * (rather than drop) the edges of renamed routes.
+   */
+  onConditionalChange: (
+    conditional: NodeConditional | null,
+    renames?: Record<string, string>
+  ) => void;
   onDelete: () => void;
   onRequestCreateInstruction?: () => void;
+  onSaveAsPreset?: () => void;
 }
 
 /**
@@ -57,6 +85,7 @@ export default function NodeConfigPanel({
   node,
   isEntry,
   catalogEntry,
+  configFields = [],
   instructions,
   conditionOptions,
   labels,
@@ -66,10 +95,15 @@ export default function NodeConfigPanel({
   onConditionalChange,
   onDelete,
   onRequestCreateInstruction,
+  onSaveAsPreset,
 }: NodeConfigPanelProps) {
   const { parsed, rest } = useMemo(
-    () => splitConfig(node.data.config),
-    [node.data.config]
+    () =>
+      splitConfig(
+        node.data.config,
+        configFields.map(f => f.key)
+      ),
+    [node.data.config, configFields]
   );
 
   const [instructionSearch, setInstructionSearch] = useState('');
@@ -99,6 +133,8 @@ export default function NodeConfigPanel({
     typeof parsed.input_template === 'string' ? parsed.input_template : '';
   const modelOverride =
     typeof parsed.model_override === 'string' ? parsed.model_override : '';
+  const outputKey =
+    typeof parsed.output_key === 'string' ? parsed.output_key : '';
 
   const selectedInstruction = instructions.find(
     i => i.instructionId === instructionId
@@ -139,7 +175,7 @@ export default function NodeConfigPanel({
     }
     setRawError(false);
     const known: Record<string, unknown> = {};
-    KNOWN_CONFIG_KEYS.forEach(key => {
+    [...KNOWN_CONFIG_KEYS, ...configFields.map(f => f.key)].forEach(key => {
       if (key in parsed) known[key] = parsed[key];
     });
     onConfigChange(
@@ -148,6 +184,96 @@ export default function NodeConfigPanel({
   };
 
   const conditional = node.data.conditional;
+  const conditionKeyListId = `graph-editor-condition-keys-${node.id}`;
+
+  /** Editable (non-default) route labels of a `value` condition. */
+  const valueRoutes = conditional
+    ? conditional.routes.filter(label => label !== DEFAULT_ROUTE_LABEL)
+    : [];
+  const hasDefaultRoute =
+    conditional?.routes.includes(DEFAULT_ROUTE_LABEL) ?? false;
+
+  const changeConditionType = (value: string) => {
+    if (!conditional) return;
+    const type = value as ConditionType;
+    if (type === conditional.type) return;
+    let routes = conditional.routes;
+    let key = conditional.key;
+    if (type === 'tool_route') {
+      routes = [...TOOL_ROUTE_LABELS];
+      // The runtime ignores the key for tool_route; keep the serialized spec
+      // self-describing.
+      key = 'tool_calls';
+    } else if (type !== 'value') {
+      routes = ['true', 'false'];
+    } else if (routes.length === 0) {
+      routes = defaultRoutesFor('value');
+    }
+    // bool ↔ value keeps matching labels' edges (true/false survive as
+    // value labels); everything else is dropped by the editor.
+    onConditionalChange({ ...conditional, type, key, routes });
+  };
+
+  const changeConditionKey = (key: string) => {
+    if (!conditional) return;
+    const next: NodeConditional = { ...conditional, key };
+    // Picking a suggestion adopts its type — but never silently discards a
+    // custom value-route setup.
+    const match = conditionOptions.find(o => o.key === key);
+    if (
+      match &&
+      match.type !== conditional.type &&
+      match.type !== 'value' &&
+      conditional.type !== 'value'
+    ) {
+      next.type = match.type;
+    }
+    onConditionalChange(next);
+  };
+
+  const renameRoute = (oldLabel: string, newLabel: string) => {
+    if (!conditional || newLabel === DEFAULT_ROUTE_LABEL) return;
+    onConditionalChange(
+      {
+        ...conditional,
+        routes: conditional.routes.map(l => (l === oldLabel ? newLabel : l)),
+      },
+      { [oldLabel]: newLabel }
+    );
+  };
+
+  const addRoute = () => {
+    if (!conditional) return;
+    let n = valueRoutes.length + 1;
+    while (conditional.routes.includes(`route${n}`)) n += 1;
+    // The default route stays last.
+    onConditionalChange({
+      ...conditional,
+      routes: [
+        ...valueRoutes,
+        `route${n}`,
+        ...(hasDefaultRoute ? [DEFAULT_ROUTE_LABEL] : []),
+      ],
+    });
+  };
+
+  const removeRoute = (label: string) => {
+    if (!conditional) return;
+    onConditionalChange({
+      ...conditional,
+      routes: conditional.routes.filter(l => l !== label),
+    });
+  };
+
+  const toggleDefaultRoute = (include: boolean) => {
+    if (!conditional) return;
+    onConditionalChange({
+      ...conditional,
+      routes: include
+        ? [...valueRoutes, DEFAULT_ROUTE_LABEL]
+        : [...valueRoutes],
+    });
+  };
 
   return (
     <aside
@@ -303,6 +429,7 @@ export default function NodeConfigPanel({
           }
           data-testid="graph-editor-config-input-template"
         />
+        <span className={styles.hintText}>{labels.inputTemplateHint}</span>
       </label>
 
       <label className={styles.fieldLabel}>
@@ -316,6 +443,82 @@ export default function NodeConfigPanel({
           data-testid="graph-editor-config-model-override"
         />
       </label>
+
+      {catalogEntry?.hasPrompt && (
+        <label className={styles.fieldLabel}>
+          {labels.outputKeyLabel}
+          <input
+            className={styles.fieldInput}
+            value={outputKey}
+            onChange={e =>
+              updateConfig({ output_key: e.target.value || undefined })
+            }
+            data-testid="graph-editor-config-output-key"
+          />
+          <span className={styles.hintText}>{labels.outputKeyHint}</span>
+        </label>
+      )}
+
+      {configFields.map(field => {
+        const raw = parsed[field.key];
+        if (field.type === 'boolean') {
+          return (
+            <label key={field.key} className={styles.checkboxLabel}>
+              <input
+                type="checkbox"
+                checked={raw === true}
+                onChange={e =>
+                  updateConfig({ [field.key]: e.target.checked || undefined })
+                }
+                data-testid={`graph-editor-config-field-${field.key}`}
+              />
+              {field.label}
+              {field.hint && (
+                <span className={styles.hintText}>{field.hint}</span>
+              )}
+            </label>
+          );
+        }
+        const value =
+          field.type === 'number'
+            ? typeof raw === 'number'
+              ? raw
+              : ''
+            : typeof raw === 'string'
+              ? raw
+              : '';
+        return (
+          <label key={field.key} className={styles.fieldLabel}>
+            {field.label}
+            <input
+              className={styles.fieldInput}
+              type={field.type}
+              value={value}
+              min={field.min}
+              max={field.max}
+              step={field.type === 'number' ? 'any' : undefined}
+              placeholder={field.placeholder}
+              onChange={e => {
+                if (field.type === 'number') {
+                  const parsedNumber = Number(e.target.value);
+                  updateConfig({
+                    [field.key]:
+                      e.target.value === '' || Number.isNaN(parsedNumber)
+                        ? undefined
+                        : parsedNumber,
+                  });
+                } else {
+                  updateConfig({ [field.key]: e.target.value || undefined });
+                }
+              }}
+              data-testid={`graph-editor-config-field-${field.key}`}
+            />
+            {field.hint && (
+              <span className={styles.hintText}>{field.hint}</span>
+            )}
+          </label>
+        );
+      })}
 
       <details className={styles.expando}>
         <summary>{labels.rawConfigToggle}</summary>
@@ -350,39 +553,129 @@ export default function NodeConfigPanel({
           <input
             type="checkbox"
             checked={conditional !== null}
-            onChange={e =>
-              onConditionalChange(
-                e.target.checked ? (conditionOptions[0] ?? null) : null
-              )
-            }
-            disabled={conditionOptions.length === 0}
+            onChange={e => {
+              if (!e.target.checked) {
+                onConditionalChange(null);
+                return;
+              }
+              // Seed from the first suggestion when available; arbitrary
+              // keys are legal, so no suggestions is fine too.
+              const first: ConditionOption | undefined = conditionOptions[0];
+              const type = first?.type ?? 'bool';
+              onConditionalChange({
+                key: first?.key ?? '',
+                type,
+                routes: defaultRoutesFor(type),
+              });
+            }}
             data-testid="graph-editor-config-conditional-toggle"
           />
           {labels.conditionEnable}
         </label>
         {conditional && (
-          <label className={styles.fieldLabel}>
-            {labels.conditionPickLabel}
-            <select
-              className={styles.fieldInput}
-              value={conditional.key}
-              onChange={e => {
-                const option = conditionOptions.find(
-                  c => c.key === e.target.value
-                );
-                if (option) onConditionalChange(option);
-              }}
-              data-testid="graph-editor-config-condition-select"
-            >
-              {conditionOptions.map(option => (
-                <option key={option.key} value={option.key}>
-                  {option.label}
+          <>
+            <label className={styles.fieldLabel}>
+              {labels.conditionTypeLabel}
+              <select
+                className={styles.fieldInput}
+                value={conditional.type}
+                onChange={e => changeConditionType(e.target.value)}
+                data-testid="graph-editor-config-condition-type"
+              >
+                <option value="bool">{labels.conditionTypeBool}</option>
+                <option value="list_empty">
+                  {labels.conditionTypeListEmpty}
                 </option>
-              ))}
-            </select>
-          </label>
+                <option value="value">{labels.conditionTypeValue}</option>
+                <option value="tool_route">
+                  {labels.conditionTypeToolRoute}
+                </option>
+              </select>
+            </label>
+
+            {/* tool_route inspects tool_calls directly — no condition key. */}
+            {conditional.type !== 'tool_route' && (
+              <label className={styles.fieldLabel}>
+                {labels.conditionPickLabel}
+                <input
+                  className={styles.fieldInput}
+                  list={conditionKeyListId}
+                  value={conditional.key}
+                  onChange={e => changeConditionKey(e.target.value)}
+                  data-testid="graph-editor-config-condition-key"
+                />
+                <datalist id={conditionKeyListId}>
+                  {conditionOptions.map(option => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
+                </datalist>
+              </label>
+            )}
+
+            {conditional.type === 'value' && (
+              <>
+                <div className={styles.fieldLabel}>{labels.routeListLabel}</div>
+                {valueRoutes.map((label, index) => (
+                  <div
+                    // Index keys keep focus stable while a label is typed.
+                    // eslint-disable-next-line react/no-array-index-key
+                    key={index}
+                    className={styles.routeRow}
+                  >
+                    <input
+                      className={styles.fieldInput}
+                      value={label}
+                      onChange={e => renameRoute(label, e.target.value)}
+                      data-testid={`graph-editor-config-route-${index}`}
+                    />
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => removeRoute(label)}
+                      disabled={conditional.routes.length <= 1}
+                      aria-label={labels.removeRoute}
+                      title={labels.removeRoute}
+                      data-testid={`graph-editor-config-route-${index}-remove`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className={styles.linkButton}
+                  onClick={addRoute}
+                  data-testid="graph-editor-config-route-add"
+                >
+                  {labels.addRoute}
+                </button>
+                <label className={styles.radioLabel}>
+                  <input
+                    type="checkbox"
+                    checked={hasDefaultRoute}
+                    onChange={e => toggleDefaultRoute(e.target.checked)}
+                    data-testid="graph-editor-config-route-default-toggle"
+                  />
+                  {labels.includeDefaultRoute}
+                </label>
+              </>
+            )}
+          </>
         )}
       </section>
+
+      {onSaveAsPreset && (
+        <button
+          type="button"
+          className={styles.secondaryButton}
+          onClick={onSaveAsPreset}
+          data-testid="graph-editor-config-save-preset"
+        >
+          {labels.saveAsPreset}
+        </button>
+      )}
 
       <button
         type="button"

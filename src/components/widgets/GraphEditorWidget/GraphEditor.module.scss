@@ -195,16 +195,28 @@
 // Palette
 // ---------------------------------------------------------------------------
 
+// The palette fills its ResizableSidebar wrapper (which owns width, the drag
+// handle and the right border); only the inner list scrolls so the search box
+// and the footer note stay visible.
 .palette {
-  width: 14rem;
-  flex-shrink: 0;
+  // No outer padding: the palette surface fills the resizable sidebar
+  // edge-to-edge; inner elements carry their own spacing.
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: $color-sidebar-background;
+  overflow: hidden;
+}
+
+.paletteScroll {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 0.6rem;
-  border-right: 1px solid $color-border;
-  background-color: $color-sidebar-background;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  padding: 0 0.6rem 0.5rem;
 }
 
 .paletteTitle {
@@ -213,9 +225,23 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: $color-text-muted;
+
+  .paletteList + & {
+    margin-top: 0.5rem;
+  }
+}
+
+.paletteFooter {
+  flex-shrink: 0;
+  border-top: 1px solid $color-border-light;
+  padding: 0.5rem 0.6rem 0.6rem;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: $color-text-muted;
 }
 
 .paletteSearch {
+  margin: 0.6rem 0.6rem 0.5rem;
   border: 1px solid $color-border;
   border-radius: var(--radius-sm);
   padding: 0.35rem 0.5rem;
@@ -246,6 +272,8 @@
   flex-direction: column;
   gap: 0.15rem;
   border: 1px solid $color-border;
+  // Type accent: the item's inline style sets --graph-editor-type-color.
+  border-left: 3px solid var(--graph-editor-type-color, $color-border);
   border-radius: var(--radius-md);
   background-color: $color-background-secondary;
   padding: 0.5rem 0.6rem;
@@ -255,6 +283,7 @@
   &:hover {
     box-shadow: $shadow-sm;
     border-color: $color-primary;
+    border-left-color: var(--graph-editor-type-color, $color-primary);
   }
 }
 
@@ -263,9 +292,38 @@
   font-weight: 500;
 }
 
+.paletteTypeCode {
+  font-family: monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  color: var(--graph-editor-type-color, $color-text-muted);
+}
+
 .paletteItemDescription {
   font-size: 0.75rem;
   color: $color-text-muted;
+}
+
+.paletteAttrList {
+  margin: 0.15rem 0 0;
+  padding-left: 1rem;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: $color-text-muted;
+
+  li + li {
+    margin-top: 0.1rem;
+  }
+}
+
+.paletteAttrDetails {
+  font-size: 0.6875rem;
+
+  summary {
+    cursor: pointer;
+    color: $color-text-secondary;
+    font-weight: 500;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -279,6 +337,8 @@
   gap: 0.25rem;
   width: 13rem;
   border: 1px solid $color-border;
+  // Type accent: the node's inline style sets --graph-editor-type-color.
+  border-left: 4px solid var(--graph-editor-type-color, $color-border);
   border-radius: var(--radius-md);
   background-color: $color-background-secondary;
   padding: 0.6rem 0.75rem;
@@ -288,11 +348,14 @@
 
 .agentNodeSelected {
   border-color: $color-primary;
+  border-left-color: var(--graph-editor-type-color, $color-primary);
   box-shadow: $shadow-focus;
 }
 
+// The left accent now belongs to the node type; the entry point keeps its
+// START badge and gains a green top border instead of the old left one.
 .agentNodeEntry {
-  border-left: 4px solid $color-success;
+  border-top: 3px solid $color-success;
 }
 
 .entryBadge {
@@ -335,8 +398,12 @@
 .typeBadge {
   align-self: flex-start;
   font-size: 0.6875rem;
-  color: $color-text-muted;
-  background-color: $color-background-tertiary;
+  color: var(--graph-editor-type-color, $color-text-muted);
+  background-color: color-mix(
+    in srgb,
+    var(--graph-editor-type-color, $color-text-muted) 12%,
+    transparent
+  );
   border-radius: 999px;
   padding: 0.05rem 0.5rem;
 }
@@ -346,7 +413,6 @@
   color: $color-primary;
   @include ellipsis;
 }
-
 
 .endNode {
   display: flex;
@@ -383,19 +449,23 @@
 .handleLabel {
   position: absolute;
   right: 0.625rem;
+  max-width: 55%;
   font-size: 0.625rem;
   line-height: 1;
   color: $color-text-muted;
   pointer-events: none;
   user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.handleLabelTrue {
-  top: calc(32% - 0.3125rem);
-}
-
-.handleLabelFalse {
-  top: calc(72% - 0.3125rem);
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  color: $color-text-primary;
 }
 
 // ---------------------------------------------------------------------------
@@ -568,6 +638,23 @@
   }
 }
 
+.routeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  .fieldInput {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .secondaryButton {
+    flex-shrink: 0;
+    padding: 0.25rem 0.55rem;
+    line-height: 1;
+  }
+}
+
 .versionMode {
   display: flex;
   flex-direction: column;
@@ -610,7 +697,6 @@
   max-height: 12rem;
   overflow-y: auto;
 }
-
 
 .hintText {
   margin: 0;

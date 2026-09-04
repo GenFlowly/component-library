@@ -7,6 +7,8 @@ import menuIcon from '../assets/icons/menu.svg';
 import moreVerticalIcon from '../assets/icons/more-vertical.svg';
 import altArrowLeft from '../assets/icons/alt-arrow-left.svg';
 import closeIcon from '../assets/icons/close.svg';
+import documentIcon from '../assets/icons/document.svg';
+import downloadIcon from '../assets/icons/download.svg';
 
 export const ICONS = {
   USER_CIRCLE: userCircle,
@@ -15,4 +17,6 @@ export const ICONS = {
   MORE_VERTICAL: moreVerticalIcon,
   ALT_ARROW_LEFT: altArrowLeft,
   CLOSE: closeIcon,
+  DOCUMENT: documentIcon,
+  DOWNLOAD: downloadIcon,
 };

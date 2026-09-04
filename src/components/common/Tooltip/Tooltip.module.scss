@@ -23,6 +23,12 @@
   z-index: 9999;
   pointer-events: none;
 
+  // Interactive tooltips (interactive prop) host clickable content, so they
+  // must receive pointer events — hovering them also keeps them open.
+  &.interactive {
+    pointer-events: auto;
+  }
+
   // Base arrow styles
   &::before {
     content: '';

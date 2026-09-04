@@ -1,0 +1,88 @@
+@import '../../../styles/variables.scss';
+
+.attachmentCard {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  max-width: 320px;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background-color: $color-background-secondary;
+  color: $color-text-primary;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background-color $transition-normal,
+    border-color $transition-normal,
+    transform $transition-normal;
+
+  &:hover:not(:disabled) {
+    background-color: $color-background-hover;
+    border-color: $color-border-focus;
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.99);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.fileIcon {
+  color: $color-primary;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.filename {
+  font-size: 0.85rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  font-size: 0.72rem;
+  color: $color-text-secondary;
+
+  &.error {
+    color: $color-error;
+  }
+}
+
+.downloadIcon {
+  color: $color-text-secondary;
+  margin-left: 0.25rem;
+
+  .attachmentCard:hover:not(:disabled) & {
+    color: $color-primary;
+  }
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  margin-left: 0.25rem;
+  border: 2px solid $color-border;
+  border-top-color: $color-primary;
+  border-radius: 50%;
+  animation: attachment-card-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes attachment-card-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

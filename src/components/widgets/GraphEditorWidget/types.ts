@@ -7,10 +7,17 @@ export const END_NODE_ID = '__end__';
 export const TEMP_NODE_ID_PREFIX = 'new-';
 
 /**
- * Node type that must be present in a graph whenever conditional routing is
- * used (server-side rule mirrored by the client validation).
+ * Node type that must be present in a graph whenever the graph contains a
+ * directed cycle (server-side rule mirrored by the client validation).
  */
 export const REFLECTION_NODE_TYPE = 'RESPONSE_GENERATOR_WITH_REFLECTION';
+export const TOOL_EXECUTOR_NODE_TYPE = 'TOOL_EXECUTOR';
+
+/**
+ * Special route label of `value` conditions acting as the fallback route when
+ * no other label matches. Rendered as "default" in the editor.
+ */
+export const DEFAULT_ROUTE_LABEL = '__default__';
 
 // ---------------------------------------------------------------------------
 // Server domain model (exact shapes, do not change)
@@ -39,7 +46,7 @@ export interface AgentGraph {
   nodes: AgentGraphNode[];
 }
 
-export type ConditionType = 'bool' | 'list_empty';
+export type ConditionType = 'bool' | 'list_empty' | 'value' | 'tool_route';
 
 export interface PlainEdgeSpec {
   from: string;
@@ -52,8 +59,18 @@ export interface ConditionalEdgeSpec {
   condition_key: string;
   /** Optional, defaults to `bool`. */
   condition_type?: ConditionType;
-  /** Keys are ALWAYS exactly `true` and `false`. */
-  routes: { true: string; false: string };
+  /**
+   * Route label → target nodeId (or `__end__`).
+   * - `bool` / `list_empty`: labels are EXACTLY `true` and `false`.
+   * - `value`: arbitrary labels (at least one); the state field's value is
+   *   matched as a string against the labels. The optional special label
+   *   {@link DEFAULT_ROUTE_LABEL} is the fallback route.
+   * - `tool_route`: labels are EXACTLY `builtin`, `caller` and `none` — the
+   *   runtime routes on the response generator's tool calls (built-in tools →
+   *   the TOOL_EXECUTOR node, caller-defined → exit, no calls → exit). The
+   *   condition key is ignored by the runtime.
+   */
+  routes: Record<string, string>;
 }
 
 /** Parsed shape of {@link AgentGraph.edges}. */
@@ -71,6 +88,22 @@ export interface LayoutJson {
 // Editor props
 // ---------------------------------------------------------------------------
 
+/**
+ * A config key a node type (or preset) exposes as a dedicated input in the
+ * config panel — instead of burying it in the raw-JSON editor.
+ */
+export interface NodeConfigField {
+  /** Config JSON key, e.g. "max_memories". */
+  key: string;
+  label: string;
+  type: 'text' | 'number' | 'boolean';
+  placeholder?: string;
+  min?: number;
+  max?: number;
+  /** Optional hint rendered under the input. */
+  hint?: string;
+}
+
 export interface NodeCatalogEntry {
   nodeType: string;
   label: string;
@@ -79,6 +112,46 @@ export interface NodeCatalogEntry {
   defaultConfig: string;
   /** Show the instruction selector in the config panel. */
   hasPrompt: boolean;
+  /**
+   * Contract lines shown on the palette item. Absent → the preset inherits
+   * the contract of its underlying node type (NodeTypeInfo.requiredAttributes).
+   */
+  requiredAttributes?: string[];
+  /**
+   * Config keys edited via dedicated panel inputs. Absent → the preset
+   * inherits its underlying node type's fields (NodeTypeInfo.configFields).
+   */
+  configFields?: NodeConfigField[];
+}
+
+/**
+ * Static metadata about a runtime node type: how it is labeled and colored in
+ * the editor, and the human-readable contract the type imposes on the graph.
+ * The library ships defaults for the built-in types
+ * ({@link DEFAULT_NODE_TYPE_INFOS} in `nodeTypeInfo.ts`); entries passed via
+ * {@link GraphEditorProps.nodeTypes} merge over those defaults by `nodeType`.
+ */
+export interface NodeTypeInfo {
+  nodeType: string;
+  label: string;
+  /** Accent color (any CSS color) used to identify this type on the canvas and palette. */
+  color?: string;
+  description?: string;
+  /** Human-readable contract lines: what the node requires / writes / rules the graph must follow. */
+  requiredAttributes?: string[];
+  /** Config for dragging a bare node of this type onto the canvas. */
+  defaultConfig?: string;
+  /**
+   * Excluded from the palette's "Node types" section. Used for legacy type
+   * strings that are aliases of a runtime primitive (e.g. QUERY_ANALYZER is
+   * the LLM primitive) — they still resolve colors/labels for existing
+   * graphs, but only real primitives are offered for dropping.
+   */
+  paletteHidden?: boolean;
+  /** Shows the instruction selector in the config panel for bare nodes of this type. */
+  hasPrompt?: boolean;
+  /** Config keys the panel edits with dedicated inputs for this type. */
+  configFields?: NodeConfigField[];
 }
 
 export interface InstructionOption {
@@ -106,9 +179,14 @@ export interface GraphEditorLabels {
   invalidCount: string; // uses {count}
   validationTitle: string;
   dismiss: string;
-  paletteTitle: string;
+  paletteTypesTitle: string;
+  palettePresetsTitle: string;
   paletteSearchPlaceholder: string;
   paletteEmpty: string;
+  /** Summary label of the collapsed contract list on palette type items. */
+  paletteContractToggle: string;
+  /** Always-visible note at the bottom of the palette. */
+  paletteFooterNote: string;
   configTitle: string;
   nodeNameLabel: string;
   setAsEntryPoint: string;
@@ -123,6 +201,7 @@ export interface GraphEditorLabels {
   previewToggle: string;
   createInstruction: string;
   inputTemplateLabel: string;
+  inputTemplateHint: string;
   modelOverrideLabel: string;
   rawConfigToggle: string;
   rawConfigApply: string;
@@ -130,15 +209,34 @@ export interface GraphEditorLabels {
   conditionSectionLabel: string;
   conditionEnable: string;
   conditionPickLabel: string;
+  conditionTypeLabel: string;
+  conditionTypeBool: string;
+  conditionTypeListEmpty: string;
+  conditionTypeValue: string;
+  conditionTypeToolRoute: string;
+  routeListLabel: string;
+  addRoute: string;
+  removeRoute: string;
+  includeDefaultRoute: string;
+  outputKeyLabel: string;
+  outputKeyHint: string;
+  saveAsPreset: string;
   deleteNode: string;
   trueRoute: string;
   falseRoute: string;
+  defaultRoute: string;
 }
 
 export interface GraphEditorProps {
   /** Graph to edit; `null` starts blank ("New agent"). */
   graph: AgentGraph | null;
   nodeCatalog: NodeCatalogEntry[];
+  /**
+   * Metadata for the runtime node types (palette "Node types" section, type
+   * colors, contract hints). Optional: entries merge field-by-field over the
+   * library defaults by `nodeType`, so apps only pass additions/overrides.
+   */
+  nodeTypes?: NodeTypeInfo[];
   instructions: InstructionOption[];
   conditionOptions: ConditionOption[];
   /** Mobile/view mode: pan/zoom + tap only, no drag/connect/palette. */
@@ -155,6 +253,11 @@ export interface GraphEditorProps {
   onNodeSelect?: (node: AgentGraphNode | null) => void;
   /** Renders a "create new instruction" link when provided. */
   onRequestCreateInstruction?: () => void;
+  /**
+   * Renders a "save as pre-made node" action in the config panel (admin
+   * surfaces): called with the selected node's current type/name/config.
+   */
+  onSaveAsPreset?: (node: AgentGraphNode) => void;
   /** Override any of the default English strings (e.g. with i18n values). */
   labels?: Partial<GraphEditorLabels>;
   'data-testid'?: string;
@@ -168,6 +271,13 @@ export interface GraphEditorProps {
 export interface NodeConditional {
   key: string;
   type: ConditionType;
+  /**
+   * Ordered route labels (rendered as handles top → bottom, serialized in
+   * this order). `bool` / `list_empty`: always `['true', 'false']`. `value`:
+   * arbitrary labels, optionally ending with {@link DEFAULT_ROUTE_LABEL}.
+   * `tool_route`: always {@link TOOL_ROUTE_LABELS}.
+   */
+  routes: string[];
 }
 
 export interface AgentNodeData extends Record<string, unknown> {
@@ -186,8 +296,35 @@ export type EditorFlowEdge = Edge;
 
 /** Source-handle ids used on agent nodes. */
 export const SOURCE_HANDLE_PLAIN = 'out';
-export const SOURCE_HANDLE_TRUE = 'true';
-export const SOURCE_HANDLE_FALSE = 'false';
+
+/** Conditional route handles follow the `route:<label>` id convention. */
+export const ROUTE_HANDLE_PREFIX = 'route:';
+
+export function routeHandleId(label: string): string {
+  return `${ROUTE_HANDLE_PREFIX}${label}`;
+}
+
+/** The route label of a `route:<label>` handle id, or `null` for other ids. */
+export function routeLabelFromHandle(
+  handle: string | null | undefined
+): string | null {
+  if (!handle || !handle.startsWith(ROUTE_HANDLE_PREFIX)) return null;
+  return handle.slice(ROUTE_HANDLE_PREFIX.length);
+}
+
+/** Legacy true/false handle ids, mapped onto the `route:<label>` scheme. */
+export const SOURCE_HANDLE_TRUE = routeHandleId('true');
+export const SOURCE_HANDLE_FALSE = routeHandleId('false');
+
+/** Route labels of `bool` / `list_empty` conditions (fixed). */
+export const BOOL_ROUTE_LABELS: readonly string[] = ['true', 'false'];
+
+/** Route labels of `tool_route` conditions (fixed). */
+export const TOOL_ROUTE_LABELS: readonly string[] = [
+  'builtin',
+  'caller',
+  'none',
+];
 
 /** Canonical editor state: everything needed to rebuild an AgentGraph. */
 export interface EditorGraphState {
@@ -212,6 +349,8 @@ export interface ValidationIssue {
     | 'edge-from-unknown'
     | 'edge-to-unknown'
     | 'route-target-missing'
+    | 'condition-key-blank'
+    | 'condition-routes-invalid'
     | 'multiple-outgoing'
     | 'self-loop'
     | 'reflection-node-required'

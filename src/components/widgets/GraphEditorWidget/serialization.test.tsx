@@ -6,7 +6,14 @@ import {
   parseLayoutJson,
   parseNodeConfig,
 } from './serialization';
-import { AgentGraph, AgentFlowNode, END_NODE_ID } from './types';
+import {
+  AgentGraph,
+  AgentFlowNode,
+  DEFAULT_ROUTE_LABEL,
+  END_NODE_ID,
+  SOURCE_HANDLE_FALSE,
+  SOURCE_HANDLE_TRUE,
+} from './types';
 
 const nodeConfig = (extra: Record<string, unknown> = {}) =>
   JSON.stringify({
@@ -146,6 +153,7 @@ describe('graphToEditorState', () => {
     expect(analyzer.data.conditional).toEqual({
       key: 'needs_rewrite',
       type: 'bool',
+      routes: ['true', 'false'],
     });
     const retrieval = state.nodes.find(
       n => n.id === 'n-retrieval'
@@ -154,7 +162,7 @@ describe('graphToEditorState', () => {
     // 3 plain + 2 conditional route edges
     expect(state.edges).toHaveLength(5);
     const trueEdge = state.edges.find(
-      e => e.source === 'n-analyzer' && e.sourceHandle === 'true'
+      e => e.source === 'n-analyzer' && e.sourceHandle === 'route:true'
     );
     expect(trueEdge?.target).toBe('n-rewriter');
   });
@@ -180,6 +188,126 @@ describe('round-trip', () => {
     expect(rebuilt.nodes).toEqual(original.nodes);
     expect(JSON.parse(rebuilt.edges)).toEqual(JSON.parse(original.edges));
     expect(JSON.parse(rebuilt.layout!)).toEqual(JSON.parse(original.layout!));
+  });
+
+  test('old bool graphs round-trip byte-stable', () => {
+    const original = buildRagGraph();
+    const rebuilt = editorStateToGraph(graphToEditorState(original).state);
+    expect(rebuilt.edges).toBe(original.edges);
+    expect(rebuilt.layout).toBe(original.layout);
+  });
+
+  test('a multi-way "value" condition with __default__ round-trips', () => {
+    const graph: AgentGraph = {
+      name: 'Router',
+      entryPoint: 'n-classifier',
+      maxIterations: 5,
+      edges: JSON.stringify({
+        edges: [
+          { from: 'n-search', to: END_NODE_ID },
+          { from: 'n-summarize', to: END_NODE_ID },
+          { from: 'n-fallback', to: END_NODE_ID },
+        ],
+        conditional_edges: [
+          {
+            from: 'n-classifier',
+            condition_key: 'intent',
+            condition_type: 'value',
+            routes: {
+              search: 'n-search',
+              summarize: 'n-summarize',
+              [DEFAULT_ROUTE_LABEL]: 'n-fallback',
+            },
+          },
+        ],
+      }),
+      nodes: [
+        {
+          nodeId: 'n-classifier',
+          nodeType: 'GENERATION',
+          name: 'Classifier',
+          config: JSON.stringify({ output_key: 'intent' }),
+        },
+        {
+          nodeId: 'n-search',
+          nodeType: 'WEB_SEARCH',
+          name: 'Search',
+          config: '{}',
+        },
+        {
+          nodeId: 'n-summarize',
+          nodeType: 'GENERATION',
+          name: 'Summarize',
+          config: '{}',
+        },
+        {
+          nodeId: 'n-fallback',
+          nodeType: 'GENERATION',
+          name: 'Fallback',
+          config: '{}',
+        },
+      ],
+    };
+
+    const { state } = graphToEditorState(graph);
+    const classifier = state.nodes.find(
+      n => n.id === 'n-classifier'
+    ) as AgentFlowNode;
+    expect(classifier.data.conditional).toEqual({
+      key: 'intent',
+      type: 'value',
+      routes: ['search', 'summarize', DEFAULT_ROUTE_LABEL],
+    });
+    // One labeled route:<label> edge per route.
+    const routeEdges = state.edges.filter(e => e.source === 'n-classifier');
+    expect(routeEdges.map(e => e.sourceHandle)).toEqual([
+      'route:search',
+      'route:summarize',
+      `route:${DEFAULT_ROUTE_LABEL}`,
+    ]);
+    // The default route's handle label renders as "default".
+    expect(routeEdges.map(e => e.label)).toEqual([
+      'search',
+      'summarize',
+      'default',
+    ]);
+
+    const rebuilt = editorStateToGraph(state);
+    expect(JSON.parse(rebuilt.edges)).toEqual(JSON.parse(graph.edges));
+    const rebuiltCe = JSON.parse(rebuilt.edges).conditional_edges[0];
+    expect(rebuiltCe.condition_type).toBe('value');
+    expect(Object.keys(rebuiltCe.routes)).toEqual([
+      'search',
+      'summarize',
+      DEFAULT_ROUTE_LABEL,
+    ]);
+  });
+
+  test('legacy true/false handles map onto the route:<label> scheme', () => {
+    expect(SOURCE_HANDLE_TRUE).toBe('route:true');
+    expect(SOURCE_HANDLE_FALSE).toBe('route:false');
+    const { state } = graphToEditorState(buildRagGraph());
+    const trueEdge = state.edges.find(
+      e => e.source === 'n-analyzer' && e.sourceHandle === SOURCE_HANDLE_TRUE
+    );
+    expect(trueEdge?.target).toBe('n-rewriter');
+  });
+
+  test('an unconnected "value" route serializes as an empty target', () => {
+    const graph = buildRagGraph();
+    const edges = JSON.parse(graph.edges);
+    edges.conditional_edges[0] = {
+      from: 'n-analyzer',
+      condition_key: 'intent',
+      condition_type: 'value',
+      routes: { search: 'n-rewriter', summarize: '' },
+    };
+    graph.edges = JSON.stringify(edges);
+    const rebuilt = editorStateToGraph(graphToEditorState(graph).state);
+    expect(JSON.parse(rebuilt.edges).conditional_edges[0].routes).toEqual({
+      search: 'n-rewriter',
+      summarize: '',
+    });
   });
 
   test('unknown config keys are preserved untouched', () => {

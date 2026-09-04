@@ -1,10 +1,48 @@
-import { parseEdgesJson } from './serialization';
+import { conditionRouteLabels, parseEdgesJson } from './serialization';
 import {
   AgentGraph,
+  BOOL_ROUTE_LABELS,
   END_NODE_ID,
   REFLECTION_NODE_TYPE,
+  TOOL_EXECUTOR_NODE_TYPE,
+  TOOL_ROUTE_LABELS,
   ValidationIssue,
 } from './types';
+
+/**
+ * Iterative DFS (white/gray/black) cycle detection over an adjacency map.
+ * A back edge to a node on the current DFS stack means a directed cycle.
+ */
+function hasDirectedCycle(adjacency: Map<string, string[]>): boolean {
+  const VISITING = 1;
+  const DONE = 2;
+  const state = new Map<string, number>();
+
+  for (const root of Array.from(adjacency.keys())) {
+    if (state.get(root) !== undefined) continue;
+    // Stack of [node, nextNeighborIndex].
+    const stack: [string, number][] = [[root, 0]];
+    state.set(root, VISITING);
+    while (stack.length > 0) {
+      const frame = stack[stack.length - 1];
+      const neighbors = adjacency.get(frame[0]) ?? [];
+      if (frame[1] >= neighbors.length) {
+        state.set(frame[0], DONE);
+        stack.pop();
+        continue;
+      }
+      const next = neighbors[frame[1]];
+      frame[1] += 1;
+      const nextState = state.get(next);
+      if (nextState === VISITING) return true;
+      if (nextState === undefined) {
+        state.set(next, VISITING);
+        stack.push([next, 0]);
+      }
+    }
+  }
+  return false;
+}
 
 /**
  * Validates an AgentGraph against the server's structural rules. Returns an
@@ -96,12 +134,60 @@ export function validateAgentGraph(graph: AgentGraph): ValidationIssue[] {
         message: `Conditional edge starts at unknown node "${ce.from}".`,
       });
     }
-    (['true', 'false'] as const).forEach(route => {
+
+    // Any non-blank condition key is legal (nodes can write custom output
+    // keys that conditions read) — but blank is not. tool_route ignores the
+    // key entirely, so blank is fine there.
+    if (
+      (ce.condition_type ?? 'bool') !== 'tool_route' &&
+      (!ce.condition_key || ce.condition_key.trim() === '')
+    ) {
+      issues.push({
+        code: 'condition-key-blank',
+        message: `Node "${nodeName(ce.from)}" has a conditional edge without a condition key.`,
+      });
+    }
+
+    const type = ce.condition_type ?? 'bool';
+    const declaredLabels = Object.keys(ce.routes ?? {});
+    if (type === 'value') {
+      if (declaredLabels.length === 0) {
+        issues.push({
+          code: 'condition-routes-invalid',
+          message: `Node "${nodeName(ce.from)}" matches a value but declares no routes. Add at least one route.`,
+        });
+      } else if (declaredLabels.some(label => label.trim() === '')) {
+        issues.push({
+          code: 'condition-routes-invalid',
+          message: `Node "${nodeName(ce.from)}" has a route with a blank label.`,
+        });
+      }
+    } else if (type === 'tool_route') {
+      if (
+        declaredLabels.length !== TOOL_ROUTE_LABELS.length ||
+        !TOOL_ROUTE_LABELS.every(label => declaredLabels.includes(label))
+      ) {
+        issues.push({
+          code: 'condition-routes-invalid',
+          message: `Node "${nodeName(ce.from)}" must have exactly a "builtin", a "caller" and a "none" route.`,
+        });
+      }
+    } else if (
+      declaredLabels.length !== BOOL_ROUTE_LABELS.length ||
+      !BOOL_ROUTE_LABELS.every(label => declaredLabels.includes(label))
+    ) {
+      issues.push({
+        code: 'condition-routes-invalid',
+        message: `Node "${nodeName(ce.from)}" must have exactly a "true" and a "false" route.`,
+      });
+    }
+
+    conditionRouteLabels(ce).forEach(route => {
       const target = ce.routes?.[route];
       if (!target) {
         issues.push({
           code: 'route-target-missing',
-          message: `Node "${nodeName(ce.from)}" is missing its "${route}" route. Connect both routes.`,
+          message: `Node "${nodeName(ce.from)}" is missing its "${route}" route. Connect all routes.`,
         });
       } else if (!isValidTarget(target)) {
         issues.push({
@@ -136,30 +222,39 @@ export function validateAgentGraph(graph: AgentGraph): ValidationIssue[] {
     }
   });
 
-  // A conditional edge requires a reflection-capable generator in the graph.
+  // Combined adjacency over plain edges and every conditional route.
+  const adjacency = new Map<string, string[]>();
+  const addEdge = (from: string, to: string) => {
+    if (!adjacency.has(from)) adjacency.set(from, []);
+    adjacency.get(from)!.push(to);
+  };
+  edges.forEach(e => addEdge(e.from, e.to));
+  conditionalEdges.forEach(ce => {
+    Object.values(ce.routes ?? {}).forEach(target => {
+      if (target) addEdge(ce.from, target);
+    });
+  });
+
+  // Only a graph containing a DIRECTED CYCLE (over plain + conditional edges
+  // combined) requires a loop-terminating node: a reflection-capable
+  // generator, or a TOOL_EXECUTOR (its tool_route loop ends when the model
+  // stops calling tools). Branching without cycles needs neither.
   if (
-    conditionalEdges.length > 0 &&
-    !graph.nodes.some(n => n.nodeType === REFLECTION_NODE_TYPE)
+    hasDirectedCycle(adjacency) &&
+    !graph.nodes.some(
+      n =>
+        n.nodeType === REFLECTION_NODE_TYPE ||
+        n.nodeType === TOOL_EXECUTOR_NODE_TYPE
+    )
   ) {
     issues.push({
       code: 'reflection-node-required',
-      message: `Conditional routing requires a ${REFLECTION_NODE_TYPE} node in the graph.`,
+      message: `The graph contains a cycle; loops require a ${REFLECTION_NODE_TYPE} node in the graph.`,
     });
   }
 
   // Reachability from the entry point.
   if (graph.entryPoint && nodeIds.has(graph.entryPoint)) {
-    const adjacency = new Map<string, string[]>();
-    const addEdge = (from: string, to: string) => {
-      if (!adjacency.has(from)) adjacency.set(from, []);
-      adjacency.get(from)!.push(to);
-    };
-    edges.forEach(e => addEdge(e.from, e.to));
-    conditionalEdges.forEach(ce => {
-      if (ce.routes?.true) addEdge(ce.from, ce.routes.true);
-      if (ce.routes?.false) addEdge(ce.from, ce.routes.false);
-    });
-
     const visited = new Set<string>();
     const queue = [graph.entryPoint];
     while (queue.length > 0) {

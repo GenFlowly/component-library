@@ -55,6 +55,49 @@ export const AllPositions: Story = {
   ),
 };
 
+export const Interactive: Story = {
+  render: () => (
+    <Tooltip
+      interactive
+      position="top"
+      content={
+        <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+          {['Prefers dark mode', 'Works in fintech'].map(fact => (
+            <li
+              key={fact}
+              style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}
+            >
+              <span>{fact}</span>
+              <button
+                aria-label={`Remove: ${fact}`}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#e5484d',
+                  cursor: 'pointer',
+                }}
+              >
+                ✗
+              </button>
+            </li>
+          ))}
+        </ul>
+      }
+    >
+      <span>2 facts added to memory</span>
+    </Tooltip>
+  ),
+  decorators: [
+    Story => (
+      <div
+        style={{ padding: '8rem', display: 'flex', justifyContent: 'center' }}
+      >
+        <Story />
+      </div>
+    ),
+  ],
+};
+
 export const FullWidth: Story = {
   args: {
     content: 'This trigger stretches to the full width of its container',

@@ -21,8 +21,10 @@ import '@xyflow/react/dist/style.css';
 import styles from './GraphEditor.module.scss';
 import AgentNode from './AgentNode';
 import EndNode from './EndNode';
-import NodePalette, { PALETTE_DRAG_MIME } from './NodePalette';
+import NodePalette, { PALETTE_DRAG_MIME, PalettePreset } from './NodePalette';
 import NodeConfigPanel from './NodeConfigPanel';
+import ResizableSidebar from '../../common/ResizableSidebar/ResizableSidebar';
+import { colorForNodeType, mergeNodeTypeInfos } from './nodeTypeInfo';
 import { applyAutoLayout } from './autoLayout';
 import {
   conditionalEdgeId,
@@ -35,14 +37,16 @@ import {
 import { validateAgentGraph } from './validation';
 import {
   AgentFlowNode,
-  ConditionOption,
+  DEFAULT_ROUTE_LABEL,
   EditorFlowEdge,
   EditorFlowNode,
   EditorGraphState,
   END_NODE_ID,
   GraphEditorLabels,
   GraphEditorProps,
-  SOURCE_HANDLE_FALSE,
+  NodeConditional,
+  routeHandleId,
+  routeLabelFromHandle,
   SOURCE_HANDLE_PLAIN,
   SOURCE_HANDLE_TRUE,
 } from './types';
@@ -58,9 +62,13 @@ const DEFAULT_LABELS: GraphEditorLabels = {
   invalidCount: '{count} issue(s)',
   validationTitle: 'Validation',
   dismiss: 'Dismiss',
-  paletteTitle: 'Nodes',
+  paletteTypesTitle: 'Node types',
+  palettePresetsTitle: 'Pre-made nodes',
   paletteSearchPlaceholder: 'Search nodes…',
   paletteEmpty: 'No matching nodes.',
+  paletteContractToggle: 'Contract',
+  paletteFooterNote:
+    'Graphs must produce generated_response · cycles require a Reflection node',
   configTitle: 'Node settings',
   nodeNameLabel: 'Name',
   setAsEntryPoint: 'Set as entry point',
@@ -75,26 +83,54 @@ const DEFAULT_LABELS: GraphEditorLabels = {
   previewToggle: 'Preview instruction',
   createInstruction: '+ Create new instruction',
   inputTemplateLabel: 'Input template',
+  inputTemplateHint:
+    '{field} inserts a value ({query}, {context}, {web_context}, {memories}, custom output keys). {?field}…{/field} renders its section only when the field has a value — e.g. {?context}Context:\n{context}\n\n{/context} skips the Context block when retrieval found nothing.',
   modelOverrideLabel: 'Model override',
   rawConfigToggle: 'Advanced config (JSON)',
   rawConfigApply: 'Apply JSON',
   rawConfigInvalid: 'Not valid JSON — expected an object.',
   conditionSectionLabel: 'Condition',
   conditionEnable: 'Conditional routing',
-  conditionPickLabel: 'Condition',
+  conditionPickLabel: 'Condition key',
+  conditionTypeLabel: 'Condition type',
+  conditionTypeBool: 'Boolean (true / false)',
+  conditionTypeListEmpty: 'List empty (true / false)',
+  conditionTypeValue: 'Match value',
+  conditionTypeToolRoute: 'Tool calls (builtin / caller / none)',
+  routeListLabel: 'Routes',
+  addRoute: '+ Add route',
+  removeRoute: 'Remove route',
+  includeDefaultRoute: 'Include a default route',
+  outputKeyLabel: 'Output key',
+  outputKeyHint:
+    'Other nodes can use this value as {<key>} in templates or as a condition key.',
+  saveAsPreset: 'Save as pre-made node',
   deleteNode: 'Delete node',
   trueRoute: 'true',
   falseRoute: 'false',
+  defaultRoute: 'default',
 };
 
-const nodeTypes: NodeTypes = {
+const flowNodeTypes: NodeTypes = {
   agent: AgentNode as unknown as NodeTypes['agent'],
   end: EndNode as unknown as NodeTypes['end'],
 };
 
+// Palette sidebar bounds (px): ~12rem min / ~14rem default / ~24rem max.
+const PALETTE_MIN_WIDTH = 192;
+const PALETTE_DEFAULT_WIDTH = 224;
+const PALETTE_MAX_WIDTH = 384;
+
+/** localStorage key the palette width persists under (rem, via the sidebar). */
+const PALETTE_WIDTH_STORAGE_KEY = 'graph-editor.palette-width';
+
+/** MiniMap color of the END node (matches its muted canvas look). */
+const MINIMAP_END_NODE_COLOR = '#9ca3af';
+
 function GraphEditorInner({
   graph,
   nodeCatalog,
+  nodeTypes: nodeTypesProp,
   instructions,
   conditionOptions,
   readOnly = false,
@@ -104,12 +140,28 @@ function GraphEditorInner({
   onDirtyChange,
   onNodeSelect,
   onRequestCreateInstruction,
+  onSaveAsPreset,
   labels: labelsProp,
   'data-testid': testId = 'graph-editor',
 }: GraphEditorProps) {
   const labels = useMemo(
     () => ({ ...DEFAULT_LABELS, ...labelsProp }),
     [labelsProp]
+  );
+
+  // App-provided type infos merge field-by-field over the library defaults.
+  const typeInfos = useMemo(
+    () => mergeNodeTypeInfos(nodeTypesProp),
+    [nodeTypesProp]
+  );
+  const typeInfoByType = useMemo(
+    () => new Map(typeInfos.map(info => [info.nodeType, info])),
+    [typeInfos]
+  );
+  const typeColor = useCallback(
+    (nodeType: string) =>
+      colorForNodeType(nodeType, typeInfoByType.get(nodeType)),
+    [typeInfoByType]
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState<EditorFlowNode>([]);
@@ -248,68 +300,84 @@ function GraphEditorInner({
     [setNodes]
   );
 
+  /** Display text of a route label, i18n-mapped for true/false/default. */
+  const routeDisplay = useCallback((label: string): string => {
+    const l = labelsRef.current;
+    if (label === 'true') return l.trueRoute;
+    if (label === 'false') return l.falseRoute;
+    if (label === DEFAULT_ROUTE_LABEL) return l.defaultRoute;
+    return label;
+  }, []);
+
+  /**
+   * Sets/updates/clears a node's conditional routing and reconciles its
+   * outgoing edges: kept for surviving route labels, rewired through
+   * `renames` (old label → new label), dropped for removed labels. Enabling
+   * converts the plain edge into the first route; disabling collapses the
+   * first surviving route back into a plain edge.
+   */
   const changeNodeConditional = useCallback(
-    (nodeId: string, option: ConditionOption | null) => {
+    (
+      nodeId: string,
+      conditional: NodeConditional | null,
+      renames?: Record<string, string>
+    ) => {
       setNodes(nds =>
         nds.map(n =>
           n.id === nodeId && n.type === 'agent'
-            ? {
-                ...n,
-                data: {
-                  ...n.data,
-                  conditional: option
-                    ? { key: option.key, type: option.type }
-                    : null,
-                },
-              }
+            ? { ...n, data: { ...n.data, conditional } }
             : n
         )
       );
       setEdges(eds => {
         const outgoing = eds.filter(e => e.source === nodeId);
         const others = eds.filter(e => e.source !== nodeId);
-        if (option) {
-          // Already conditional (only the condition changed): keep the routes.
-          if (
-            outgoing.some(
-              e =>
-                e.sourceHandle === SOURCE_HANDLE_TRUE ||
-                e.sourceHandle === SOURCE_HANDLE_FALSE
-            )
-          ) {
-            return eds;
-          }
-          // Convert the plain outgoing edge (if any) into the "true" route.
-          const plain = outgoing[0];
-          if (!plain) return eds;
+        if (!conditional) {
+          // Disabling: collapse back to a plain edge, preferring the "true"
+          // route target, else the first remaining route.
+          const kept =
+            outgoing.find(e => e.sourceHandle === SOURCE_HANDLE_TRUE) ??
+            outgoing.find(e => routeLabelFromHandle(e.sourceHandle) !== null);
+          if (!kept) return others;
           return [
             ...others,
             {
-              id: conditionalEdgeId(nodeId, 'true'),
+              id: plainEdgeId(nodeId, kept.target),
               source: nodeId,
-              target: plain.target,
-              sourceHandle: SOURCE_HANDLE_TRUE,
-              label: labelsRef.current.trueRoute,
+              target: kept.target,
+              sourceHandle: SOURCE_HANDLE_PLAIN,
             },
           ];
         }
-        // Disabling: collapse back to a plain edge keeping the "true" target.
-        const trueEdge = outgoing.find(
-          e => e.sourceHandle === SOURCE_HANDLE_TRUE
-        );
-        if (!trueEdge) return others;
-        return [
-          ...others,
-          {
-            id: plainEdgeId(nodeId, trueEdge.target),
-            source: nodeId,
-            target: trueEdge.target,
-            sourceHandle: SOURCE_HANDLE_PLAIN,
-          },
-        ];
+
+        const labelSet = new Set(conditional.routes);
+        const usedHandles = new Set<string>();
+        const next: EditorFlowEdge[] = [];
+        outgoing.forEach(e => {
+          let label = routeLabelFromHandle(e.sourceHandle);
+          if (label === null) {
+            // Was a plain edge: convert it into the first route.
+            const first = conditional.routes[0];
+            if (first === undefined) return;
+            label = first;
+          } else if (renames && renames[label] !== undefined) {
+            label = renames[label];
+          }
+          if (!labelSet.has(label)) return; // route dropped → edge dropped
+          const handle = routeHandleId(label);
+          if (usedHandles.has(handle)) return; // one edge per route
+          usedHandles.add(handle);
+          next.push({
+            ...e,
+            id: conditionalEdgeId(nodeId, label),
+            sourceHandle: handle,
+            label: routeDisplay(label),
+          });
+        });
+        return [...others, ...next];
       });
     },
-    [setNodes, setEdges]
+    [setNodes, setEdges, routeDisplay]
   );
 
   const isValidConnection = useCallback((conn: Edge | Connection): boolean => {
@@ -332,8 +400,9 @@ function GraphEditorInner({
   const onConnect = useCallback(
     (conn: Connection) => {
       const handle = conn.sourceHandle ?? SOURCE_HANDLE_PLAIN;
+      const routeLabel = routeLabelFromHandle(handle);
       const edge: EditorFlowEdge =
-        handle === SOURCE_HANDLE_PLAIN
+        routeLabel === null
           ? {
               id: plainEdgeId(conn.source, conn.target),
               source: conn.source,
@@ -341,21 +410,15 @@ function GraphEditorInner({
               sourceHandle: SOURCE_HANDLE_PLAIN,
             }
           : {
-              id: conditionalEdgeId(
-                conn.source,
-                handle === SOURCE_HANDLE_TRUE ? 'true' : 'false'
-              ),
+              id: conditionalEdgeId(conn.source, routeLabel),
               source: conn.source,
               target: conn.target,
               sourceHandle: handle,
-              label:
-                handle === SOURCE_HANDLE_TRUE
-                  ? labelsRef.current.trueRoute
-                  : labelsRef.current.falseRoute,
+              label: routeDisplay(routeLabel),
             };
       setEdges(eds => [...eds, edge]);
     },
-    [setEdges]
+    [setEdges, routeDisplay]
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -367,11 +430,44 @@ function GraphEditorInner({
 
   const onDrop = useCallback(
     (event: React.DragEvent) => {
-      const nodeType = event.dataTransfer.getData(PALETTE_DRAG_MIME);
-      if (!nodeType) return;
+      const payload = event.dataTransfer.getData(PALETTE_DRAG_MIME);
+      if (!payload) return;
       event.preventDefault();
-      const entry = nodeCatalog.find(c => c.nodeType === nodeType);
-      if (!entry) return;
+      // The payload is a JSON preset (nodeType + label + defaultConfig).
+      // Legacy plain-nodeType payloads fall back to the first catalog entry
+      // of that type — first match is fine, presets need not be unique.
+      let preset: PalettePreset | null = null;
+      try {
+        const parsed = JSON.parse(payload);
+        if (
+          parsed &&
+          typeof parsed === 'object' &&
+          typeof parsed.nodeType === 'string'
+        ) {
+          preset = {
+            nodeType: parsed.nodeType,
+            label:
+              typeof parsed.label === 'string' ? parsed.label : parsed.nodeType,
+            defaultConfig:
+              typeof parsed.defaultConfig === 'string'
+                ? parsed.defaultConfig
+                : '{}',
+          };
+        }
+      } catch {
+        // Not JSON: treat as a plain nodeType string.
+      }
+      if (!preset) {
+        const entry =
+          nodeCatalog.find(c => c.nodeType === payload) ??
+          typeInfoByType.get(payload);
+        if (!entry) return;
+        preset = {
+          nodeType: entry.nodeType,
+          label: entry.label,
+          defaultConfig: entry.defaultConfig ?? '{}',
+        };
+      }
       const id = nextTempNodeId(nodesRef.current.map(n => n.id));
       const position = screenToFlowPosition({
         x: event.clientX,
@@ -382,9 +478,11 @@ function GraphEditorInner({
         type: 'agent',
         position,
         data: {
-          name: entry.label,
-          nodeType: entry.nodeType,
-          config: entry.defaultConfig,
+          // The preset's label becomes the node name so multiple presets of
+          // the same nodeType stay distinguishable on the canvas.
+          name: preset.label,
+          nodeType: preset.nodeType,
+          config: preset.defaultConfig,
           conditional: null,
         },
       };
@@ -393,7 +491,7 @@ function GraphEditorInner({
       setEntryPoint(prev => prev || id);
       setSelectedNodeId(id);
     },
-    [nodeCatalog, screenToFlowPosition, setNodes]
+    [nodeCatalog, typeInfoByType, screenToFlowPosition, setNodes]
   );
 
   const handleAutoLayout = useCallback(() => {
@@ -436,6 +534,7 @@ function GraphEditorInner({
         const instruction = instructions.find(
           i => i.instructionId === instructionId
         );
+        // First catalog match is fine: presets may repeat a nodeType.
         const catalogEntry = nodeCatalog.find(
           c => c.nodeType === node.data.nodeType
         );
@@ -443,18 +542,46 @@ function GraphEditorInner({
           ...node,
           data: {
             ...node.data,
-            typeLabel: catalogEntry?.label ?? node.data.nodeType,
+            // The badge names the runtime primitive (LLM / Retrieval / …) —
+            // the node's own name carries its purpose, so preset labels stay
+            // out of the badge.
+            typeLabel:
+              typeInfoByType.get(node.data.nodeType)?.label ??
+              catalogEntry?.label ??
+              node.data.nodeType,
+            typeColor: typeColor(node.data.nodeType),
             instructionName: instruction?.name ?? (instructionId || null),
             isEntry: node.id === entryPoint,
             editable: !readOnly,
             entryBadgeLabel: labels.entryPointBadge,
-            trueRouteLabel: labels.trueRoute,
-            falseRouteLabel: labels.falseRoute,
+            routeHandles: (node.data.conditional?.routes ?? []).map(label => ({
+              id: routeHandleId(label),
+              label: routeDisplay(label),
+            })),
             onRename: renameNode,
           },
         };
       }),
-    [nodes, entryPoint, instructions, nodeCatalog, readOnly, labels, renameNode]
+    [
+      nodes,
+      entryPoint,
+      instructions,
+      nodeCatalog,
+      typeInfoByType,
+      typeColor,
+      readOnly,
+      labels,
+      renameNode,
+      routeDisplay,
+    ]
+  );
+
+  const miniMapNodeColor = useCallback(
+    (node: { type?: string; data?: Record<string, unknown> }): string =>
+      node.type === 'agent' && typeof node.data?.nodeType === 'string'
+        ? typeColor(node.data.nodeType)
+        : MINIMAP_END_NODE_COLOR,
+    [typeColor]
   );
 
   const displayEdges = useMemo(
@@ -542,19 +669,38 @@ function GraphEditorInner({
 
       <div className={styles.body}>
         {!readOnly && (
-          <NodePalette
-            catalog={nodeCatalog}
-            title={labels.paletteTitle}
-            searchPlaceholder={labels.paletteSearchPlaceholder}
-            emptyLabel={labels.paletteEmpty}
-          />
+          <ResizableSidebar
+            storageKey={PALETTE_WIDTH_STORAGE_KEY}
+            minWidth={PALETTE_MIN_WIDTH}
+            defaultWidth={PALETTE_DEFAULT_WIDTH}
+            maxWidth={PALETTE_MAX_WIDTH}
+            data-testid={`${testId}-palette-sidebar`}
+            handleTestId={`${testId}-palette-resize-handle`}
+          >
+            <NodePalette
+              typeInfos={typeInfos}
+              catalog={nodeCatalog}
+              typesTitle={labels.paletteTypesTitle}
+              presetsTitle={labels.palettePresetsTitle}
+              searchPlaceholder={labels.paletteSearchPlaceholder}
+              emptyLabel={labels.paletteEmpty}
+              contractToggleLabel={labels.paletteContractToggle}
+              footerNote={labels.paletteFooterNote}
+              colorForType={typeColor}
+            />
+          </ResizableSidebar>
         )}
 
-        <div className={styles.canvas} onDragOver={onDragOver} onDrop={onDrop}>
+        <div
+          className={styles.canvas}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          data-testid={`${testId}-canvas`}
+        >
           <ReactFlow
             nodes={displayNodes}
             edges={displayEdges}
-            nodeTypes={nodeTypes}
+            nodeTypes={flowNodeTypes}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onNodesDelete={onNodesDelete}
@@ -575,7 +721,7 @@ function GraphEditorInner({
             minZoom={0.2}
           >
             <Background gap={16} />
-            <MiniMap pannable zoomable />
+            <MiniMap pannable zoomable nodeColor={miniMapNodeColor} />
             <Controls showInteractive={!readOnly} />
           </ReactFlow>
 
@@ -612,17 +758,49 @@ function GraphEditorInner({
             key={selectedNode.id}
             node={selectedNode}
             isEntry={selectedNode.id === entryPoint}
-            catalogEntry={nodeCatalog.find(
-              c => c.nodeType === selectedNode.data.nodeType
-            )}
+            configFields={
+              nodeCatalog.find(c => c.nodeType === selectedNode.data.nodeType)
+                ?.configFields ??
+              typeInfoByType.get(selectedNode.data.nodeType)?.configFields
+            }
+            catalogEntry={
+              nodeCatalog.find(
+                c => c.nodeType === selectedNode.data.nodeType
+              ) ??
+              // Bare primitives dropped from the "Node types" section have no
+              // catalog preset — synthesize one from the type info so the
+              // config panel (instruction selector etc.) works for them too.
+              (() => {
+                const info = typeInfoByType.get(selectedNode.data.nodeType);
+                return info
+                  ? {
+                      nodeType: info.nodeType,
+                      label: info.label,
+                      defaultConfig: info.defaultConfig ?? '{}',
+                      hasPrompt: info.hasPrompt ?? false,
+                    }
+                  : undefined;
+              })()
+            }
             instructions={instructions}
             conditionOptions={conditionOptions}
             labels={labels}
             onRename={newName => renameNode(selectedNode.id, newName)}
             onConfigChange={config => changeNodeConfig(selectedNode.id, config)}
             onSetEntryPoint={() => setEntryPoint(selectedNode.id)}
-            onConditionalChange={option =>
-              changeNodeConditional(selectedNode.id, option)
+            onConditionalChange={(conditional, renames) =>
+              changeNodeConditional(selectedNode.id, conditional, renames)
+            }
+            onSaveAsPreset={
+              onSaveAsPreset
+                ? () =>
+                    onSaveAsPreset({
+                      nodeId: selectedNode.id,
+                      nodeType: selectedNode.data.nodeType,
+                      name: selectedNode.data.name,
+                      config: selectedNode.data.config,
+                    })
+                : undefined
             }
             onDelete={() =>
               deleteElements({ nodes: [{ id: selectedNode.id }] })

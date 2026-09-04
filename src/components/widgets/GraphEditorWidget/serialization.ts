@@ -1,7 +1,9 @@
 import {
   AgentGraph,
   AgentFlowNode,
+  BOOL_ROUTE_LABELS,
   ConditionalEdgeSpec,
+  DEFAULT_ROUTE_LABEL,
   EdgesJson,
   EditorFlowEdge,
   EditorFlowNode,
@@ -10,10 +12,10 @@ import {
   LayoutJson,
   NodeConditional,
   PlainEdgeSpec,
-  SOURCE_HANDLE_FALSE,
+  routeHandleId,
   SOURCE_HANDLE_PLAIN,
-  SOURCE_HANDLE_TRUE,
   TEMP_NODE_ID_PREFIX,
+  TOOL_ROUTE_LABELS,
 } from './types';
 
 export const DEFAULT_MAX_ITERATIONS = 25;
@@ -77,11 +79,30 @@ export function plainEdgeId(from: string, to: string): string {
   return `edge:${from}->${to}`;
 }
 
-export function conditionalEdgeId(
-  from: string,
-  route: 'true' | 'false'
-): string {
+export function conditionalEdgeId(from: string, route: string): string {
   return `edge:${from}:${route}`;
+}
+
+/**
+ * Ordered route labels of a conditional-edge spec. `bool` / `list_empty`
+ * conditions always use the fixed `true`/`false` pair, `tool_route` the fixed
+ * `builtin`/`caller`/`none` triple; `value` conditions keep the parse order
+ * of the `routes` object.
+ */
+export function conditionRouteLabels(ce: ConditionalEdgeSpec): string[] {
+  const type = ce.condition_type ?? 'bool';
+  if (type === 'value') {
+    return Object.keys(ce.routes ?? {});
+  }
+  if (type === 'tool_route') {
+    return [...TOOL_ROUTE_LABELS];
+  }
+  return [...BOOL_ROUTE_LABELS];
+}
+
+/** Display text of a route label (`__default__` renders as "default"). */
+export function routeDisplayLabel(label: string): string {
+  return label === DEFAULT_ROUTE_LABEL ? 'default' : label;
 }
 
 /** Next unused `new-<n>` temp id given the ids already present. */
@@ -142,7 +163,11 @@ export function graphToEditorState(
   const nodes: EditorFlowNode[] = graph.nodes.map(n => {
     const ce = conditionalByFrom.get(n.nodeId);
     const conditional: NodeConditional | null = ce
-      ? { key: ce.condition_key, type: ce.condition_type ?? 'bool' }
+      ? {
+          key: ce.condition_key,
+          type: ce.condition_type ?? 'bool',
+          routes: conditionRouteLabels(ce),
+        }
       : null;
     const agentNode: AgentFlowNode = {
       id: n.nodeId,
@@ -169,16 +194,15 @@ export function graphToEditorState(
     });
   });
   edgesJson.conditional_edges.forEach(ce => {
-    (['true', 'false'] as const).forEach(route => {
+    conditionRouteLabels(ce).forEach(route => {
       const target = ce.routes?.[route];
       if (!target) return;
       edges.push({
         id: conditionalEdgeId(ce.from, route),
         source: ce.from,
         target,
-        sourceHandle:
-          route === 'true' ? SOURCE_HANDLE_TRUE : SOURCE_HANDLE_FALSE,
-        label: route,
+        sourceHandle: routeHandleId(route),
+        label: routeDisplayLabel(route),
       });
     });
   });
@@ -215,15 +239,17 @@ export function editorStateToGraph(state: EditorGraphState): AgentGraph {
   agentNodes.forEach(node => {
     const outgoing = state.edges.filter(e => e.source === node.id);
     if (node.data.conditional) {
-      const routeTarget = (handle: string): string =>
-        outgoing.find(e => e.sourceHandle === handle)?.target ?? '';
+      const routeTarget = (label: string): string =>
+        outgoing.find(e => e.sourceHandle === routeHandleId(label))?.target ??
+        '';
+      const routes: Record<string, string> = {};
+      node.data.conditional.routes.forEach(label => {
+        routes[label] = routeTarget(label);
+      });
       const spec: ConditionalEdgeSpec = {
         from: node.id,
         condition_key: node.data.conditional.key,
-        routes: {
-          true: routeTarget(SOURCE_HANDLE_TRUE),
-          false: routeTarget(SOURCE_HANDLE_FALSE),
-        },
+        routes,
       };
       if (node.data.conditional.type !== 'bool') {
         spec.condition_type = node.data.conditional.type;

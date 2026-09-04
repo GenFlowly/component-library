@@ -49,6 +49,8 @@ export type {
 export { UserAvatarButton } from './components/common/UserAvatarButton/UserAvatarButton';
 
 // Cards
+export { default as AttachmentCard } from './components/common/AttachmentCard/AttachmentCard';
+export type { AttachmentCardProps } from './components/common/AttachmentCard/AttachmentCard';
 export { default as InstructionTile } from './components/common/InstructionTile/InstructionTile';
 export type {
   InstructionTileProps,
@@ -77,11 +79,18 @@ export { default as GraphEditor } from './components/widgets/GraphEditorWidget/G
 export {
   END_NODE_ID,
   REFLECTION_NODE_TYPE,
+  DEFAULT_ROUTE_LABEL,
 } from './components/widgets/GraphEditorWidget/types';
+export {
+  DEFAULT_NODE_TYPE_INFOS,
+  mergeNodeTypeInfos,
+  colorForNodeType,
+} from './components/widgets/GraphEditorWidget/nodeTypeInfo';
 export type {
   AgentGraph,
   AgentGraphNode,
   NodeCatalogEntry,
+  NodeTypeInfo,
   InstructionOption,
   ConditionOption,
   ConditionType,

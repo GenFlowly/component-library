@@ -7,6 +7,7 @@ import {
   END_NODE_ID,
   InstructionOption,
   NodeCatalogEntry,
+  NodeTypeInfo,
 } from './types';
 
 const meta: Meta<typeof GraphEditor> = {
@@ -25,11 +26,11 @@ The component is purely presentational: the host app loads the \`AgentGraph\`, t
 
 ### Editing model
 
-- **Palette (left):** searchable catalog; drag a type onto the canvas to create a node with its \`defaultConfig\`.
+- **Palette (left):** a drag-resizable sidebar (width persists to localStorage) with two searchable sections. **Node types** lists the runtime types from \`nodeTypes\` — the library ships \`DEFAULT_NODE_TYPE_INFOS\` so apps get this section with zero extra props; app entries merge field-by-field over the defaults by \`nodeType\`. Each item shows the label, the raw type, a description and the type's contract lines, and drags a bare node using the type's \`defaultConfig\`. **Pre-made nodes** lists the \`nodeCatalog\` presets (a runtime behavior + ready-made config; the same nodeType may appear multiple times). Every type gets an accent color (from its info, or a deterministic hue for unknown types) shown on palette items, canvas nodes and the minimap; a footer note pins the graph-level rules.
 - **Canvas:** grid background, minimap, controls. The permanent END node renders \`__end__\`; the entry node wears a START badge. Double-click a node name to rename inline.
-- **Config panel (right):** opens on selection — name, entry-point action, instruction selector (follow latest vs pin to a version, preview, create-new link), input template, model override, raw-JSON editor for unknown config keys, conditional routing and delete.
-- **Conditional routing:** enabling the condition on a node swaps its single source handle for labeled true/false handles; the previous plain edge becomes the "true" route.
-- **Validation:** the server's structural rules run live (entry point, single outgoing edge, reachability, reflection-node requirement, …); Save stays disabled while the graph is structurally invalid or pristine.
+- **Config panel (right):** opens on selection — name, entry-point action, instruction selector (follow latest vs pin to a version, preview, create-new link), input template, model override, output key (custom state field written by the node), raw-JSON editor for unknown config keys, conditional routing and delete.
+- **Conditional routing:** enabling the condition on a node swaps its single source handle for one labeled handle per route. \`bool\` / \`list_empty\` conditions use the fixed true/false pair; \`value\` conditions match the state field against arbitrary route labels (editable list, optional \`__default__\` fallback rendered as "default"). The condition key accepts any free-form key — suggestions come from \`conditionOptions\`.
+- **Validation:** the server's structural rules run live (entry point, single outgoing edge, reachability, route rules, …); a RESPONSE_GENERATOR_WITH_REFLECTION node is only required when the graph contains a directed cycle. Save stays disabled while the graph is structurally invalid or pristine.
 
 ### Sizing
 
@@ -157,6 +158,7 @@ const conditionOptions: ConditionOption[] = [
     label: 'Retrieval results empty',
   },
   { key: 'error', type: 'bool', label: 'Error' },
+  { key: 'intent', type: 'value', label: 'Detected intent' },
 ];
 
 /**
@@ -257,6 +259,93 @@ export const DefaultRagGraph: Story = {
   },
 };
 
+/**
+ * Multi-way "value" routing: a classifier writes its verdict to the custom
+ * output key `intent`; a value-type conditional edge matches that string
+ * against arbitrary route labels, with `__default__` as the fallback.
+ */
+const intentRouterGraph: AgentGraph = {
+  graphId: 'graph-intent-router',
+  name: 'Intent router',
+  entryPoint: 'node-classifier',
+  maxIterations: 10,
+  edges: JSON.stringify({
+    edges: [
+      { from: 'node-web', to: 'node-generator' },
+      { from: 'node-summarizer', to: END_NODE_ID },
+      { from: 'node-generator', to: END_NODE_ID },
+    ],
+    conditional_edges: [
+      {
+        from: 'node-classifier',
+        condition_key: 'intent',
+        condition_type: 'value',
+        routes: {
+          search: 'node-web',
+          summarize: 'node-summarizer',
+          __default__: 'node-generator',
+        },
+      },
+    ],
+  }),
+  nodes: [
+    {
+      nodeId: 'node-classifier',
+      nodeType: 'GENERATION',
+      name: 'Intent classifier',
+      config: JSON.stringify({
+        instruction_id: 'inst-analyzer',
+        instruction_version: null,
+        output_key: 'intent',
+      }),
+    },
+    {
+      nodeId: 'node-web',
+      nodeType: 'WEB_SEARCH',
+      name: 'Web search',
+      config: JSON.stringify({ max_results: 3 }),
+    },
+    {
+      nodeId: 'node-summarizer',
+      nodeType: 'GENERATION',
+      name: 'Summarizer',
+      config: JSON.stringify({
+        instruction_id: '',
+        instruction_version: null,
+        input_template: 'Summarize:\n{query}',
+      }),
+    },
+    {
+      nodeId: 'node-generator',
+      nodeType: 'RESPONSE_GENERATOR',
+      name: 'Answer',
+      config: JSON.stringify({
+        instruction_id: 'inst-generator',
+        instruction_version: null,
+        input_template: '{context}\n\nQuestion: {query}',
+      }),
+    },
+  ],
+};
+
+export const MultiWayValueRouting: Story = {
+  render: args => <EditorFrame {...args} />,
+  args: {
+    graph: intentRouterGraph,
+    nodeCatalog,
+    instructions,
+    conditionOptions,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'A `value`-type conditional edge fans the classifier out over three labeled route handles: `search`, `summarize` and the `__default__` fallback (rendered as "default"). The classifier writes its verdict to the custom output key `intent`, which the condition reads. The graph branches but has no directed cycle, so no reflection node is required. Select the classifier to edit the route-label list and the default-route toggle.',
+      },
+    },
+  },
+};
+
 export const NewAgent: Story = {
   render: args => <EditorFrame {...args} />,
   args: {
@@ -270,6 +359,45 @@ export const NewAgent: Story = {
       description: {
         story:
           'Blank editor (`graph: null`). Drag node types from the palette onto the canvas — the first dropped node becomes the entry point, and new nodes get temp ids `new-1`, `new-2`, … that survive into `onSave`.',
+      },
+    },
+  },
+};
+
+/**
+ * `nodeTypes` overrides merging over `DEFAULT_NODE_TYPE_INFOS`: a rebranded
+ * RETRIEVAL (label + color, default description/contract kept) plus a custom
+ * type unknown to the library, which gets a deterministic hashed hue.
+ */
+const customTypeInfos: NodeTypeInfo[] = [
+  {
+    nodeType: 'RETRIEVAL',
+    label: 'Milvus Search',
+    color: 'hsl(20 70% 45%)',
+  },
+  {
+    nodeType: 'SQL_LOOKUP',
+    label: 'SQL Lookup',
+    description: 'Runs a read-only SQL query against the analytics DB.',
+    requiredAttributes: ['No prompt', 'Writes sql_rows'],
+    defaultConfig: JSON.stringify({ max_rows: 50 }),
+  },
+];
+
+export const CustomTypeMetadata: Story = {
+  render: args => <EditorFrame {...args} />,
+  args: {
+    graph: ragGraph,
+    nodeCatalog,
+    nodeTypes: customTypeInfos,
+    instructions,
+    conditionOptions,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'The other stories pass no `nodeTypes`, so the palette\'s "Node types" section comes entirely from `DEFAULT_NODE_TYPE_INFOS`. Here the app overrides RETRIEVAL (new label and accent color — description and contract lines are kept from the default) and adds a custom `SQL_LOOKUP` type, which has no declared color and therefore gets a stable hue hashed from its type string.',
       },
     },
   },
