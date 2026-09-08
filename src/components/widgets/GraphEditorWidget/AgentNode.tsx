@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, useUpdateNodeInternals } from '@xyflow/react';
 import type { Node, NodeProps } from '@xyflow/react';
 import styles from './GraphEditor.module.scss';
 import { TYPE_COLOR_CSS_VAR } from './nodeTypeInfo';
@@ -71,6 +71,17 @@ export default function AgentNode({
 
   const conditional = data.conditional;
   const routeHandles = conditional ? data.routeHandles : [];
+
+  // React Flow only re-measures a node's handle bounds on an internals
+  // update (or a node resize). Toggling conditional routing swaps the plain
+  // source handle for route handles without resizing the node, so it must be
+  // told explicitly — otherwise the new handles are unregistered and no
+  // connection can be started from or dropped on them.
+  const updateNodeInternals = useUpdateNodeInternals();
+  const handleSignature = routeHandles.map(r => r.id).join('|');
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, handleSignature, updateNodeInternals]);
   // Keep enough vertical room for the stacked route handles/labels.
   const minHeight =
     routeHandles.length > 2
