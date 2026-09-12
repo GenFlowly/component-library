@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import GraphEditor from './GraphEditor';
+
 import { PALETTE_DRAG_MIME } from './NodePalette';
 import {
   colorForNodeType,
@@ -17,6 +18,25 @@ import {
   NodeCatalogEntry,
   NodeTypeInfo,
 } from './types';
+
+// The config panel (AgentMaker node flavor) embeds TextEditor, which
+// lazy-loads the UIW markdown editor — that does not work in JSDOM, so
+// replace it with a plain textarea.
+jest.mock('../TextEditorWidget/TextEditor', () => ({
+  __esModule: true,
+  default: function MockTextEditor(props: any) {
+    return (
+      <textarea
+        data-testid={props['data-testid']}
+        value={props.value}
+        readOnly={props.readOnly}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+          props.onChange(e.target.value)
+        }
+      />
+    );
+  },
+}));
 
 const nodeCatalog: NodeCatalogEntry[] = [
   {

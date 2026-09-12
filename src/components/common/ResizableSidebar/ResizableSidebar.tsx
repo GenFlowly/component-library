@@ -16,6 +16,12 @@ export interface ResizableSidebarProps {
   maxWidth?: number;
   /** Initial width (px) before the user first resizes; defaults to minWidth. */
   defaultWidth?: number;
+  /**
+   * Which side of the layout the panel sits on. Puts the drag handle on the
+   * opposite (inner) edge and inverts the drag direction.
+   * @default 'left'
+   */
+  side?: 'left' | 'right';
   children: ReactNode;
   'data-testid'?: string;
   handleTestId?: string;
@@ -31,6 +37,7 @@ export default function ResizableSidebar({
   minWidth = DEFAULT_MIN_WIDTH,
   maxWidth = DEFAULT_MAX_WIDTH,
   defaultWidth,
+  side = 'left',
   children,
   'data-testid': testId,
   handleTestId,
@@ -72,9 +79,14 @@ export default function ResizableSidebar({
       const handle = e.currentTarget;
       handle.setPointerCapture?.(e.pointerId);
 
+      // On a right-side panel the handle sits on the left edge, so dragging
+      // left (negative delta) grows the panel.
+      const direction = side === 'right' ? -1 : 1;
       let latestWidth = startWidth;
       const onPointerMove = (ev: PointerEvent) => {
-        latestWidth = clampWidth(startWidth + (ev.clientX - startX));
+        latestWidth = clampWidth(
+          startWidth + direction * (ev.clientX - startX)
+        );
         setWidth(latestWidth);
       };
       const onPointerEnd = () => {
@@ -87,7 +99,7 @@ export default function ResizableSidebar({
       window.addEventListener('pointerup', onPointerEnd);
       window.addEventListener('pointercancel', onPointerEnd);
     },
-    [width, clampWidth, saveWidth]
+    [width, clampWidth, saveWidth, side]
   );
 
   return (
@@ -99,7 +111,7 @@ export default function ResizableSidebar({
     >
       {children}
       <div
-        className={styles.resizeHandle}
+        className={`${styles.resizeHandle} ${side === 'right' ? styles.handleLeft : ''}`}
         onPointerDown={handleResizeStart}
         data-testid={handleTestId}
       />

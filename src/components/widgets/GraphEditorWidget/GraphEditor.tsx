@@ -22,7 +22,7 @@ import styles from './GraphEditor.module.scss';
 import AgentNode from './AgentNode';
 import EndNode from './EndNode';
 import NodePalette, { PALETTE_DRAG_MIME, PalettePreset } from './NodePalette';
-import NodeConfigPanel from './NodeConfigPanel';
+import AgentMaker from '../AgentMakerWidget/AgentMaker';
 import ResizableSidebar from '../../common/ResizableSidebar/ResizableSidebar';
 import { colorForNodeType, mergeNodeTypeInfos } from './nodeTypeInfo';
 import { applyAutoLayout } from './autoLayout';
@@ -124,6 +124,15 @@ const PALETTE_MAX_WIDTH = 384;
 /** localStorage key the palette width persists under (rem, via the sidebar). */
 const PALETTE_WIDTH_STORAGE_KEY = 'graph-editor.palette-width';
 
+// Node-settings sidebar bounds (px): ~18rem min / ~22rem default; no upper
+// bound — the user may take the whole canvas if they want.
+const CONFIG_MIN_WIDTH = 288;
+const CONFIG_DEFAULT_WIDTH = 352;
+const CONFIG_MAX_WIDTH = Number.POSITIVE_INFINITY;
+
+/** localStorage key the node-settings width persists under (rem). */
+const CONFIG_WIDTH_STORAGE_KEY = 'graph-editor.config-width';
+
 /** MiniMap color of the END node (matches its muted canvas look). */
 const MINIMAP_END_NODE_COLOR = '#9ca3af';
 
@@ -133,6 +142,8 @@ function GraphEditorInner({
   nodeTypes: nodeTypesProp,
   instructions,
   conditionOptions,
+  vendors,
+  getModelsForVendor,
   readOnly = false,
   saving = false,
   errorMessage = null,
@@ -754,59 +765,89 @@ function GraphEditorInner({
         </div>
 
         {!readOnly && selectedNode && (
-          <NodeConfigPanel
-            key={selectedNode.id}
-            node={selectedNode}
-            isEntry={selectedNode.id === entryPoint}
-            configFields={
-              nodeCatalog.find(c => c.nodeType === selectedNode.data.nodeType)
-                ?.configFields ??
-              typeInfoByType.get(selectedNode.data.nodeType)?.configFields
-            }
-            catalogEntry={
-              nodeCatalog.find(
-                c => c.nodeType === selectedNode.data.nodeType
-              ) ??
-              // Bare primitives dropped from the "Node types" section have no
-              // catalog preset — synthesize one from the type info so the
-              // config panel (instruction selector etc.) works for them too.
-              (() => {
-                const info = typeInfoByType.get(selectedNode.data.nodeType);
-                return info
-                  ? {
-                      nodeType: info.nodeType,
-                      label: info.label,
-                      defaultConfig: info.defaultConfig ?? '{}',
-                      hasPrompt: info.hasPrompt ?? false,
-                    }
-                  : undefined;
-              })()
-            }
-            instructions={instructions}
-            conditionOptions={conditionOptions}
-            labels={labels}
-            onRename={newName => renameNode(selectedNode.id, newName)}
-            onConfigChange={config => changeNodeConfig(selectedNode.id, config)}
-            onSetEntryPoint={() => setEntryPoint(selectedNode.id)}
-            onConditionalChange={(conditional, renames) =>
-              changeNodeConditional(selectedNode.id, conditional, renames)
-            }
-            onSaveAsPreset={
-              onSaveAsPreset
-                ? () =>
-                    onSaveAsPreset({
-                      nodeId: selectedNode.id,
-                      nodeType: selectedNode.data.nodeType,
-                      name: selectedNode.data.name,
-                      config: selectedNode.data.config,
-                    })
-                : undefined
-            }
-            onDelete={() =>
-              deleteElements({ nodes: [{ id: selectedNode.id }] })
-            }
-            onRequestCreateInstruction={onRequestCreateInstruction}
-          />
+          <ResizableSidebar
+            side="right"
+            storageKey={CONFIG_WIDTH_STORAGE_KEY}
+            minWidth={CONFIG_MIN_WIDTH}
+            defaultWidth={CONFIG_DEFAULT_WIDTH}
+            maxWidth={CONFIG_MAX_WIDTH}
+            data-testid="graph-editor-config-panel"
+            handleTestId="graph-editor-config-resize"
+          >
+            {/* AgentMaker renders as-is (own strings, own card look) — the
+                wrapper div is purely a scroll viewport for the sidebar. */}
+            <div className={styles.configScroll}>
+              <AgentMaker
+                key={selectedNode.id}
+                data-testid="graph-editor-config"
+                node={{
+                  id: selectedNode.id,
+                  name: selectedNode.data.name,
+                  nodeType: selectedNode.data.nodeType,
+                  config: selectedNode.data.config,
+                  conditional: selectedNode.data.conditional,
+                  isEntry: selectedNode.id === entryPoint,
+                }}
+                configFields={
+                  nodeCatalog.find(
+                    c => c.nodeType === selectedNode.data.nodeType
+                  )?.configFields ??
+                  typeInfoByType.get(selectedNode.data.nodeType)?.configFields
+                }
+                catalogEntry={
+                  nodeCatalog.find(
+                    c => c.nodeType === selectedNode.data.nodeType
+                  ) ??
+                  // Bare primitives dropped from the "Node types" section have
+                  // no catalog preset — synthesize one from the type info so the
+                  // config panel (instruction selector etc.) works for them too.
+                  (() => {
+                    const info = typeInfoByType.get(selectedNode.data.nodeType);
+                    return info
+                      ? {
+                          nodeType: info.nodeType,
+                          label: info.label,
+                          defaultConfig: info.defaultConfig ?? '{}',
+                          hasPrompt: info.hasPrompt ?? false,
+                        }
+                      : undefined;
+                  })()
+                }
+                instructions={instructions.map(option => ({
+                  id: option.instructionId,
+                  name: option.name,
+                  version: option.latestVersion ?? 1,
+                  preview: option.preview,
+                }))}
+                vendors={vendors}
+                getModelsForVendor={getModelsForVendor}
+                conditionOptions={conditionOptions}
+                onRename={newName => renameNode(selectedNode.id, newName)}
+                onConfigChange={config =>
+                  changeNodeConfig(selectedNode.id, config)
+                }
+                onSetEntryPoint={() => setEntryPoint(selectedNode.id)}
+                onConditionalChange={(conditional, renames) =>
+                  changeNodeConditional(selectedNode.id, conditional, renames)
+                }
+                onSaveAsPreset={
+                  onSaveAsPreset
+                    ? () =>
+                        onSaveAsPreset({
+                          nodeId: selectedNode.id,
+                          nodeType: selectedNode.data.nodeType,
+                          name: selectedNode.data.name,
+                          config: selectedNode.data.config,
+                        })
+                    : undefined
+                }
+                onDeleteNode={() =>
+                  deleteElements({ nodes: [{ id: selectedNode.id }] })
+                }
+                onRequestCreateInstruction={onRequestCreateInstruction}
+              />
+            </div>
+          </ResizableSidebar>
         )}
       </div>
     </div>

@@ -46,9 +46,9 @@
 @mixin input-with-hint-container {
   display: flex;
   align-items: center;
-  border: 1px solid #dbdbda;
+  border: 1px solid var(--color-border-light);
   border-radius: 4px;
-  background-color: $white;
+  background-color: var(--color-background-secondary);
   overflow: hidden;
   height: 42px;
   transition: border-color $transition-normal;
@@ -62,13 +62,13 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: #e8e8e7;
+  background-color: var(--color-background-tertiary);
   padding: 0 1rem;
   height: 100%;
-  color: $text-secondary;
+  color: var(--color-text-secondary);
   font-size: 0.875rem;
   font-weight: 500;
-  border-right: 1px solid #dbdbda;
+  border-right: 1px solid var(--color-border-light);
   flex-shrink: 0;
 }
 
@@ -80,11 +80,11 @@
   height: 100%;
   outline: none;
   font-size: 1rem;
-  color: $text-primary;
+  color: var(--color-text-primary);
   background: transparent;
 
   &::placeholder {
-    color: $text-muted;
+    color: var(--color-text-muted);
   }
 }
 

@@ -1,0 +1,257 @@
+@import '../../../styles/variables.scss';
+@import '../../../styles/mixins.scss';
+
+// Chromeless by design: no border/padding of its own, so the host surface
+// (page section, sidebar, overlay) decides the framing.
+.formCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
+  background: transparent;
+
+  // When the card is height-constrained and scrolls (sidebar/full-page
+  // mode), overflowing content must not compress the fixed-height rows.
+  > * {
+    flex-shrink: 0;
+  }
+}
+
+// Full-page mode: pin to the viewport (below modals/toasts at 9999)
+.fullHeight {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  padding: 1rem;
+  overflow-y: auto;
+  background: var(--color-background);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-background-hover);
+  }
+}
+
+.configRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.outputFormat {
+  flex: 1 1 160px;
+}
+
+.vendorSelect {
+  flex: 1 1 220px;
+}
+
+.modelField {
+  flex: 2 1 220px;
+}
+
+.templateField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.fieldLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.fieldLabelHint {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+// ── Node flavor ────────────────────────────────────────────────────────────
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.versionMode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.radioLabel,
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  flex-wrap: wrap;
+}
+
+.versionInput {
+  width: 4.5rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+}
+
+.plainInput {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-border-focus);
+  }
+}
+
+.expando {
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+
+  summary {
+    cursor: pointer;
+    color: var(--color-text-muted);
+  }
+
+  > *:not(summary) {
+    margin-top: 0.5rem;
+  }
+}
+
+.previewText {
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: var(--color-background-tertiary);
+  color: var(--color-text-primary);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.rawTextarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  font-family: monospace;
+  font-size: 0.8rem;
+  resize: vertical;
+}
+
+.routeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  .plainInput {
+    flex: 1;
+  }
+}
+
+.linkButton {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.hints {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.hintRow {
+  strong {
+    color: var(--color-text-primary);
+    font-weight: 600;
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.message {
+  font-size: 0.85rem;
+
+  &.success {
+    color: var(--color-success);
+  }
+
+  &.error {
+    color: var(--color-error);
+  }
+}

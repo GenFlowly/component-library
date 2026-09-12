@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
+import { fn } from '@storybook/test';
 import GraphEditor from './GraphEditor';
 import {
   AgentGraph,
@@ -14,6 +15,13 @@ const meta: Meta<typeof GraphEditor> = {
   title: 'Components/GraphEditor',
   component: GraphEditor,
   tags: ['autodocs'],
+  // Explicit spies: onDirtyChange fires during the initial mount, which
+  // Storybook rejects for implicit (regex-derived) action args.
+  args: {
+    onSave: fn(),
+    onDirtyChange: fn(),
+    onNodeSelect: fn(),
+  },
   parameters: {
     layout: 'fullscreen',
     docs: {

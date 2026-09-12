@@ -239,6 +239,13 @@ export interface GraphEditorProps {
   nodeTypes?: NodeTypeInfo[];
   instructions: InstructionOption[];
   conditionOptions: ConditionOption[];
+  /**
+   * Vendors selectable as a node's model preference (passed through to the
+   * node-settings panel). Omit to offer only the platform default.
+   */
+  vendors?: { id: string; label: string }[];
+  /** Lazily lists the models available for a vendor (passed through). */
+  getModelsForVendor?: (vendor: string) => Promise<string[]>;
   /** Mobile/view mode: pan/zoom + tap only, no drag/connect/palette. */
   readOnly?: boolean;
   saving?: boolean;

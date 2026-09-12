@@ -39,3 +39,14 @@
     background: linear-gradient(to left, $color-primary 2px, transparent 2px);
   }
 }
+
+// Right-side panels get the handle on their left (inner) edge
+.handleLeft {
+  right: auto;
+  left: 0;
+
+  &:hover,
+  &:active {
+    background: linear-gradient(to right, $color-primary 2px, transparent 2px);
+  }
+}

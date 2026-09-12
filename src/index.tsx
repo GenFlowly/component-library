@@ -100,6 +100,21 @@ export type {
 } from './components/widgets/GraphEditorWidget/types';
 export { validateAgentGraph } from './components/widgets/GraphEditorWidget/validation';
 
+// Agents
+export {
+  default as AgentMaker,
+  emptyAgentMakerValues,
+} from './components/widgets/AgentMakerWidget/AgentMaker';
+export type {
+  AgentMakerProps,
+  AgentMakerValues,
+  AgentMakerInstructionOption,
+  AgentMakerVendorOption,
+  AgentMakerActionHint,
+  AgentMakerNode,
+  AgentMakerStrings,
+} from './components/widgets/AgentMakerWidget/AgentMaker';
+
 // Settings
 export { default as VendorApiKeysManager } from './components/widgets/VendorApiKeysManager/VendorApiKeysManager';
 export type {

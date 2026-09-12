@@ -13,6 +13,10 @@ const ThemeDecorator = (
     // custom properties, data-color-mode drives the @uiw markdown editor.
     document.documentElement.setAttribute('data-theme', theme);
     document.documentElement.setAttribute('data-color-mode', theme);
+    // The app's page chrome paints these; in Storybook the preview body must
+    // do it, or dark mode renders light-on-light.
+    document.body.style.background = 'var(--color-background)';
+    document.body.style.color = 'var(--color-text-primary)';
   }, [theme]);
   return <Story />;
 };

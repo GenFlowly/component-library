@@ -517,16 +517,14 @@
 // Config panel
 // ---------------------------------------------------------------------------
 
-.configPanel {
-  width: 18rem;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  border-left: 1px solid $color-border;
-  background-color: $color-background-secondary;
+// Scroll viewport for the node-settings sidebar. Deliberately style-free
+// beyond scrolling: AgentMaker renders inside exactly as it does standalone.
+.configScroll {
+  box-sizing: border-box;
+  height: 100%;
+  padding: 0.5rem;
   overflow-y: auto;
+  background-color: $color-background-secondary;
 }
 
 .configTitle {
