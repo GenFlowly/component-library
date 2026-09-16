@@ -187,6 +187,8 @@ export interface GraphEditorLabels {
   paletteContractToggle: string;
   /** Always-visible note at the bottom of the palette. */
   paletteFooterNote: string;
+  collapsePalette: string;
+  expandPalette: string;
   configTitle: string;
   nodeNameLabel: string;
   setAsEntryPoint: string;

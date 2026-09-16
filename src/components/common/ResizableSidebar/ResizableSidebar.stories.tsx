@@ -74,6 +74,29 @@ export const CustomBounds: Story = {
   ),
 };
 
+/**
+ * `collapsible` adds a full-width footer toggle (chat-sidebar style) that
+ * collapses the panel to a slim strip; content stays mounted but hidden.
+ * Pass `collapsed`/`onCollapsedChange` to control the state from outside
+ * (e.g. GraphEditor collapses its palette when node settings open).
+ */
+export const Collapsible: Story = {
+  args: {
+    storageKey: 'storybook.resizable-sidebar.collapsible',
+    collapsible: true,
+    collapseLabel: 'Collapse palette',
+    expandLabel: 'Expand palette',
+  },
+  render: args => (
+    <ResizableSidebar {...args}>
+      <div style={{ padding: '1rem' }}>
+        <strong>Collapsible panel</strong>
+        <p>The footer chevron collapses this panel to a slim strip.</p>
+      </div>
+    </ResizableSidebar>
+  ),
+};
+
 export const WithLongContent: Story = {
   args: {
     storageKey: 'storybook.resizable-sidebar.long-content',

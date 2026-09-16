@@ -200,12 +200,13 @@
 // and the footer note stay visible.
 .palette {
   // No outer padding: the palette surface fills the resizable sidebar
-  // edge-to-edge; inner elements carry their own spacing.
+  // edge-to-edge; inner elements carry their own spacing. Transparent so
+  // the sidebar's translucent material shows through.
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: $color-sidebar-background;
+  background-color: transparent;
   overflow: hidden;
 }
 
@@ -524,7 +525,8 @@
   height: 100%;
   padding: 0.5rem;
   overflow-y: auto;
-  background-color: $color-background-secondary;
+  // Transparent: the sidebar's translucent material is the surface
+  background-color: transparent;
 }
 
 .configTitle {

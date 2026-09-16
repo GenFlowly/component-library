@@ -284,6 +284,26 @@ describe('GraphEditor', () => {
     );
   });
 
+  test('selecting a node collapses the palette; the footer toggle expands/collapses it', () => {
+    render(<GraphEditor {...defaultProps} graph={buildGraph()} />);
+    expect(screen.getByTestId('graph-editor-palette')).toBeVisible();
+
+    // Right sidebar opens → palette collapses to the slim strip (content
+    // stays mounted but hidden, so search state etc. survive)
+    fireEvent.click(screen.getByTestId('graph-editor-node-n-analyzer'));
+    expect(screen.getByTestId('graph-editor-palette')).not.toBeVisible();
+    expect(screen.getByTestId('graph-editor-config-panel')).toBeInTheDocument();
+
+    // Manual expand via the footer toggle while the config panel stays open
+    fireEvent.click(screen.getByTestId('graph-editor-palette-toggle'));
+    expect(screen.getByTestId('graph-editor-palette')).toBeVisible();
+    expect(screen.getByTestId('graph-editor-config-panel')).toBeInTheDocument();
+
+    // Same toggle collapses again
+    fireEvent.click(screen.getByTestId('graph-editor-palette-toggle'));
+    expect(screen.getByTestId('graph-editor-palette')).not.toBeVisible();
+  });
+
   test('readOnly hides palette, save and config panel but still reports taps', () => {
     const onNodeSelect = jest.fn();
     render(

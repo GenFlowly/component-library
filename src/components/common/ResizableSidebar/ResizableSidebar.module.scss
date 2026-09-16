@@ -4,21 +4,62 @@
 .sidebar {
   @include sidebar-base(right);
   width: 10rem; // Default; drag-resizing overrides via inline style
-  background-color: var(
-    --color-background-tertiary
-  ); // slightly distinct background
+
+  // macOS-style sidebar material: translucent, blurred, hairline-edged.
+  // Component-local custom props so dark mode only swaps the values.
+  --sidebar-material: rgba(243, 243, 246, 0.78);
+  --sidebar-hairline: rgba(0, 0, 0, 0.08);
+  --sidebar-hover-fill: rgba(0, 0, 0, 0.05);
+  --sidebar-scrollbar-thumb: rgba(0, 0, 0, 0.22);
+
+  background-color: var(--sidebar-material);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
   z-index: 15;
-  border: none; // The page-background gap separates panels instead
+  border: 1px solid var(--sidebar-hairline);
   border-radius: $widget-radius;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   overflow: hidden; // Clip inner content to the rounded corners
   transition: none; // Width is user-driven (drag); animating it would lag the pointer
+
+  // Thin macOS-style scrollbars for anything that scrolls inside the panel
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--sidebar-scrollbar-thumb) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--sidebar-scrollbar-thumb);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
 
   @include respond-to-mobile {
     width: 100%;
     position: absolute;
     z-index: 200;
     border-radius: 0;
+    border: none;
+    box-shadow: none;
   }
+}
+
+:global([data-theme='dark']) .sidebar {
+  --sidebar-material: rgba(38, 38, 42, 0.72);
+  --sidebar-hairline: rgba(255, 255, 255, 0.09);
+  --sidebar-hover-fill: rgba(255, 255, 255, 0.07);
+  --sidebar-scrollbar-thumb: rgba(255, 255, 255, 0.25);
+
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 // Drag handle on the panel's right edge; sibling sections reflow
@@ -37,6 +78,45 @@
   &:hover,
   &:active {
     background: linear-gradient(to left, $color-primary 2px, transparent 2px);
+  }
+}
+
+// Collapsible mode: column layout so the footer toggle pins to the bottom
+// (same pattern as the app's chat right sidebar)
+.withFooter {
+  display: flex;
+  flex-direction: column;
+}
+
+.contentArea {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.collapsedStrip {
+  transition: none;
+}
+
+.collapseToggle {
+  flex-shrink: 0;
+  margin-top: auto; // Pin to the bottom even while the content is hidden
+  width: 100%;
+  padding: 0.5rem;
+  border: none;
+  border-top: 1px solid var(--sidebar-hairline);
+  border-radius: 0;
+  background-color: transparent; // The panel material shows through
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--sidebar-hover-fill);
+    color: var(--color-text-primary);
   }
 }
 

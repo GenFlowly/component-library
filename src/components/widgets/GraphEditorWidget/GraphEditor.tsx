@@ -69,6 +69,8 @@ const DEFAULT_LABELS: GraphEditorLabels = {
   paletteContractToggle: 'Contract',
   paletteFooterNote:
     'Graphs must produce generated_response · cycles require a Reflection node',
+  collapsePalette: 'Collapse palette',
+  expandPalette: 'Expand palette',
   configTitle: 'Node settings',
   nodeNameLabel: 'Name',
   setAsEntryPoint: 'Set as entry point',
@@ -186,6 +188,14 @@ function GraphEditorInner({
   const [baseline, setBaseline] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [dismissedIssues, setDismissedIssues] = useState<string | null>(null);
+  const [paletteCollapsed, setPaletteCollapsed] = useState(false);
+
+  // Node settings opening on the right collapses the palette to give the
+  // canvas room; deselecting brings it back. The manual toggle still works
+  // in between (the effect only fires when the selection changes).
+  useEffect(() => {
+    setPaletteCollapsed(selectedNodeId !== null);
+  }, [selectedNodeId]);
 
   const { deleteElements, screenToFlowPosition } = useReactFlow();
 
@@ -685,8 +695,14 @@ function GraphEditorInner({
             minWidth={PALETTE_MIN_WIDTH}
             defaultWidth={PALETTE_DEFAULT_WIDTH}
             maxWidth={PALETTE_MAX_WIDTH}
+            collapsible
+            collapsed={paletteCollapsed}
+            onCollapsedChange={setPaletteCollapsed}
+            collapseLabel={labels.collapsePalette}
+            expandLabel={labels.expandPalette}
             data-testid={`${testId}-palette-sidebar`}
             handleTestId={`${testId}-palette-resize-handle`}
+            toggleTestId={`${testId}-palette-toggle`}
           >
             <NodePalette
               typeInfos={typeInfos}

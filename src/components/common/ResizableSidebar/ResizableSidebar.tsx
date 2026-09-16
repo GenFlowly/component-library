@@ -4,6 +4,8 @@ import styles from './ResizableSidebar.module.scss';
 // Resize bounds for the panel (px)
 const DEFAULT_MIN_WIDTH = 160; // matches the panel's default 10rem
 const DEFAULT_MAX_WIDTH = 480;
+// Collapsed strip width (px) — matches the app sidebars' 3.5rem convention
+const DEFAULT_COLLAPSED_WIDTH = 56;
 
 const rootFontSizePx = (): number =>
   parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
@@ -22,9 +24,28 @@ export interface ResizableSidebarProps {
    * @default 'left'
    */
   side?: 'left' | 'right';
+  /**
+   * Adds a full-width footer toggle (chat-sidebar style) that collapses the
+   * panel to a slim strip hiding the content. @default false
+   */
+  collapsible?: boolean;
+  /**
+   * Controlled collapsed state. Omit for internal (uncontrolled) state;
+   * `onCollapsedChange` fires either way.
+   */
+  collapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
+  /** Width (px) of the collapsed strip. @default 56 (3.5rem) */
+  collapsedWidth?: number;
+  /** Footer-toggle tooltip/aria-label while expanded. */
+  collapseLabel?: string;
+  /** Footer-toggle tooltip/aria-label while collapsed. */
+  expandLabel?: string;
   children: ReactNode;
   'data-testid'?: string;
   handleTestId?: string;
+  /** Test id of the footer toggle. */
+  toggleTestId?: string;
 }
 
 /**
@@ -38,9 +59,16 @@ export default function ResizableSidebar({
   maxWidth = DEFAULT_MAX_WIDTH,
   defaultWidth,
   side = 'left',
+  collapsible = false,
+  collapsed: collapsedProp,
+  onCollapsedChange,
+  collapsedWidth = DEFAULT_COLLAPSED_WIDTH,
+  collapseLabel = 'Collapse sidebar',
+  expandLabel = 'Expand sidebar',
   children,
   'data-testid': testId,
   handleTestId,
+  toggleTestId,
 }: ResizableSidebarProps) {
   const clampWidth = useCallback(
     (px: number): number => Math.min(maxWidth, Math.max(minWidth, px)),
@@ -59,6 +87,20 @@ export default function ResizableSidebar({
     return clampWidth(defaultWidth ?? minWidth);
   });
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Collapsed state: controlled via the `collapsed` prop when provided,
+  // internal otherwise.
+  const [internalCollapsed, setInternalCollapsed] = useState(false);
+  const isCollapsed = collapsible && (collapsedProp ?? internalCollapsed);
+  const toggleCollapsed = () => {
+    const next = !isCollapsed;
+    if (collapsedProp === undefined) setInternalCollapsed(next);
+    onCollapsedChange?.(next);
+  };
+
+  // Chevron points where clicking will move the panel edge
+  const chevron =
+    side === 'left' ? (isCollapsed ? '❯' : '❮') : isCollapsed ? '❮' : '❯';
 
   const saveWidth = useCallback(
     (px: number): void => {
@@ -104,17 +146,42 @@ export default function ResizableSidebar({
 
   return (
     <div
-      className={styles.sidebar}
+      className={`${styles.sidebar} ${collapsible ? styles.withFooter : ''} ${isCollapsed ? styles.collapsedStrip : ''}`}
       ref={panelRef}
-      style={{ width }}
+      style={{ width: isCollapsed ? collapsedWidth : width }}
       data-testid={testId}
     >
-      {children}
-      <div
-        className={`${styles.resizeHandle} ${side === 'right' ? styles.handleLeft : ''}`}
-        onPointerDown={handleResizeStart}
-        data-testid={handleTestId}
-      />
+      {collapsible ? (
+        <div
+          className={styles.contentArea}
+          // Content stays mounted while collapsed (state survives), just hidden
+          hidden={isCollapsed}
+        >
+          {children}
+        </div>
+      ) : (
+        children
+      )}
+      {collapsible && (
+        <button
+          type="button"
+          className={styles.collapseToggle}
+          onClick={toggleCollapsed}
+          aria-expanded={!isCollapsed}
+          aria-label={isCollapsed ? expandLabel : collapseLabel}
+          title={isCollapsed ? expandLabel : collapseLabel}
+          data-testid={toggleTestId}
+        >
+          {chevron}
+        </button>
+      )}
+      {!isCollapsed && (
+        <div
+          className={`${styles.resizeHandle} ${side === 'right' ? styles.handleLeft : ''}`}
+          onPointerDown={handleResizeStart}
+          data-testid={handleTestId}
+        />
+      )}
     </div>
   );
 }
