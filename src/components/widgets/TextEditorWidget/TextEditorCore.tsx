@@ -6,6 +6,15 @@ import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import styles from './TextEditor.module.scss';
 
+// Stable extension arrays: an inline array would get a new identity every
+// render, making the editor reconfigure itself on every keystroke.
+const EDITABLE_EXTENSIONS = [EditorView.lineWrapping];
+const READONLY_EXTENSIONS = [
+  EditorView.lineWrapping,
+  EditorView.editable.of(false),
+  EditorState.readOnly.of(true),
+];
+
 interface TextEditorCoreProps {
   id: string;
   value: string;
@@ -33,13 +42,16 @@ export default function TextEditorCore({
   variant = 'default',
   fullWidth = false,
 }: TextEditorCoreProps): React.ReactElement {
-  const handleChange = (newValue: string) => {
-    if (maxLength && newValue.length > maxLength) {
-      onChange(newValue.slice(0, maxLength));
-    } else {
-      onChange(newValue);
-    }
-  };
+  const handleChange = React.useCallback(
+    (newValue: string) => {
+      if (maxLength && newValue.length > maxLength) {
+        onChange(newValue.slice(0, maxLength));
+      } else {
+        onChange(newValue);
+      }
+    },
+    [maxLength, onChange]
+  );
 
   return (
     <div
@@ -73,15 +85,7 @@ export default function TextEditorCore({
               enablePreview={false}
               showToolbar={false}
               className={styles.markdownEditor}
-              extensions={[
-                EditorView.lineWrapping,
-                ...(readOnly
-                  ? [
-                      EditorView.editable.of(false),
-                      EditorState.readOnly.of(true),
-                    ]
-                  : []),
-              ]}
+              extensions={readOnly ? READONLY_EXTENSIONS : EDITABLE_EXTENSIONS}
             />
           </div>
           <div className={styles.controlsRow}></div>

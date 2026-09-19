@@ -55,6 +55,31 @@ export const PreBlock = ({ node, children, ...props }: any) => {
   );
 };
 
+// Stable plugin/component identities so ReactMarkdown props don't change
+// between renders with the same content
+const REMARK_PLUGINS = [remarkGfm];
+const REHYPE_PLUGINS = [rehypeHighlight];
+const MARKDOWN_COMPONENTS = { pre: PreBlock };
+
+// Markdown parsing + syntax highlighting is by far the most expensive part
+// of rendering a response; memoized so parent re-renders (context updates,
+// sibling typing) skip the re-parse when the text itself hasn't changed.
+const MarkdownContent = React.memo(function MarkdownContent({
+  content,
+}: {
+  content: string;
+}) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={REMARK_PLUGINS}
+      rehypePlugins={REHYPE_PLUGINS}
+      components={MARKDOWN_COMPONENTS}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+});
+
 export interface TextContainerCoreProps {
   title?: React.ReactNode;
   content: string;
@@ -115,19 +140,7 @@ export default function TextContainerCore({
 
       {subheader}
 
-      {isLoading ? (
-        loadingContent
-      ) : (
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeHighlight]}
-          components={{
-            pre: PreBlock,
-          }}
-        >
-          {content}
-        </ReactMarkdown>
-      )}
+      {isLoading ? loadingContent : <MarkdownContent content={content} />}
       {children}
     </article>
   );
