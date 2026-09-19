@@ -45,10 +45,12 @@ const ScrollArea = forwardRef<HTMLElement, ScrollAreaProps>(function ScrollArea(
     [ref]
   );
 
-  // The thumb is absolutely positioned inside the scroller, so its
-  // coordinates live in content space: adding scrollTop pins it to the
-  // visible viewport. Geometry is derived on every scroll, so there is
-  // nothing to keep in sync on resize while the thumb is hidden.
+  // The thumb lives inside a zero-height position:sticky track, so the
+  // COMPOSITOR keeps it pinned to the visible viewport during scrolling.
+  // Positioning it in content space instead (scrollTop baked into the
+  // transform) made the thumb ride along with the content each frame and
+  // snap back only when the async scroll event ran — a visible flicker at
+  // speed on long pages. Here JS only advances the thumb along the track.
   const updateThumb = useCallback(() => {
     const el = containerRef.current;
     const thumb = thumbRef.current;
@@ -61,7 +63,7 @@ const ScrollArea = forwardRef<HTMLElement, ScrollAreaProps>(function ScrollArea(
       THUMB_MIN_HEIGHT
     );
     const trackRange = clientHeight - thumbHeight - 2 * THUMB_INSET;
-    const y = scrollTop + THUMB_INSET + (scrollTop / scrollable) * trackRange;
+    const y = THUMB_INSET + (scrollTop / scrollable) * trackRange;
     thumb.style.height = `${thumbHeight}px`;
     thumb.style.transform = `translate(${clientWidth - THUMB_WIDTH - THUMB_INSET}px, ${y}px)`;
     return true;
@@ -141,13 +143,15 @@ const ScrollArea = forwardRef<HTMLElement, ScrollAreaProps>(function ScrollArea(
       onScroll={handleScroll}
       {...rest}
     >
-      <div
-        ref={thumbRef}
-        className={styles.thumb}
-        aria-hidden="true"
-        data-testid="scroll-area-thumb"
-        onPointerDown={handleThumbPointerDown}
-      />
+      <div className={styles.thumbTrack} aria-hidden="true">
+        <div
+          ref={thumbRef}
+          className={styles.thumb}
+          aria-hidden="true"
+          data-testid="scroll-area-thumb"
+          onPointerDown={handleThumbPointerDown}
+        />
+      </div>
       {children}
     </Component>
   );

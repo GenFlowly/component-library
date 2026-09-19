@@ -16,8 +16,18 @@
   }
 }
 
-// Sized and positioned from JS on every scroll (coordinates live in the
-// scroller's content space, so scrollTop is baked into the transform)
+// Zero-height sticky rail pinned to the scrollport top by the compositor:
+// the thumb inside it never rides along with the content during a scroll
+// frame, which is what made the old content-space thumb flicker at speed
+.thumbTrack {
+  position: sticky;
+  top: 0;
+  height: 0;
+  z-index: 10;
+}
+
+// Sized and positioned from JS on every scroll, in viewport coordinates
+// relative to the sticky track above
 .thumb {
   position: absolute;
   top: 0;
