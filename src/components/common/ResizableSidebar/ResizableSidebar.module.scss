@@ -63,12 +63,14 @@
 }
 
 // Drag handle on the panel's right edge; sibling sections reflow
-// automatically as the panel width changes
+// automatically as the panel width changes. Border-slim overlay: it must add
+// no visual width to the seam between panels — the hover line paints exactly
+// on the panel's edge
 .resizeHandle {
   position: absolute;
   top: 0;
   right: 0;
-  width: 6px;
+  width: 3px;
   height: 100%;
   cursor: col-resize;
   z-index: 20; // Above the panel's scrolling content
