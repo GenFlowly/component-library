@@ -128,6 +128,35 @@ export const MaxThree: Story = {
   },
 };
 
+const WithCheckboxDemo = (args: CheckboxButtonGroupProps) => {
+  const [selected, setSelected] = React.useState<string[]>(['red']);
+  return (
+    <CheckboxButtonGroup
+      {...args}
+      selectedValues={selected}
+      onChange={setSelected}
+    />
+  );
+};
+
+export const WithCheckbox: Story = {
+  render: args => <WithCheckboxDemo {...args} />,
+  args: {
+    options,
+    maxSelection: 2,
+    allowEmpty: true,
+    showCheckbox: true,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          '`showCheckbox` renders a checkbox inside each pill reflecting its selected state — the clearest choice when the group drives which panels are visible (e.g. AI vendor columns) and users should read it as a capped multi-select.',
+      },
+    },
+  },
+};
+
 const NoEmptySelectionDemo = (args: CheckboxButtonGroupProps) => {
   const [selected, setSelected] = React.useState<string[]>(['blue']);
   return (

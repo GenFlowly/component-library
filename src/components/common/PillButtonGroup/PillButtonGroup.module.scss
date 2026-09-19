@@ -175,3 +175,33 @@
     color: $color-text-muted;
   }
 }
+
+// Optional checkbox inside each pill (showCheckbox). currentColor makes it
+// follow the pill's text color in both states: border-colored box on the
+// inactive pill, white box + check on the active (primary) pill.
+.checkbox {
+  position: relative;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  border: 1.5px solid currentColor;
+  border-radius: 4px;
+  opacity: 0.75;
+}
+
+.checkboxChecked {
+  opacity: 1;
+
+  // Checkmark drawn from two borders of a rotated rectangle
+  &::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 0.5px;
+    width: 4px;
+    height: 8px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+  }
+}

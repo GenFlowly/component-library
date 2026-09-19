@@ -3,6 +3,10 @@ import styles from './VendorApiKeysManager.module.scss';
 import PillButton from '../../common/PillButton/PillButton';
 import { InputTextWithHint } from '../../common/InputTextWithHint/InputTextWithHint';
 import { InputSelectWithHint } from '../../common/InputSelectWithHint/InputSelectWithHint';
+import {
+  CredentialCard,
+  CredentialStatusPill,
+} from '../../common/CredentialCard/CredentialCard';
 
 export interface VendorApiKeyRowData {
   /** Stable vendor id (e.g. "OPENAI") reported back through the callbacks. */
@@ -274,31 +278,31 @@ export default function VendorApiKeysManager({
           ...models.map(model => ({ label: model, value: model })),
         ];
         return (
-          <div
-            className={styles.vendorCard}
+          <CredentialCard
             key={row.vendor}
             data-testid={rowId}
-          >
-            <div className={styles.cardHeader}>
-              <span className={styles.vendorLabel}>{row.label}</span>
-              <div className={styles.headerPills}>
+            label={row.label}
+            pills={
+              <>
                 {row.keySet && row.savedPriority != null && (
-                  <span
-                    className={`${styles.statusPill} ${styles.priority}`}
+                  <CredentialStatusPill
+                    kind="neutral"
                     data-testid={`${rowId}-priority-pill`}
                   >
                     {strings.priorityPill(row.savedPriority)}
-                  </span>
+                  </CredentialStatusPill>
                 )}
-                <span
-                  className={`${styles.statusPill} ${row.keySet ? styles.ok : styles.unset}`}
+                <CredentialStatusPill
+                  kind={row.keySet ? 'ok' : 'unset'}
                   data-testid={`${rowId}-status-pill`}
                 >
                   {row.keySet ? strings.keySetPill : strings.keyNotSetPill}
-                </span>
-              </div>
-            </div>
-
+                </CredentialStatusPill>
+              </>
+            }
+            message={state.message}
+            messageKind={state.messageKind}
+          >
             <div className={styles.keyRow}>
               <InputTextWithHint
                 hint={strings.keyHint}
@@ -374,18 +378,7 @@ export default function VendorApiKeysManager({
                 />
               </div>
             )}
-
-            {state.message && (
-              <div
-                className={`${styles.rowMessage} ${
-                  state.messageKind === 'error' ? styles.error : styles.success
-                }`}
-                data-testid={`${rowId}-message`}
-              >
-                {state.message}
-              </div>
-            )}
-          </div>
+          </CredentialCard>
         );
       })}
     </div>

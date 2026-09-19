@@ -16,6 +16,12 @@ interface CheckboxButtonGroupProps {
    * @default false
    */
   allowEmpty?: boolean;
+  /**
+   * Render a checkbox inside each pill, reflecting its selected state
+   * (forwarded to PillButtonGroup).
+   * @default false
+   */
+  showCheckbox?: boolean;
   /** Extra class name(s) forwarded to the underlying PillButtonGroup wrapper. */
   className?: string;
   /** Accessible name for the group, forwarded to the underlying PillButtonGroup wrapper (announced by screen readers before the options). */
@@ -39,6 +45,7 @@ export default function CheckboxButtonGroup({
   onChange,
   maxSelection,
   allowEmpty = false,
+  showCheckbox = false,
   className = '',
   'aria-label': ariaLabel,
   'data-testid': testId,
@@ -50,6 +57,7 @@ export default function CheckboxButtonGroup({
       onChange={onChange}
       allowEmpty={allowEmpty}
       maxSelection={maxSelection}
+      showCheckbox={showCheckbox}
       replaceOldestAtMax
       className={className}
       aria-label={ariaLabel}

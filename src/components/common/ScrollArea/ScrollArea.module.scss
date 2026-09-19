@@ -1,0 +1,38 @@
+// App-wide scrollbar treatment: the native scrollbar is fully hidden (so no
+// gutter is reserved and content runs to the edge) and replaced by the
+// overlay thumb below, which floats above the content while scrolling.
+.scrollArea {
+  position: relative; // Containing block for the overlay thumb
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  scrollbar-width: none; // Firefox
+  -ms-overflow-style: none; // Legacy Edge/IE
+
+  &::-webkit-scrollbar {
+    // WebKit; width 0 as a belt-and-braces fallback
+    display: none;
+    width: 0;
+  }
+}
+
+// Sized and positioned from JS on every scroll (coordinates live in the
+// scroller's content space, so scrollTop is baked into the transform)
+.thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  border-radius: 2px;
+  background-color: var(--color-border);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 10;
+  touch-action: none; // Dragging the thumb must not pan-scroll the page
+}
+
+.scrolling .thumb {
+  opacity: 1;
+  pointer-events: auto;
+}

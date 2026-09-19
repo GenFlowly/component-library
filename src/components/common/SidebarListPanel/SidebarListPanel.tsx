@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState, ReactNode } from 'react';
+import React, { ReactNode } from 'react';
+import ScrollArea from '../ScrollArea/ScrollArea';
 import styles from './SidebarListPanel.module.scss';
 
 // Exposed for consumers that render custom item content and want to reuse the
@@ -39,7 +40,8 @@ export interface SidebarListGroup {
 }
 
 export interface SidebarListPanelProps {
-  title: string;
+  // Panel header above the list; omit when the groups' own headers are enough
+  title?: string;
   groups: SidebarListGroup[];
   isLoading: boolean;
   hasError: boolean;
@@ -100,27 +102,9 @@ export default function SidebarListPanel({
 }: SidebarListPanelProps) {
   const isEmpty = groups.every(group => group.items.length === 0);
 
-  // Scrollbar is invisible until the list is actually scrolling
-  const [isScrolling, setIsScrolling] = useState(false);
-  const scrollTimeout = React.useRef<NodeJS.Timeout | null>(null);
-
-  const handleScroll = useCallback(() => {
-    setIsScrolling(true);
-    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
-    scrollTimeout.current = setTimeout(() => {
-      setIsScrolling(false);
-    }, 800);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
-    };
-  }, []);
-
   return (
     <div className={styles.container} data-testid={testId}>
-      <div className={styles.header}>{title}</div>
+      {title && <div className={styles.header}>{title}</div>}
 
       {isLoading && isEmpty ? (
         <div className={styles.skeleton} data-testid={testIds?.loading}>
@@ -143,10 +127,9 @@ export default function SidebarListPanel({
           {emptyText}
         </div>
       ) : (
-        <div
-          className={`${styles.list} ${isScrolling ? styles.scrolling : ''}`}
+        <ScrollArea
+          className={styles.list}
           aria-label={listAriaLabel}
-          onScroll={handleScroll}
           data-testid={testIds?.list}
         >
           {groups.map(group => (
@@ -211,7 +194,7 @@ export default function SidebarListPanel({
               </ul>
             </div>
           ))}
-        </div>
+        </ScrollArea>
       )}
 
       {footer}

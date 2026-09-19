@@ -22,27 +22,6 @@
   overflow: hidden; // Clip inner content to the rounded corners
   transition: none; // Width is user-driven (drag); animating it would lag the pointer
 
-  // Thin macOS-style scrollbars for anything that scrolls inside the panel
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: var(--sidebar-scrollbar-thumb) transparent;
-  }
-
-  *::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  *::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  *::-webkit-scrollbar-thumb {
-    background-color: var(--sidebar-scrollbar-thumb);
-    border-radius: 4px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
-  }
-
   @include respond-to-mobile {
     width: 100%;
     position: absolute;
@@ -51,6 +30,29 @@
     border: none;
     box-shadow: none;
   }
+}
+
+// Thin macOS-style scrollbars for anything that scrolls inside the panel.
+// Zero-specificity default (:where) so components that manage their own
+// scrollbar visibility (e.g. SidebarListPanel's show-while-scrolling) win.
+:where(.sidebar) :where(*) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sidebar-scrollbar-thumb) transparent;
+}
+
+:where(.sidebar *)::-webkit-scrollbar {
+  width: 8px;
+}
+
+:where(.sidebar *)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:where(.sidebar *)::-webkit-scrollbar-thumb {
+  background-color: var(--sidebar-scrollbar-thumb);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 :global([data-theme='dark']) .sidebar {

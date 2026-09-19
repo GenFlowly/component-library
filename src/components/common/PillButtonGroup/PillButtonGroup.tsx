@@ -45,6 +45,13 @@ interface PillButtonGroupProps {
    * @default false
    */
   replaceOldestAtMax?: boolean;
+  /**
+   * Render a checkbox inside each pill, reflecting its selected state. Use
+   * it when the group acts as a capped multi-select and the selection state
+   * should read as check marks rather than only a filled pill.
+   * @default false
+   */
+  showCheckbox?: boolean;
   /** Extra class name(s) appended to the group's wrapper `<div>`. */
   className?: string;
   /**
@@ -73,6 +80,7 @@ export default function PillButtonGroup({
   singleSelection = false,
   maxSelection,
   replaceOldestAtMax = false,
+  showCheckbox = false,
   className = '',
   'aria-label': ariaLabel,
   'data-testid': testId,
@@ -153,6 +161,15 @@ export default function PillButtonGroup({
             disabled={isDisabled}
             data-testid={testId ? `${testId}-option-${option.id}` : undefined}
           >
+            {showCheckbox && (
+              <span
+                className={`${styles.checkbox} ${isActive ? styles.checkboxChecked : ''}`}
+                aria-hidden="true"
+                data-testid={
+                  testId ? `${testId}-option-${option.id}-checkbox` : undefined
+                }
+              />
+            )}
             {option.icon && (
               <Icon
                 src={option.icon}

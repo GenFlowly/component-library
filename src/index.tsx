@@ -17,6 +17,9 @@ export {
 export { default as Breadcrumbs } from './components/common/Breadcrumbs/Breadcrumbs';
 export type { BreadcrumbItem } from './components/common/Breadcrumbs/Breadcrumbs';
 
+export { default as ScrollArea } from './components/common/ScrollArea/ScrollArea';
+export type { ScrollAreaProps } from './components/common/ScrollArea/ScrollArea';
+
 // Overlays and self-contained UI
 export { default as Modal } from './components/common/Modal/Modal';
 export { default as Tooltip } from './components/common/Tooltip/Tooltip';
@@ -116,6 +119,15 @@ export type {
 } from './components/widgets/AgentMakerWidget/AgentMaker';
 
 // Settings
+export {
+  CredentialCard,
+  CredentialStatusPill,
+} from './components/common/CredentialCard/CredentialCard';
+export type {
+  CredentialCardProps,
+  CredentialStatusPillProps,
+  CredentialStatusPillKind,
+} from './components/common/CredentialCard/CredentialCard';
 export { default as VendorApiKeysManager } from './components/widgets/VendorApiKeysManager/VendorApiKeysManager';
 export type {
   VendorApiKeysManagerProps,

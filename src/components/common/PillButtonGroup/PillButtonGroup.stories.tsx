@@ -183,3 +183,31 @@ export const WithIcons: Story = {
     },
   },
 };
+
+const WithCheckboxDemo = (args: PillButtonGroupProps) => {
+  const [selected, setSelected] = React.useState<string[]>(['chat']);
+  return (
+    <PillButtonGroup
+      {...args}
+      selectedValues={selected}
+      onChange={setSelected}
+    />
+  );
+};
+
+export const WithCheckbox: Story = {
+  render: args => <WithCheckboxDemo {...args} />,
+  args: {
+    options,
+    showCheckbox: true,
+    allowEmpty: true,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          '`showCheckbox` renders a checkbox inside each pill that reflects its selected state, making the multi-select nature of the group explicit at a glance.',
+      },
+    },
+  },
+};
