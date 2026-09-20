@@ -11,6 +11,18 @@
   left: 0;
   right: 0;
   z-index: 50; // Above page content; below full-screen overlays (z=100)
+  // 📱 Stay glued to the VISUAL viewport's top edge: while the on-screen
+  // keyboard animates in, iOS Safari pans the visual viewport
+  // (visualViewport.offsetTop > 0) to reveal the caret, and position:fixed
+  // elements — anchored to the LAYOUT viewport — visibly slide/jitter with
+  // that pan (worsened by the scroll pin fighting it, see Request.tsx in
+  // the app). --vv-offset republishes offsetTop; shifting by it cancels the
+  // displacement. Deliberately NOT transitioned: corrections must land the
+  // frame they arrive. The persistent transform also keeps the bar on its
+  // own compositor layer, which stops WebKit dropping and re-rendering the
+  // backdrop-filter pills mid-animation (a second source of visible blink).
+  transform: translateY(var(--vv-offset, 0px));
+  will-change: transform;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
