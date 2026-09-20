@@ -2,8 +2,11 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 import rehypeHighlight from 'rehype-highlight';
+import rehypeKatex from 'rehype-katex';
 import 'highlight.js/styles/github.css';
+import 'katex/dist/katex.min.css';
 import CopyToClipboard from '../../common/CopyToClipboard/CopyToClipboard';
 import styles from './TextContainer.module.scss';
 import { ICONS } from '../../../constants/icons';
@@ -55,11 +58,44 @@ export const PreBlock = ({ node, children, ...props }: any) => {
   );
 };
 
+/**
+ * Links in rendered markdown always open in a new tab — content links must
+ * never navigate the app away. Styling (primary text color + underline)
+ * comes from the .article rules in TextContainer.module.scss.
+ */
+export const MarkdownLink = ({ node, children, ...props }: any) => (
+  <a {...props} target="_blank" rel="noopener noreferrer">
+    {children}
+  </a>
+);
+
 // Stable plugin/component identities so ReactMarkdown props don't change
 // between renders with the same content
-const REMARK_PLUGINS = [remarkGfm];
-const REHYPE_PLUGINS = [rehypeHighlight];
-const MARKDOWN_COMPONENTS = { pre: PreBlock };
+const REMARK_PLUGINS = [remarkGfm, remarkMath];
+const REHYPE_PLUGINS = [rehypeKatex, rehypeHighlight];
+const MARKDOWN_COMPONENTS = { pre: PreBlock, a: MarkdownLink };
+
+/**
+ * LLMs emit TeX-style math delimiters — \[...\] for display math and
+ * \(...\) for inline — but remark-math only parses the dollar forms, so
+ * without this the raw TeX shows up as literal text. Convert to $$/$
+ * everywhere EXCEPT inside code fences and inline code spans, which must
+ * stay byte-for-byte intact.
+ */
+export function normalizeMathDelimiters(markdown: string): string {
+  return markdown
+    .split(/(```[\s\S]*?(?:```|$)|`[^`\n]*`)/g)
+    .map(segment => {
+      if (segment.startsWith('`')) return segment;
+      return segment
+        .replace(
+          /\\\[([\s\S]+?)\\\]/g,
+          (_m, expr) => `\n$$\n${expr.trim()}\n$$\n`
+        )
+        .replace(/\\\((.+?)\\\)/g, (_m, expr) => `$${expr.trim()}$`);
+    })
+    .join('');
+}
 
 // Markdown parsing + syntax highlighting is by far the most expensive part
 // of rendering a response; memoized so parent re-renders (context updates,
@@ -75,7 +111,7 @@ const MarkdownContent = React.memo(function MarkdownContent({
       rehypePlugins={REHYPE_PLUGINS}
       components={MARKDOWN_COMPONENTS}
     >
-      {content}
+      {normalizeMathDelimiters(content)}
     </ReactMarkdown>
   );
 });

@@ -50,6 +50,13 @@ module.exports = {
         type: 'asset/inline',
       },
       {
+        // KaTeX css references its math fonts; emit them beside main.css
+        // instead of inlining (~20 fonts — inlining would bloat the bundle)
+        test: /\.(woff2?|ttf|eot|otf)$/i,
+        type: 'asset/resource',
+        generator: { filename: 'fonts/[name][ext]' },
+      },
+      {
         test: /\.(js|jsx|ts|tsx)$/,
         use: ['source-map-loader'],
         enforce: 'pre',

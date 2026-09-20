@@ -32,6 +32,17 @@
     word-wrap: break-word;
   }
 
+  // Links follow the text color (not browser blue) and stay recognizable
+  // through the underline; hover dims slightly as the affordance
+  a {
+    color: $color-text-primary;
+    text-decoration: underline;
+
+    &:hover {
+      opacity: 0.75;
+    }
+  }
+
   code {
     background: $color-background-tertiary;
     padding: 0.2rem 0.4rem;

@@ -71,9 +71,12 @@
     "@uiw/react-markdown-preview": "^5.1.5",
     "@xyflow/react": "^12.11.6",
     "highlight.js": "^11.11.1",
+    "katex": "^0.18.7",
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
-    "remark-gfm": "^4.0.1"
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0"
   },
   "peerDependencies": {
     "i18next": ">=23",

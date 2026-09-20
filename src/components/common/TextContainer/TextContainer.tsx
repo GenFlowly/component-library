@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import styles from './TextContainer.module.scss';
 
 const TextContainerCore = lazy(() => import('./TextContainerCore'));
-export { extractText, PreBlock } from './TextContainerCore';
+export { extractText, PreBlock, MarkdownLink } from './TextContainerCore';
 
 export interface TextContainerProps {
   title?: React.ReactNode;

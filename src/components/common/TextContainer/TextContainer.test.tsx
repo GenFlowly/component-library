@@ -69,7 +69,9 @@ jest.mock('react-markdown', () => (props: any) => {
   return <div data-testid="markdown-content">{props.children}</div>;
 });
 jest.mock('remark-gfm', () => () => {});
+jest.mock('remark-math', () => () => {});
 jest.mock('rehype-highlight', () => () => {});
+jest.mock('rehype-katex', () => () => {});
 
 describe('TextContainer Component', () => {
   const defaultProps = {
@@ -222,6 +224,54 @@ describe('TextContainer Internals', () => {
         </PreBlock>
       );
       expect(screen.getByTitle('Copy Code')).toBeInTheDocument();
+    });
+  });
+
+  describe('normalizeMathDelimiters', () => {
+    const { normalizeMathDelimiters } = jest.requireActual(
+      './TextContainerCore'
+    );
+
+    test('converts TeX display math to dollar blocks', () => {
+      const out = normalizeMathDelimiters('Cost: \\[ \\frac{a}{b} \\]');
+      expect(out).toContain('$$\n\\frac{a}{b}\n$$');
+      expect(out).not.toContain('\\[');
+    });
+
+    test('converts TeX inline math to single dollars', () => {
+      expect(normalizeMathDelimiters('where \\( x^2 \\) grows')).toBe(
+        'where $x^2$ grows'
+      );
+    });
+
+    test('leaves code fences and inline code untouched', () => {
+      const code = '```\n\\[ not math \\]\n```';
+      expect(normalizeMathDelimiters(code)).toBe(code);
+      expect(normalizeMathDelimiters('`\\( keep \\)`')).toBe('`\\( keep \\)`');
+    });
+
+    test('passes through text without math unchanged', () => {
+      expect(normalizeMathDelimiters('plain [brackets] (parens)')).toBe(
+        'plain [brackets] (parens)'
+      );
+    });
+  });
+
+  describe('MarkdownLink', () => {
+    // The module-level mock above stubs TextContainerCore; pull the real
+    // component (its react-markdown import stays mocked)
+    const { MarkdownLink: RealMarkdownLink } = jest.requireActual(
+      './TextContainerCore'
+    );
+
+    test('opens in a new tab with safe rel and keeps href/children', () => {
+      render(
+        <RealMarkdownLink href="https://example.com">example</RealMarkdownLink>
+      );
+      const link = screen.getByRole('link', { name: 'example' });
+      expect(link).toHaveAttribute('href', 'https://example.com');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     });
   });
 });
