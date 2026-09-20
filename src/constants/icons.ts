@@ -9,6 +9,14 @@ import altArrowLeft from '../assets/icons/alt-arrow-left.svg';
 import closeIcon from '../assets/icons/close.svg';
 import documentIcon from '../assets/icons/document.svg';
 import downloadIcon from '../assets/icons/download.svg';
+import sendIcon from '../assets/icons/send-icon.svg';
+import refreshIcon from '../assets/icons/refresh-icon.svg';
+import inputTokensIcon from '../assets/icons/input-tokens.svg';
+import outputTokensIcon from '../assets/icons/output-tokens.svg';
+import totalTokensIcon from '../assets/icons/total-tokens.svg';
+import cacheTokensIcon from '../assets/icons/cache-tokens.svg';
+import brainIcon from '../assets/icons/brain.svg';
+import imageAttachmentIcon from '../assets/icons/image-attachment-icon.svg';
 
 export const ICONS = {
   USER_CIRCLE: userCircle,
@@ -19,4 +27,12 @@ export const ICONS = {
   CLOSE: closeIcon,
   DOCUMENT: documentIcon,
   DOWNLOAD: downloadIcon,
+  SEND: sendIcon,
+  REFRESH_ICON: refreshIcon,
+  INPUT_TOKENS: inputTokensIcon,
+  OUTPUT_TOKENS: outputTokensIcon,
+  TOTAL_TOKENS: totalTokensIcon,
+  CACHE_TOKENS: cacheTokensIcon,
+  BRAIN: brainIcon,
+  IMAGE_ATTACHMENT: imageAttachmentIcon,
 };

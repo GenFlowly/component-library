@@ -211,7 +211,8 @@
       "attachmentLimitReached": "You can attach at most {{max}} images per message",
       "attachmentUploadFailed": "Image upload failed. Please try again",
       "attachmentsUploading": "Images are still uploading",
-      "removeAttachment": "Remove image"
+      "removeAttachment": "Remove image",
+      "addImageAttachment": "Add image attachment"
     },
     "response": {
       "followUp": "Follow up",
@@ -229,7 +230,16 @@
       "tokensReadFromCache": "Tokens read from cache",
       "totalInputTokens": "Total Input Tokens",
       "totalOutputTokens": "Total Output Tokens",
-      "totalTokens": "Total Tokens"
+      "totalTokens": "Total Tokens",
+      "sources": "Sources",
+      "learningFacts": "Learning facts…",
+      "noNewFacts": "No new facts added to memory",
+      "factsAddedToMemory_one": "{{count}} fact added to memory",
+      "factsAddedToMemory_other": "{{count}} facts added to memory",
+      "deleteFact": "Delete fact from memory: {{fact}}",
+      "conversationCostUsd": "Total {{vendor}} cost for this conversation so far (USD)",
+      "thinkingPrompt": "Prompt",
+      "thinkingResponse": "Response"
     }
   },
   "dbSettings": {

@@ -135,3 +135,60 @@ export type {
   VendorKeySaveResult,
   VendorApiKeysManagerStrings,
 } from './components/widgets/VendorApiKeysManager/VendorApiKeysManager';
+
+// Conversation
+export { default as ConversationWidget } from './components/widgets/ConversationWidget/ConversationWidget';
+export {
+  ConversationWidgetProvider,
+  useConversation,
+  useConversationUI,
+  useConversationAuth,
+  useConversationServices,
+  useConversationLayout,
+} from './components/widgets/ConversationWidget/ConversationWidgetContext';
+export type {
+  ConversationWidgetContextValue,
+  ConversationWidgetApi,
+  ConversationWidgetUiApi,
+  ConversationWidgetAuth,
+  ConversationWidgetServices,
+  ConversationWidgetLayout,
+  ConversationWidgetVendorKeyStatus,
+} from './components/widgets/ConversationWidget/ConversationWidgetContext';
+export type {
+  Message,
+  ConversationBlock,
+  MessageSender,
+  WebSource,
+  LearnedFact,
+  ThinkingStep,
+  ThinkingStepKind,
+  IConversationContext,
+  IConversationUIContext,
+} from './components/widgets/ConversationWidget/conversation.models';
+export type {
+  AttachmentRef,
+  CreateAttachmentUploadResponse,
+  GetAttachmentUrlResponse,
+} from './components/widgets/ConversationWidget/attachment.models';
+export {
+  ALLOWED_ATTACHMENT_MEDIA_TYPES,
+  MAX_ATTACHMENT_SIZE_BYTES,
+  MAX_ATTACHMENTS_PER_MESSAGE,
+} from './components/widgets/ConversationWidget/attachment.models';
+export {
+  AIVendor,
+  LEGACY_BY_CATALOG_ID,
+  storedVendorId,
+  catalogIdFor,
+  fallbackVendorDisplayName,
+} from './components/widgets/ConversationWidget/vendors';
+export { applyThinkingStep } from './components/widgets/ConversationWidget/thinkingStepUtils';
+export {
+  parseServerDate,
+  formatServerTimestamp,
+  formatServerDateTime,
+  formatServerTime,
+  formatServerDateOnly,
+} from './components/widgets/ConversationWidget/timeUtils';
+export type { PendingAttachment } from './components/widgets/ConversationWidget/AttachmentPreviewStrip';

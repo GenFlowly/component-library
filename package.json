@@ -72,6 +72,7 @@
     "@xyflow/react": "^12.11.6",
     "highlight.js": "^11.11.1",
     "katex": "^0.18.7",
+    "lucide-react": "^0.548.0",
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
     "rehype-katex": "^7.0.1",
