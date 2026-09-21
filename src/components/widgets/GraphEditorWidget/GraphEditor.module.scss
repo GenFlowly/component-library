@@ -433,7 +433,11 @@
   width: 0.8rem;
   height: 0.8rem;
   background-color: $color-text-muted;
-  border: 2px solid $color-background-secondary;
+  // A ring via box-shadow, not `border`: a border lives inside the handle's box,
+  // so React Flow anchors edges to the border's outer edge — leaving a visible
+  // gap between the colored dot and the edge line. box-shadow paints the same
+  // ring outside the box without growing it, so edges meet the dot flush.
+  box-shadow: 0 0 0 2px $color-background-secondary;
 }
 
 .handleTrue {
