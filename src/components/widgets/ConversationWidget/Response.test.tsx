@@ -618,7 +618,10 @@ describe('Response Widget Component', () => {
     expect(screen.getByText('Thinking')).toBeInTheDocument();
   });
 
-  test('thinking section collapses and expands via its toggle', () => {
+  test('a structured step collapses and expands via its own row toggle', () => {
+    // Legacy flat "k" strings carry no data beyond a name, so they have
+    // nothing to expand/collapse — this exercises a structured step, which
+    // is what per-row collapse actually applies to.
     mockSelection = [AIVendor.OPENAI];
     const withThinking = [
       {
@@ -626,16 +629,25 @@ describe('Response Widget Component', () => {
         text: 'Answer',
         aiVendor: AIVendor.OPENAI,
         isLoading: false,
-        thinkingSteps: ['step one'],
         timestamp: 0,
+        thinkingStepList: [
+          {
+            node: 'retriever',
+            name: 'Document Retriever',
+            kind: 'RETRIEVAL' as const,
+            status: 'done' as const,
+            detail: 'Found 1 relevant document(s)',
+            items: ['step one'],
+          },
+        ],
       },
     ];
     render(<Response blockId="block-1" responseMessages={withThinking} />);
 
-    // Not thinking anymore → starts collapsed (auto-collapse on completion)
+    // Not thinking anymore → the row starts collapsed (auto-collapse on completion)
     expect(screen.queryByText('step one')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Thinking/ }));
+    fireEvent.click(screen.getByTestId('thinking-step-toggle'));
     expect(screen.getByText('step one')).toBeInTheDocument();
   });
 
@@ -662,13 +674,17 @@ describe('Response Widget Component', () => {
     ];
     render(<Response blockId="block-1" responseMessages={withStructured} />);
 
-    // Completed thinking starts collapsed — expand it
-    fireEvent.click(screen.getByRole('button', { name: /Thinking/ }));
+    // The list, step name and detail are always visible — no top-level
+    // toggle to mount them anymore, collapse is per-row
     expect(screen.getByTestId('thinking-step-list')).toBeInTheDocument();
     expect(screen.getByText('Document Retriever')).toBeInTheDocument();
     expect(
       screen.getByText('Found 1 relevant document(s)')
     ).toBeInTheDocument();
+
+    // The row's own content (items) stays collapsed until its own toggle is clicked
+    expect(screen.queryByText('Q3 sales report')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('thinking-step-toggle'));
     expect(screen.getByText('Q3 sales report')).toBeInTheDocument();
   });
 

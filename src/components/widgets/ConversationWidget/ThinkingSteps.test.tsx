@@ -1,9 +1,27 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import ThinkingSteps from './ThinkingSteps';
 import { ThinkingStep } from './conversation.models';
 import { applyThinkingStep } from './thinkingStepUtils';
+
+// TextContainerCore pulls in remark-math, an ESM-only package Jest's default
+// transform can't parse — mocked with the same pass-through shell
+// Response.test.tsx already uses, since it's the same component.
+jest.mock('../../common/TextContainer/TextContainer', () => ({
+  __esModule: true,
+  default: (props: any) => {
+    const { title, content, showCopyButton, 'data-testid': testId } = props;
+    return (
+      <div data-testid={testId || 'text-container'}>
+        <div data-testid="tc-title">{title}</div>
+        <div data-testid="tc-content">{content}</div>
+        {showCopyButton && <button data-testid="tc-copy">Copy</button>}
+      </div>
+    );
+  },
+}));
 
 describe('ThinkingSteps', () => {
   test('renders nothing for an empty list', () => {
@@ -81,7 +99,7 @@ describe('ThinkingSteps', () => {
         items: ['Q3 sales report', 'Pricing FAQ'],
       },
     ];
-    render(<ThinkingSteps steps={steps} />);
+    render(<ThinkingSteps steps={steps} isThinking />);
 
     const items = screen.getByTestId('thinking-step-items');
     expect(items).toBeInTheDocument();
@@ -89,7 +107,76 @@ describe('ThinkingSteps', () => {
     expect(screen.getByText('Pricing FAQ')).toBeInTheDocument();
   });
 
-  test('prompt and response render behind collapsed expanders', () => {
+  test('a done step with expandable content is collapsed by default, and expands on click', () => {
+    const steps: ThinkingStep[] = [
+      {
+        node: 'retriever',
+        name: 'Document Retriever',
+        kind: 'RETRIEVAL',
+        status: 'done',
+        detail: 'Found 1 relevant document(s)',
+        items: ['Q3 sales report'],
+      },
+    ];
+    render(<ThinkingSteps steps={steps} />);
+
+    // detail is always visible — it's the compact summary
+    expect(
+      screen.getByText('Found 1 relevant document(s)')
+    ).toBeInTheDocument();
+    // the expandable content is not, until the row is expanded
+    expect(screen.queryByText('Q3 sales report')).not.toBeInTheDocument();
+
+    const toggle = screen.getByTestId('thinking-step-toggle');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    userEvent.click(toggle);
+
+    expect(screen.getByText('Q3 sales report')).toBeInTheDocument();
+  });
+
+  test('a row without expandable content renders no toggle', () => {
+    const steps: ThinkingStep[] = [
+      {
+        node: 'qa',
+        name: 'Query Analyzer',
+        kind: 'LLM',
+        status: 'done',
+        detail: 'Intent: lookup',
+      },
+    ];
+    render(<ThinkingSteps steps={steps} />);
+
+    expect(screen.getByText('Intent: lookup')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('thinking-step-toggle')
+    ).not.toBeInTheDocument();
+  });
+
+  test('a step auto-collapses the instant isThinking flips false, but stays manually re-expandable', () => {
+    const steps: ThinkingStep[] = [
+      {
+        node: 'qa',
+        name: 'Query Analyzer',
+        kind: 'LLM',
+        status: 'done',
+        detail: 'Intent: lookup',
+        prompt: 'You are a query analyzer…',
+      },
+    ];
+    const { rerender } = render(<ThinkingSteps steps={steps} isThinking />);
+    expect(screen.getByText('You are a query analyzer…')).toBeInTheDocument();
+
+    rerender(<ThinkingSteps steps={steps} isThinking={false} />);
+    expect(
+      screen.queryByText('You are a query analyzer…')
+    ).not.toBeInTheDocument();
+
+    // Still inspectable afterward — collapsing isn't the same as hiding
+    userEvent.click(screen.getByTestId('thinking-step-toggle'));
+    expect(screen.getByText('You are a query analyzer…')).toBeInTheDocument();
+  });
+
+  test('prompt renders inline and response renders via TextContainer, same rich treatment as the final answer', () => {
     const steps: ThinkingStep[] = [
       {
         node: 'qa',
@@ -101,20 +188,71 @@ describe('ThinkingSteps', () => {
         response: '{"intent":"lookup"}',
       },
     ];
-    render(<ThinkingSteps steps={steps} />);
+    render(<ThinkingSteps steps={steps} isThinking />);
 
-    const promptExpander = screen.getByTestId('thinking-step-prompt');
-    const responseExpander = screen.getByTestId('thinking-step-response');
-
-    // Collapsed by default
-    expect(promptExpander).not.toHaveAttribute('open');
-    expect(responseExpander).not.toHaveAttribute('open');
-
-    // i18n summaries and monospace bodies are present
-    expect(screen.getByText('Prompt')).toBeInTheDocument();
-    expect(screen.getByText('Response')).toBeInTheDocument();
+    expect(screen.getByTestId('thinking-step-prompt')).toBeInTheDocument();
     expect(screen.getByText('You are a query analyzer…')).toBeInTheDocument();
-    expect(screen.getByText('{"intent":"lookup"}')).toBeInTheDocument();
+
+    const responseBlock = screen.getByTestId('thinking-step-response');
+    expect(responseBlock).toBeInTheDocument();
+    // Rendered via the (mocked) TextContainer — title is the step name, same
+    // component the final answer uses, not a plain monospace dump.
+    expect(screen.getByTestId('tc-title')).toHaveTextContent('Query Analyzer');
+    expect(screen.getByTestId('tc-content')).toHaveTextContent(
+      '{"intent":"lookup"}'
+    );
+  });
+
+  test('the terminal step response is not duplicated when it matches the message final text', () => {
+    const steps: ThinkingStep[] = [
+      {
+        node: 'gen',
+        name: 'Generate Response',
+        kind: 'LLM',
+        status: 'done',
+        detail: 'Response generated',
+        prompt: 'Answer the question…',
+        response: 'The final answer text.',
+      },
+    ];
+    render(
+      <ThinkingSteps
+        steps={steps}
+        isThinking
+        finalText="The final answer text."
+      />
+    );
+
+    // Prompt still shows — only the duplicate response block is skipped
+    expect(screen.getByText('Answer the question…')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('thinking-step-response')
+    ).not.toBeInTheDocument();
+  });
+
+  test('a terminal step with nothing but the duplicate response renders no toggle', () => {
+    const steps: ThinkingStep[] = [
+      {
+        node: 'gen',
+        name: 'Generate Response',
+        kind: 'LLM',
+        status: 'done',
+        detail: 'Response generated',
+        response: 'The final answer text.',
+      },
+    ];
+    render(
+      <ThinkingSteps
+        steps={steps}
+        isThinking
+        finalText="The final answer text."
+      />
+    );
+
+    // Nothing expandable is left once the duplicate response is excluded
+    expect(
+      screen.queryByTestId('thinking-step-toggle')
+    ).not.toBeInTheDocument();
   });
 
   test('a cycle (same node running again after done) renders as two stacked steps', () => {
@@ -199,7 +337,7 @@ describe('ThinkingSteps', () => {
         ],
       },
     ];
-    render(<ThinkingSteps steps={steps} />);
+    render(<ThinkingSteps steps={steps} isThinking />);
 
     expect(
       screen.getByText(
@@ -218,6 +356,26 @@ describe('ThinkingSteps', () => {
         'Calling tools: web_search(query="a"), web_search(query="b")'
       )
     ).not.toBeInTheDocument();
+  });
+
+  test('a long query is shown in full, not truncated', () => {
+    // A truncated query defeats the point of showing it — being able to read
+    // exactly what was searched for is the whole reason it's on screen.
+    const query = 'x'.repeat(200);
+    const steps: ThinkingStep[] = [
+      {
+        node: 'gen',
+        name: 'Generate Response',
+        kind: 'LLM',
+        status: 'done',
+        tool_calls: [{ name: 'web_search', args: { query } }],
+      },
+    ];
+    render(<ThinkingSteps steps={steps} isThinking />);
+
+    expect(
+      screen.getByText(`web_search(query="${query}")`)
+    ).toBeInTheDocument();
   });
 
   test('a TOOL step renders each call as its own breakdown with its own sources, not one merged list', () => {
@@ -255,7 +413,7 @@ describe('ThinkingSteps', () => {
         ],
       },
     ];
-    render(<ThinkingSteps steps={steps} />);
+    render(<ThinkingSteps steps={steps} isThinking />);
 
     expect(screen.getByText('Executed 2 tool(s)')).toBeInTheDocument();
     const callBlocks = screen.getAllByTestId('thinking-step-tool-call');
@@ -297,7 +455,7 @@ describe('ThinkingSteps', () => {
         ],
       },
     ];
-    render(<ThinkingSteps steps={steps} />);
+    render(<ThinkingSteps steps={steps} isThinking />);
 
     expect(screen.getByText('upstream timeout')).toBeInTheDocument();
   });
@@ -316,7 +474,7 @@ describe('ThinkingSteps', () => {
         ],
       },
     ];
-    render(<ThinkingSteps steps={steps} />);
+    render(<ThinkingSteps steps={steps} isThinking />);
 
     const link = screen.getByText('Example title').closest('a');
     expect(link).toHaveAttribute('href', 'https://example.com');

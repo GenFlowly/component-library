@@ -83,21 +83,35 @@ $step-indent: 1.4rem;
   }
 }
 
-.expander {
-  margin-left: $step-indent;
-  min-width: 0;
-  font-size: 0.75rem;
-}
-
-.expanderSummary {
+// Chevron toggle for a row's own expand/collapse — replaces the single
+// whole-section toggle that used to live in Response.module.scss.
+.rowToggle {
+  all: unset;
   cursor: pointer;
-  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  margin-left: auto;
+  padding: 0 0.2rem;
   color: $color-text-muted;
-  width: fit-content;
+  font-size: 0.68rem;
+  flex-shrink: 0;
 
   &:hover {
     opacity: 0.8;
   }
+}
+
+.promptBlock,
+.responseBlock {
+  margin-left: $step-indent;
+  min-width: 0;
+}
+
+.blockLabel {
+  display: block;
+  font-size: 0.72rem;
+  color: $color-text-muted;
+  margin-bottom: 0.2rem;
 }
 
 .expanderContent {

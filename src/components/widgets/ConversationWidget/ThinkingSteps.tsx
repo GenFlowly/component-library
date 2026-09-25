@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   BookOpen,
@@ -10,6 +10,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import ScrollArea from '../../common/ScrollArea/ScrollArea';
+import TextContainer from '../../common/TextContainer/TextContainer';
 import {
   ThinkingStep,
   ThinkingStepKind,
@@ -27,29 +28,11 @@ const KIND_ICONS: Record<ThinkingStepKind, LucideIcon> = {
   TOOL: Wrench,
 };
 
-/** Collapsed-by-default monospace block for a step's prompt or raw response. */
-function StepExpander({
-  label,
-  text,
-  testId,
-}: {
-  label: string;
-  text: string;
-  testId: string;
-}) {
-  return (
-    <details className={styles.expander} data-testid={testId}>
-      <summary className={styles.expanderSummary}>{label}</summary>
-      <ScrollArea as="pre" className={styles.expanderContent}>
-        {text}
-      </ScrollArea>
-    </details>
-  );
-}
-
 /** `web_search(query="...", topic="news")` — mirrors the backend's own
  * plain-text fallback formatting so a call reads the same way whether it
- * arrives via `detail`/`items` (older backend) or the structured fields. */
+ * arrives via `detail`/`items` (older backend) or the structured fields.
+ * Args are shown in full, untruncated — the query text is often the one
+ * thing worth reading a tool call for. */
 function formatToolCall(call: {
   name: string;
   args?: Record<string, unknown>;
@@ -58,10 +41,7 @@ function formatToolCall(call: {
   if (entries.length === 0) return call.name;
   const parts = entries.map(([key, value]) => {
     const raw = typeof value === 'string' ? value : JSON.stringify(value);
-    const truncated = raw.length > 60 ? `${raw.slice(0, 57)}...` : raw;
-    return typeof value === 'string'
-      ? `${key}="${truncated}"`
-      : `${key}=${truncated}`;
+    return typeof value === 'string' ? `${key}="${raw}"` : `${key}=${raw}`;
   });
   return `${call.name}(${parts.join(', ')})`;
 }
@@ -106,120 +86,178 @@ function ToolCallBlock({ call }: { call: ThinkingStepToolCall }) {
 }
 
 /**
- * Structured per-node steps of the agent graph's thinking phase, in arrival
- * order. Running steps show their live label with a pulse; finished ones show
- * the node name, a detail line, retrieved items, and (for LLM-backed nodes)
- * prompt/response expanders.
+ * One step row. Owns its own expand/collapse: expanded by default while the
+ * turn is actively thinking, one-shot auto-collapses to a compact summary
+ * (icon + name + detail) the instant the turn's final answer lands — the
+ * same expand-then-collapse hook the whole panel used to apply once, now
+ * fanned out per row so each step's prompt/response is independently
+ * inspectable afterward. A step needs its own component (not inlined in the
+ * parent's .map()) so this hook state is stable per row across re-renders.
  */
-export default function ThinkingSteps({ steps }: { steps: ThinkingStep[] }) {
+function ThinkingStepRow({
+  step,
+  isThinking,
+  finalText,
+}: {
+  step: ThinkingStep;
+  isThinking: boolean;
+  finalText: string;
+}) {
   const { t } = useTranslation();
+  const isRunning = step.status === 'running';
+  const [expanded, setExpanded] = useState(isThinking);
 
+  useEffect(() => {
+    if (!isThinking) setExpanded(false);
+  }, [isThinking]);
+
+  const KindIcon = step.kind ? KIND_ICONS[step.kind] : undefined;
+  const heading = isRunning ? step.label || step.name : step.name;
+
+  const hasStructuredToolCalls = !isRunning && !!step.tool_calls?.length;
+  const hasStructuredCalls = !isRunning && !!step.calls?.length;
+  const hasStructuredSources = !isRunning && !!step.sources?.length;
+  const hasItems = !isRunning && !!step.items && step.items.length > 0;
+  // The terminal Response Generator step's response is the message's own
+  // answer text, already shown in full below by the outer TextContainer —
+  // skip it here rather than showing the final answer a second time.
+  const isFinalAnswer =
+    !isRunning && !!step.response && step.response === finalText;
+  const showResponse = !isRunning && !!step.response && !isFinalAnswer;
+
+  const hasDetails =
+    !isRunning &&
+    (!!step.reasoning ||
+      hasStructuredToolCalls ||
+      hasStructuredCalls ||
+      hasStructuredSources ||
+      hasItems ||
+      !!step.prompt ||
+      showResponse);
+
+  return (
+    <li
+      className={styles.step}
+      data-testid="thinking-step"
+      data-status={step.status}
+    >
+      <span className={styles.stepHeader}>
+        {KindIcon && (
+          <KindIcon className={styles.kindIcon} size={14} aria-hidden="true" />
+        )}
+        {isRunning && (
+          <span className={styles.pulse} data-testid="thinking-step-pulse" />
+        )}
+        <span className={styles.stepName}>{heading}</span>
+        {hasDetails && (
+          <button
+            type="button"
+            className={styles.rowToggle}
+            onClick={() => setExpanded(prev => !prev)}
+            aria-expanded={expanded}
+            data-testid="thinking-step-toggle"
+          >
+            {expanded ? '▼' : '▶'}
+          </button>
+        )}
+      </span>
+      {!isRunning && step.detail && !hasStructuredToolCalls && (
+        <span className={styles.detail}>{step.detail}</span>
+      )}
+      {expanded && (
+        <>
+          {step.reasoning && (
+            <span
+              className={styles.reasoning}
+              data-testid="thinking-step-reasoning"
+            >
+              {step.reasoning}
+            </span>
+          )}
+          {hasStructuredToolCalls && (
+            <ul className={styles.items} data-testid="thinking-step-tool-calls">
+              {step.tool_calls!.map((call, j) => (
+                <li key={j}>{formatToolCall(call)}</li>
+              ))}
+            </ul>
+          )}
+          {hasStructuredCalls && (
+            <div className={styles.toolCalls} data-testid="thinking-step-calls">
+              {step.calls!.map((call, j) => (
+                <ToolCallBlock key={j} call={call} />
+              ))}
+            </div>
+          )}
+          {!hasStructuredCalls && !hasStructuredSources && hasItems && (
+            <ul className={styles.items} data-testid="thinking-step-items">
+              {step.items!.map((item, j) => (
+                <li key={j}>{item}</li>
+              ))}
+            </ul>
+          )}
+          {hasStructuredSources && <SourceLinks sources={step.sources!} />}
+          {step.prompt && (
+            <div
+              className={styles.promptBlock}
+              data-testid="thinking-step-prompt"
+            >
+              <span className={styles.blockLabel}>
+                {t('conversation.response.thinkingPrompt')}
+              </span>
+              <ScrollArea as="pre" className={styles.expanderContent}>
+                {step.prompt}
+              </ScrollArea>
+            </div>
+          )}
+          {showResponse && (
+            <div
+              className={styles.responseBlock}
+              data-testid="thinking-step-response"
+            >
+              <TextContainer
+                title={step.name}
+                content={step.response!}
+                showCopyButton
+                data-testid="thinking-step-response-container"
+              />
+            </div>
+          )}
+        </>
+      )}
+    </li>
+  );
+}
+
+/**
+ * Structured per-node steps of the agent graph's thinking phase, in arrival
+ * order. Each step is its own row (see ThinkingStepRow) — expanded while the
+ * turn is thinking, collapsing to a one-line summary once the final answer
+ * lands. Historical/loaded conversations (isThinking always false) render
+ * every step collapsed by default; the user can still expand any of them.
+ */
+export default function ThinkingSteps({
+  steps,
+  isThinking = false,
+  finalText = '',
+}: {
+  steps: ThinkingStep[];
+  isThinking?: boolean;
+  finalText?: string;
+}) {
   if (steps.length === 0) return null;
 
   return (
     <ol className={styles.steps} data-testid="thinking-step-list">
-      {steps.map((step, i) => {
-        const isRunning = step.status === 'running';
-        // A known kind gets its icon; legacy flat strings have none
-        const KindIcon = step.kind ? KIND_ICONS[step.kind] : undefined;
-        const heading = isRunning ? step.label || step.name : step.name;
-
-        // A tool-calling generator turn: reasoning + structured call
-        // signatures replace the generic "Calling tools: x, y, z" detail
-        // string when present, rather than showing both.
-        const hasStructuredToolCalls = !isRunning && !!step.tool_calls?.length;
-        // TOOL_EXECUTOR's own per-call breakdown (query + that call's own
-        // sources) replaces the flattened, cross-call items list.
-        const hasStructuredCalls = !isRunning && !!step.calls?.length;
-        // WEB_SEARCH's full untruncated {index,title,url} list replaces its
-        // capped, title-only items list.
-        const hasStructuredSources = !isRunning && !!step.sources?.length;
-
-        return (
-          <li
-            // Cycles legitimately repeat a node id — suffix with the
-            // position; the list is append-only so this stays stable
-            key={`${step.node}-${i}`}
-            className={styles.step}
-            data-testid="thinking-step"
-            data-status={step.status}
-          >
-            <span className={styles.stepHeader}>
-              {KindIcon && (
-                <KindIcon
-                  className={styles.kindIcon}
-                  size={14}
-                  aria-hidden="true"
-                />
-              )}
-              {isRunning && (
-                <span
-                  className={styles.pulse}
-                  data-testid="thinking-step-pulse"
-                />
-              )}
-              <span className={styles.stepName}>{heading}</span>
-            </span>
-            {!isRunning && step.reasoning && (
-              <span
-                className={styles.reasoning}
-                data-testid="thinking-step-reasoning"
-              >
-                {step.reasoning}
-              </span>
-            )}
-            {!isRunning && step.detail && !hasStructuredToolCalls && (
-              <span className={styles.detail}>{step.detail}</span>
-            )}
-            {hasStructuredToolCalls && (
-              <ul
-                className={styles.items}
-                data-testid="thinking-step-tool-calls"
-              >
-                {step.tool_calls!.map((call, j) => (
-                  <li key={j}>{formatToolCall(call)}</li>
-                ))}
-              </ul>
-            )}
-            {hasStructuredCalls && (
-              <div
-                className={styles.toolCalls}
-                data-testid="thinking-step-calls"
-              >
-                {step.calls!.map((call, j) => (
-                  <ToolCallBlock key={j} call={call} />
-                ))}
-              </div>
-            )}
-            {!isRunning &&
-              step.items &&
-              step.items.length > 0 &&
-              !hasStructuredCalls &&
-              !hasStructuredSources && (
-                <ul className={styles.items} data-testid="thinking-step-items">
-                  {step.items.map((item, j) => (
-                    <li key={j}>{item}</li>
-                  ))}
-                </ul>
-              )}
-            {hasStructuredSources && <SourceLinks sources={step.sources!} />}
-            {!isRunning && step.prompt && (
-              <StepExpander
-                label={t('conversation.response.thinkingPrompt')}
-                text={step.prompt}
-                testId="thinking-step-prompt"
-              />
-            )}
-            {!isRunning && step.response && (
-              <StepExpander
-                label={t('conversation.response.thinkingResponse')}
-                text={step.response}
-                testId="thinking-step-response"
-              />
-            )}
-          </li>
-        );
-      })}
+      {steps.map((step, i) => (
+        // Cycles legitimately repeat a node id — suffix with the position;
+        // the list is append-only so this stays a stable key.
+        <ThinkingStepRow
+          key={`${step.node}-${i}`}
+          step={step}
+          isThinking={isThinking}
+          finalText={finalText}
+        />
+      ))}
     </ol>
   );
 }

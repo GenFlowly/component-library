@@ -27,9 +27,6 @@
   overflow-y: visible;
   justify-content: flex-start; // Avoid center clipping for overflow content
 
-
-
-
   // Custom scrollbar styling
   &::-webkit-scrollbar {
     height: 8px;
@@ -233,31 +230,19 @@
   margin-bottom: 1rem;
 }
 
-.thinkingToggle {
+.thinkingHeader {
   display: flex;
   align-items: center;
   align-self: flex-start;
   gap: 0.4rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
   color: $color-text-muted;
   font-size: 0.8rem;
   opacity: 0.75;
-
-  &:hover {
-    opacity: 1;
-  }
 }
 
 .thinkingLabel {
   font-size: 0.8rem;
   color: $color-text-muted;
-}
-
-.chevron {
-  font-size: 0.65rem;
 }
 
 .pulse {
@@ -270,8 +255,15 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.35; transform: scale(0.75); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
 }
 
 // Step rows themselves live in ThinkingSteps.module.scss

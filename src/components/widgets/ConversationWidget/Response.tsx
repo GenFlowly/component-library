@@ -250,28 +250,26 @@ interface ResponseProps {
 }
 
 /**
- * Collapsible thinking summary shown inside each response card, between the
- * header and the response text (formerly the separate ResponseThinking widget).
+ * Thinking summary shown inside each response card, between the header and
+ * the response text (formerly the separate ResponseThinking widget). Each
+ * step now manages its own expand/collapse (see ThinkingSteps) — this wrapper
+ * just merges the legacy flat step list with the structured one and shows the
+ * overall "thinking" / "Thought for Ns" label.
  */
 function ThinkingSection({
   steps,
   stepList,
   isThinking,
   durationMs,
+  text,
 }: {
   steps: string[];
   stepList?: ThinkingStep[] | null;
   isThinking: boolean;
   durationMs?: number | null;
+  text: string;
 }) {
   const { t } = useTranslation();
-  // Expanded only while live thinking — historical loads start collapsed
-  const [isExpanded, setIsExpanded] = useState(isThinking);
-
-  // Auto-collapse once the answer starts streaming
-  useEffect(() => {
-    if (!isThinking) setIsExpanded(false);
-  }, [isThinking]);
 
   // Legacy flat "k" strings become plain steps (label only, no icon) so the
   // whole section renders through one component; structured "ks" steps follow
@@ -299,18 +297,15 @@ function ThinkingSection({
 
   return (
     <div className={styles.thinkingSection} data-testid="thinking-section">
-      <button
-        className={styles.thinkingToggle}
-        onClick={() => setIsExpanded(prev => !prev)}
-        aria-expanded={isExpanded}
-      >
+      <div className={styles.thinkingHeader}>
         {isThinking && <span className={styles.pulse} />}
         <span className={styles.thinkingLabel}>{label}</span>
-        <span className={styles.chevron}>{isExpanded ? '▼' : '▶'}</span>
-      </button>
-      {/* No placeholder when steps haven't arrived yet — the toggle's
-                "Thinking" label plus pulse already says it */}
-      {isExpanded && <ThinkingSteps steps={displaySteps} />}
+      </div>
+      <ThinkingSteps
+        steps={displaySteps}
+        isThinking={isThinking}
+        finalText={text}
+      />
     </div>
   );
 }
@@ -667,6 +662,7 @@ function Response({
                       stepList={thinkingStepList}
                       isThinking={isThinkingPhase}
                       durationMs={thinkingDurationMs}
+                      text={text}
                     />
                   }
                   isLoading={isThinkingPhase}
