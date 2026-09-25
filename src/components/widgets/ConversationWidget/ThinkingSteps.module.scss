@@ -51,8 +51,15 @@
 }
 
 @keyframes stepPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.35; transform: scale(0.75); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
 }
 
 // Indented under the icon so the step name stays the visual anchor
@@ -106,4 +113,79 @@ $step-indent: 1.4rem;
   word-break: break-word;
   max-height: 16rem;
   overflow-y: auto;
+}
+
+// Text the model wrote alongside a tool call (why it's searching again, etc.)
+.reasoning {
+  margin-left: $step-indent;
+  font-size: 0.8rem;
+  font-style: italic;
+  opacity: 0.85;
+  overflow-wrap: anywhere;
+}
+
+// One block per individual tool call in a TOOL step — the fix for several
+// same-named calls collapsing into one undifferentiated line/list.
+.toolCalls {
+  margin-left: $step-indent;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.toolCall {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.toolCallSignature {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  opacity: 0.85;
+  overflow-wrap: anywhere;
+}
+
+.toolCallError {
+  font-size: 0.78rem;
+  color: $color-error;
+  opacity: 0.9;
+  overflow-wrap: anywhere;
+}
+
+// {index, title, url} source list — used for a TOOL call's own sources and
+// for a WEB_SEARCH step's full (untruncated) result list. Self-contained link
+// styling since, unlike Response.tsx's SourcesSection, nothing here renders
+// inside a TextContainer article to inherit link color/underline from.
+.sourceLinks {
+  list-style: none;
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.78rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+
+  li {
+    display: flex;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+}
+
+.sourceIndex {
+  color: $color-text-muted;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.sourceLink {
+  color: $color-primary;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+
+  &:hover {
+    opacity: 0.8;
+  }
 }

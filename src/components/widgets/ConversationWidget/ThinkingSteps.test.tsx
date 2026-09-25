@@ -174,11 +174,152 @@ describe('ThinkingSteps', () => {
         kind: 'REFLECTION',
         status: 'done',
       },
+      { node: 'f', name: 'Tool node', kind: 'TOOL', status: 'done' },
     ];
     render(<ThinkingSteps steps={steps} />);
 
     const rows = screen.getAllByTestId('thinking-step');
-    expect(rows).toHaveLength(5);
+    expect(rows).toHaveLength(6);
     rows.forEach(row => expect(row.querySelector('svg')).not.toBeNull());
+  });
+
+  test('a tool-calling generator turn shows reasoning and each call signature, not the generic detail string', () => {
+    const steps: ThinkingStep[] = [
+      {
+        node: 'gen',
+        name: 'Generate Response',
+        kind: 'LLM',
+        status: 'done',
+        detail: 'Calling tools: web_search(query="a"), web_search(query="b")',
+        reasoning:
+          'The static search results look stale — let me search again.',
+        tool_calls: [
+          { name: 'web_search', args: { query: 'a', topic: 'news' } },
+          { name: 'web_search', args: { query: 'b' } },
+        ],
+      },
+    ];
+    render(<ThinkingSteps steps={steps} />);
+
+    expect(
+      screen.getByText(
+        'The static search results look stale — let me search again.'
+      )
+    ).toBeInTheDocument();
+    const calls = screen.getByTestId('thinking-step-tool-calls');
+    expect(calls).toBeInTheDocument();
+    expect(
+      screen.getByText('web_search(query="a", topic="news")')
+    ).toBeInTheDocument();
+    expect(screen.getByText('web_search(query="b")')).toBeInTheDocument();
+    // The generic joined-string detail is superseded by the structured calls
+    expect(
+      screen.queryByText(
+        'Calling tools: web_search(query="a"), web_search(query="b")'
+      )
+    ).not.toBeInTheDocument();
+  });
+
+  test('a TOOL step renders each call as its own breakdown with its own sources, not one merged list', () => {
+    const steps: ThinkingStep[] = [
+      {
+        node: 'executor',
+        name: 'Tools',
+        kind: 'TOOL',
+        status: 'done',
+        detail: 'Executed 2 tool(s)',
+        items: ['fallback title — unused when calls is present'],
+        calls: [
+          {
+            name: 'web_search',
+            args: { query: 'MGM Resorts owned hotels Las Vegas' },
+            sources: [
+              {
+                index: 1,
+                title: 'MGM Resorts official site',
+                url: 'https://mgmresorts.com',
+              },
+            ],
+          },
+          {
+            name: 'web_search',
+            args: { query: 'W' },
+            sources: [
+              {
+                index: 2,
+                title: 'W. Kamau Bell on Instagram',
+                url: 'https://instagram.com/wkamaubell',
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    render(<ThinkingSteps steps={steps} />);
+
+    expect(screen.getByText('Executed 2 tool(s)')).toBeInTheDocument();
+    const callBlocks = screen.getAllByTestId('thinking-step-tool-call');
+    expect(callBlocks).toHaveLength(2);
+    expect(
+      screen.getByText('web_search(query="MGM Resorts owned hotels Las Vegas")')
+    ).toBeInTheDocument();
+    expect(screen.getByText('web_search(query="W")')).toBeInTheDocument();
+
+    const mgmLink = screen.getByText('MGM Resorts official site');
+    expect(mgmLink.closest('a')).toHaveAttribute(
+      'href',
+      'https://mgmresorts.com'
+    );
+    const wLink = screen.getByText('W. Kamau Bell on Instagram');
+    expect(wLink.closest('a')).toHaveAttribute(
+      'href',
+      'https://instagram.com/wkamaubell'
+    );
+
+    // The flat back-compat items list is superseded by the per-call breakdown
+    expect(screen.queryByTestId('thinking-step-items')).not.toBeInTheDocument();
+  });
+
+  test('a failed call in a TOOL step shows its error instead of sources', () => {
+    const steps: ThinkingStep[] = [
+      {
+        node: 'executor',
+        name: 'Tools',
+        kind: 'TOOL',
+        status: 'done',
+        detail: 'Executed 1 tool(s)',
+        calls: [
+          {
+            name: 'web_search',
+            args: { query: 'x' },
+            error: 'upstream timeout',
+          },
+        ],
+      },
+    ];
+    render(<ThinkingSteps steps={steps} />);
+
+    expect(screen.getByText('upstream timeout')).toBeInTheDocument();
+  });
+
+  test('a WEB_SEARCH step with sources renders the full linked list instead of the capped items', () => {
+    const steps: ThinkingStep[] = [
+      {
+        node: 'web',
+        name: 'Web Search',
+        kind: 'WEB_SEARCH',
+        status: 'done',
+        detail: 'Found 1 web result(s)',
+        items: ['Example title'],
+        sources: [
+          { index: 1, title: 'Example title', url: 'https://example.com' },
+        ],
+      },
+    ];
+    render(<ThinkingSteps steps={steps} />);
+
+    const link = screen.getByText('Example title').closest('a');
+    expect(link).toHaveAttribute('href', 'https://example.com');
+    expect(screen.queryByTestId('thinking-step-items')).not.toBeInTheDocument();
   });
 });

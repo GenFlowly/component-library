@@ -22,7 +22,24 @@ export interface LearnedFact {
 
 /** What a graph node does — drives the icon shown next to its thinking step. */
 export type ThinkingStepKind =
-  'LLM' | 'MEMORY' | 'RETRIEVAL' | 'WEB_SEARCH' | 'REFLECTION';
+  'LLM' | 'MEMORY' | 'RETRIEVAL' | 'WEB_SEARCH' | 'REFLECTION' | 'TOOL';
+
+/**
+ * One built-in tool call executed by a TOOL kind step, with its own args and
+ * results — distinct from the step's flattened `detail`/`items`, so several
+ * calls of the same tool in one round (e.g. three web_search calls) render as
+ * separate breakdowns instead of collapsing into "web_search, web_search,
+ * web_search" with no way to tell which query produced which results.
+ */
+export interface ThinkingStepToolCall {
+  name: string;
+  /** The call's arguments as the model wrote them, e.g. {query, topic}. */
+  args?: Record<string, unknown>;
+  /** This call's own cited sources, turn-numbered to match [n] markers in the answer. */
+  sources?: WebSource[];
+  /** Set when this specific call failed; sources are empty in that case. */
+  error?: string | null;
+}
 
 /**
  * One structured per-node step of the agent graph's thinking phase, streamed
@@ -51,6 +68,30 @@ export interface ThinkingStep {
   prompt?: string;
   /** Done, LLM-backed nodes: the model's raw response (truncated) */
   response?: string;
+  /**
+   * Done, WEB_SEARCH kind: the full (untruncated) result list — `items` above
+   * stays title-only and capped at 5 for older clients.
+   */
+  sources?: WebSource[];
+  /**
+   * Done, TOOL kind: one entry per individual tool call executed this round.
+   * The primary fix for "web_search, web_search, web_search" — render this
+   * instead of `items`/`detail` when present.
+   */
+  calls?: ThinkingStepToolCall[];
+  /**
+   * Done, LLM-backed nodes when the model decides to call tools: the calls it
+   * made (name + args), e.g. `web_search({query: "..."})` — what the model is
+   * about to do, before TOOL_EXECUTOR's own step reports what came back.
+   */
+  tool_calls?: { name: string; args?: Record<string, unknown> }[];
+  /**
+   * Done, LLM-backed nodes when the model decides to call tools: any text it
+   * wrote alongside the call — its stated reason for searching (again), when
+   * the model provided one. Absent when the model called tools with no
+   * accompanying text, which is common and not itself a problem.
+   */
+  reasoning?: string;
 }
 
 /**
