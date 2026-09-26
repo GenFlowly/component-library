@@ -125,10 +125,11 @@ function ThinkingStepRow({
     !isRunning && !!step.response && step.response === finalText;
   const showResponse = !isRunning && !!step.response && !isFinalAnswer;
 
+  // reasoning is deliberately NOT part of this: it renders always-visible
+  // below (it's the turn's narration), so it alone never warrants a toggle.
   const hasDetails =
     !isRunning &&
-    (!!step.reasoning ||
-      hasStructuredToolCalls ||
+    (hasStructuredToolCalls ||
       hasStructuredCalls ||
       hasStructuredSources ||
       hasItems ||
@@ -161,19 +162,23 @@ function ThinkingStepRow({
           </button>
         )}
       </span>
+      {/* Narration the model wrote alongside its tool calls ("Let me look
+          up…") stays visible in the flow even when the row is collapsed —
+          it's part of the turn's story, like the detail line, not a debug
+          artifact to tuck behind the expander. */}
+      {!isRunning && step.reasoning && (
+        <span
+          className={styles.reasoning}
+          data-testid="thinking-step-reasoning"
+        >
+          {step.reasoning}
+        </span>
+      )}
       {!isRunning && step.detail && !hasStructuredToolCalls && (
         <span className={styles.detail}>{step.detail}</span>
       )}
       {expanded && (
         <>
-          {step.reasoning && (
-            <span
-              className={styles.reasoning}
-              data-testid="thinking-step-reasoning"
-            >
-              {step.reasoning}
-            </span>
-          )}
           {hasStructuredToolCalls && (
             <ul className={styles.items} data-testid="thinking-step-tool-calls">
               {step.tool_calls!.map((call, j) => (

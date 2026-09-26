@@ -358,6 +358,35 @@ describe('ThinkingSteps', () => {
     ).not.toBeInTheDocument();
   });
 
+  test('narration (reasoning) stays visible when the row is collapsed', () => {
+    // The model's "why I'm searching" sentence is part of the turn's story —
+    // it must read in the flow after the turn completes, not vanish behind
+    // the expander like prompts do.
+    const steps: ThinkingStep[] = [
+      {
+        node: 'gen',
+        name: 'Generate Response',
+        kind: 'LLM',
+        status: 'done',
+        reasoning: 'The first results mix own and operate — searching again.',
+        tool_calls: [{ name: 'web_search', args: { query: 'x' } }],
+      },
+    ];
+    render(<ThinkingSteps steps={steps} />); // not thinking → collapsed
+
+    expect(
+      screen.getByText(
+        'The first results mix own and operate — searching again.'
+      )
+    ).toBeInTheDocument();
+    // The call signatures stay behind the toggle
+    expect(
+      screen.queryByTestId('thinking-step-tool-calls')
+    ).not.toBeInTheDocument();
+    userEvent.click(screen.getByTestId('thinking-step-toggle'));
+    expect(screen.getByTestId('thinking-step-tool-calls')).toBeInTheDocument();
+  });
+
   test('a long query is shown in full, not truncated', () => {
     // A truncated query defeats the point of showing it — being able to read
     // exactly what was searched for is the whole reason it's on screen.
