@@ -288,6 +288,51 @@
   opacity: 0.8;
 }
 
+// Why generation ended (from the vendor's raw finish reason). Refusal is
+// prominent — the card may otherwise be blank; truncation is a muted boxed
+// note; a normal finish is a quiet footnote. All three show the raw reason.
+.stopReasonRefusal {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid $color-error;
+  border-radius: 6px;
+  color: $color-error;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  word-break: break-word;
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.8em;
+  }
+}
+
+.stopReasonTruncated {
+  margin: 0.5rem 0;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid $color-border-light;
+  border-radius: 6px;
+  color: $color-text-muted;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  word-break: break-word;
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.8em;
+  }
+}
+
+.stopReasonInfo {
+  display: inline-block;
+  margin: 0.35rem 0 0;
+  font-size: 0.7rem;
+  color: $color-text-muted;
+  opacity: 0.7;
+  font-variant: small-caps;
+  letter-spacing: 0.02em;
+}
+
 .tokenItem {
   display: flex;
   align-items: center;

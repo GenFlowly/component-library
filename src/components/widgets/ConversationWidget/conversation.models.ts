@@ -130,6 +130,14 @@ export interface Message {
    */
   thinkingDurationMs?: number | null;
   /**
+   * The vendor's raw finish reason for this turn (end_turn / stop /
+   * max_tokens / refusal / content_filter / …). Streamed live via the "sr"
+   * chunk and persisted; drives the footer note explaining why generation
+   * ended (subtle for a normal finish, prominent for a refusal/truncation).
+   * Absent for records predating the feature.
+   */
+  stopReason?: string | null;
+  /**
    * Web-search sources for the [n] citation markers in `text`. Streamed live
    * via the "ws" chunk and persisted in DDB; absent when no web search ran.
    */

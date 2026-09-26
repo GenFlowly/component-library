@@ -59,6 +59,74 @@ function formatUsd(cost: number): string {
   return cost >= 1 ? `$${cost.toFixed(2)}` : `$${cost.toFixed(4)}`;
 }
 
+// Raw vendor finish reasons grouped by how they should read to the user. A
+// refusal/block means "no (or partial) answer, here's why"; a length cap means
+// "cut off"; everything else is a normal completion shown as a quiet footnote.
+// Unknown reasons fall through to the quiet footnote too — better to show the
+// raw reason than to hide it.
+const REFUSAL_STOP_REASONS = new Set([
+  'refusal',
+  'content_filter',
+  'safety',
+  'recitation',
+  'blocklist',
+  'prohibited_content',
+  'malformed_function_call',
+]);
+const TRUNCATION_STOP_REASONS = new Set([
+  'max_tokens',
+  'length',
+  'model_length',
+  'max_output_tokens',
+]);
+
+/**
+ * A note under the answer explaining why generation ended, from the vendor's
+ * raw finish reason. Refusals/blocks read as a prominent warning (the card may
+ * otherwise be blank), a length cap as a muted "cut off" line, and normal
+ * finishes as a quiet footnote carrying the raw reason — always shown, so the
+ * user can see how every turn terminated.
+ */
+function StopReasonNote({ reason }: { reason: string }) {
+  const r = reason.trim().toLowerCase();
+  if (!r) return null;
+  if (REFUSAL_STOP_REASONS.has(r)) {
+    return (
+      <div
+        className={styles.stopReasonRefusal}
+        role="status"
+        data-testid="stop-reason"
+        data-reason={r}
+      >
+        The model declined to answer this request (finish reason:&nbsp;
+        <code>{r}</code>). Try rephrasing, or start a new conversation — an
+        earlier turn in this thread may have triggered it.
+      </div>
+    );
+  }
+  if (TRUNCATION_STOP_REASONS.has(r)) {
+    return (
+      <div
+        className={styles.stopReasonTruncated}
+        data-testid="stop-reason"
+        data-reason={r}
+      >
+        The response was cut off because it reached the length limit (finish
+        reason:&nbsp;<code>{r}</code>).
+      </div>
+    );
+  }
+  return (
+    <span
+      className={styles.stopReasonInfo}
+      data-testid="stop-reason"
+      data-reason={r}
+    >
+      Finished · {r}
+    </span>
+  );
+}
+
 /** Numbered link list rendered under the response text. */
 function SourcesSection({ sources }: { sources: WebSource[] }) {
   const { t } = useTranslation();
@@ -389,7 +457,10 @@ function Response({
   const visibleMessages = useMemo(
     () =>
       responseMessages.filter(
-        msg => msg.text.length > 0 || msg.isLoading || msg.error
+        // A refusal has no text and no error but must still render — its
+        // stopReason note is the only thing explaining the empty answer.
+        msg =>
+          msg.text.length > 0 || msg.isLoading || msg.error || msg.stopReason
       ),
     [responseMessages]
   );
@@ -588,6 +659,7 @@ function Response({
             tokensReadFromCache,
             costUsd,
             learnedFacts,
+            stopReason,
           }) => {
             const isSelected = selectedResponseId === messageId;
             const isThinkingPhase = !!isLoading && text.trim().length === 0;
@@ -694,6 +766,9 @@ function Response({
                     <GeneratedAttachmentsSection
                       attachments={generatedAttachments}
                     />
+                  )}
+                  {!isLoading && stopReason && (
+                    <StopReasonNote reason={stopReason} />
                   )}
                   {!isLoading && usageTotals && (
                     <div className={styles.tokenBadge}>

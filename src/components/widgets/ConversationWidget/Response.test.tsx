@@ -1079,4 +1079,52 @@ describe('Response Widget Component', () => {
       expect(screen.queryByTestId('sources-section')).not.toBeInTheDocument();
     });
   });
+
+  describe('stop reason', () => {
+    const msg = (stopReason: string, text = 'Answer') => [
+      {
+        messageId: 'm1',
+        text,
+        aiVendor: AIVendor.OPENAI,
+        isLoading: false,
+        timestamp: 0,
+        stopReason,
+      },
+    ];
+
+    test('a refusal renders a prominent note carrying the raw reason', () => {
+      mockSelection = [AIVendor.OPENAI];
+      render(
+        <Response blockId="block-1" responseMessages={msg('refusal', '')} />
+      );
+      const note = screen.getByTestId('stop-reason');
+      expect(note).toHaveAttribute('data-reason', 'refusal');
+      expect(note.textContent).toMatch(/declined to answer/i);
+      expect(note.textContent).toContain('refusal');
+    });
+
+    test('a length cap renders a truncation note', () => {
+      mockSelection = [AIVendor.OPENAI];
+      render(
+        <Response blockId="block-1" responseMessages={msg('max_tokens')} />
+      );
+      const note = screen.getByTestId('stop-reason');
+      expect(note).toHaveAttribute('data-reason', 'max_tokens');
+      expect(note.textContent).toMatch(/cut off/i);
+    });
+
+    test('a normal finish shows the raw reason as a quiet footnote', () => {
+      mockSelection = [AIVendor.OPENAI];
+      render(<Response blockId="block-1" responseMessages={msg('end_turn')} />);
+      const note = screen.getByTestId('stop-reason');
+      expect(note).toHaveAttribute('data-reason', 'end_turn');
+      expect(note.textContent).toMatch(/end_turn/);
+    });
+
+    test('no stop reason renders no note', () => {
+      mockSelection = [AIVendor.OPENAI];
+      render(<Response blockId="block-1" responseMessages={msg('')} />);
+      expect(screen.queryByTestId('stop-reason')).not.toBeInTheDocument();
+    });
+  });
 });
