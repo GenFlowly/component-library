@@ -61,9 +61,16 @@ function formatUsd(cost: number): string {
 
 // Raw vendor finish reasons grouped by how they should read to the user. A
 // refusal/block means "no (or partial) answer, here's why"; a length cap means
-// "cut off"; everything else is a normal completion shown as a quiet footnote.
-// Unknown reasons fall through to the quiet footnote too — better to show the
-// raw reason than to hide it.
+// "cut off". Normal completions render nothing — the answer speaks for
+// itself. Unknown reasons keep a quiet footnote: better to show a raw reason
+// we don't recognize than to hide it.
+const NORMAL_STOP_REASONS = new Set([
+  'end_turn', // Anthropic
+  'stop', // OpenAI
+  'stop_sequence', // Anthropic custom stop sequence
+  'tool_use', // shouldn't reach here (non-terminal), but never noteworthy
+  'tool_calls', // OpenAI equivalent
+]);
 const REFUSAL_STOP_REASONS = new Set([
   'refusal',
   'content_filter',
@@ -82,14 +89,14 @@ const TRUNCATION_STOP_REASONS = new Set([
 
 /**
  * A note under the answer explaining why generation ended, from the vendor's
- * raw finish reason. Refusals/blocks read as a prominent warning (the card may
- * otherwise be blank), a length cap as a muted "cut off" line, and normal
- * finishes as a quiet footnote carrying the raw reason — always shown, so the
- * user can see how every turn terminated.
+ * raw finish reason. Shown only when something noteworthy happened: a
+ * refusal/block reads as a prominent warning (the card may otherwise be
+ * blank), a length cap as a muted "cut off" line, and an unrecognized reason
+ * as a quiet footnote. A normal completion renders nothing.
  */
 function StopReasonNote({ reason }: { reason: string }) {
   const r = reason.trim().toLowerCase();
-  if (!r) return null;
+  if (!r || NORMAL_STOP_REASONS.has(r)) return null;
   if (REFUSAL_STOP_REASONS.has(r)) {
     return (
       <div

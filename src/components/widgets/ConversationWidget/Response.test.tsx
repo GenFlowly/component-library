@@ -1113,12 +1113,28 @@ describe('Response Widget Component', () => {
       expect(note.textContent).toMatch(/cut off/i);
     });
 
-    test('a normal finish shows the raw reason as a quiet footnote', () => {
+    test('a normal finish renders no note', () => {
+      // The answer speaks for itself — only noteworthy terminations show.
       mockSelection = [AIVendor.OPENAI];
       render(<Response blockId="block-1" responseMessages={msg('end_turn')} />);
+      expect(screen.queryByTestId('stop-reason')).not.toBeInTheDocument();
+    });
+
+    test("OpenAI's 'stop' also renders no note", () => {
+      mockSelection = [AIVendor.OPENAI];
+      render(<Response blockId="block-1" responseMessages={msg('stop')} />);
+      expect(screen.queryByTestId('stop-reason')).not.toBeInTheDocument();
+    });
+
+    test('an unrecognized reason keeps the quiet footnote', () => {
+      // Better to surface a raw reason we don't know than to hide it.
+      mockSelection = [AIVendor.OPENAI];
+      render(
+        <Response blockId="block-1" responseMessages={msg('pause_turn')} />
+      );
       const note = screen.getByTestId('stop-reason');
-      expect(note).toHaveAttribute('data-reason', 'end_turn');
-      expect(note.textContent).toMatch(/end_turn/);
+      expect(note).toHaveAttribute('data-reason', 'pause_turn');
+      expect(note.textContent).toMatch(/pause_turn/);
     });
 
     test('no stop reason renders no note', () => {
