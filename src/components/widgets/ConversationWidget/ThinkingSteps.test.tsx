@@ -179,28 +179,94 @@ describe('ThinkingSteps', () => {
   test('prompt renders inline and response renders via TextContainer, same rich treatment as the final answer', () => {
     const steps: ThinkingStep[] = [
       {
-        node: 'qa',
-        name: 'Query Analyzer',
+        node: 'custom',
+        name: 'Custom Step',
         kind: 'LLM',
         status: 'done',
-        detail: 'Intent: lookup',
-        prompt: 'You are a query analyzer…',
-        response: '{"intent":"lookup"}',
+        prompt: 'You are a custom node…',
+        response: 'A response nothing else in the row conveys.',
+      },
+      {
+        node: 'gen',
+        name: 'Generate Response',
+        kind: 'LLM',
+        status: 'done',
+        response: 'The answer.',
       },
     ];
-    render(<ThinkingSteps steps={steps} isThinking />);
+    render(<ThinkingSteps steps={steps} isThinking finalText="The answer." />);
 
     expect(screen.getByTestId('thinking-step-prompt')).toBeInTheDocument();
-    expect(screen.getByText('You are a query analyzer…')).toBeInTheDocument();
+    expect(screen.getByText('You are a custom node…')).toBeInTheDocument();
 
     const responseBlock = screen.getByTestId('thinking-step-response');
     expect(responseBlock).toBeInTheDocument();
     // Rendered via the (mocked) TextContainer — title is the step name, same
     // component the final answer uses, not a plain monospace dump.
-    expect(screen.getByTestId('tc-title')).toHaveTextContent('Query Analyzer');
+    expect(screen.getByTestId('tc-title')).toHaveTextContent('Custom Step');
     expect(screen.getByTestId('tc-content')).toHaveTextContent(
-      '{"intent":"lookup"}'
+      'A response nothing else in the row conveys.'
     );
+  });
+
+  test('a step whose detail already summarizes its response renders no response block', () => {
+    // Query Analyzer's detail line ("Intent: …") IS its response, summarized
+    // — the raw JSON block underneath added nothing.
+    const steps: ThinkingStep[] = [
+      {
+        node: 'qa',
+        name: 'Query Analyzer',
+        kind: 'LLM',
+        status: 'done',
+        detail: 'Intent: lookup (needs rewrite: no)',
+        prompt: 'You are a query analyzer…',
+        response: '{"intent":"lookup","needs_rewrite":false}',
+      },
+      {
+        node: 'gen',
+        name: 'Generate Response',
+        kind: 'LLM',
+        status: 'done',
+        detail: 'Response generated',
+        response: 'The answer.',
+      },
+    ];
+    render(<ThinkingSteps steps={steps} isThinking finalText="The answer." />);
+
+    expect(
+      screen.getByText('Intent: lookup (needs rewrite: no)')
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('thinking-step-prompt')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('thinking-step-response')
+    ).not.toBeInTheDocument();
+  });
+
+  test("a tool-calling round's preamble is not repeated as a response block", () => {
+    // The round's `response` is the narrated preamble — already shown
+    // always-visible as the reasoning line above the calls.
+    const steps: ThinkingStep[] = [
+      {
+        node: 'gen',
+        name: 'Response Generator',
+        kind: 'LLM',
+        status: 'done',
+        reasoning: 'I’ll verify the current contract details first.',
+        response: 'I’ll verify the current contract details first.',
+        tool_calls: [{ name: 'web_search', args: { query: 'SPX specs' } }],
+        prompt: 'Question: how to sell credit spreads',
+      },
+    ];
+    render(<ThinkingSteps steps={steps} isThinking />);
+
+    // Narration shows once, in the flow…
+    expect(screen.getByTestId('thinking-step-reasoning')).toHaveTextContent(
+      'I’ll verify the current contract details first.'
+    );
+    // …never again as a bordered response block
+    expect(
+      screen.queryByTestId('thinking-step-response')
+    ).not.toBeInTheDocument();
   });
 
   test('the terminal step response is never duplicated under the thinking flow', () => {

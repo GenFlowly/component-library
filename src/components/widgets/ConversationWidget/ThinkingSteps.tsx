@@ -98,6 +98,7 @@ function ThinkingStepRow({
   step,
   isThinking,
   isFinalAnswer,
+  isOrphanAnswer,
 }: {
   step: ThinkingStep;
   isThinking: boolean;
@@ -106,6 +107,10 @@ function ThinkingStepRow({
    * its response block is skipped rather than shown twice, and its
    * "Response generated" detail line is dropped as stating the obvious. */
   isFinalAnswer: boolean;
+  /** Terminal answer step on a turn whose message has NO answer text
+   * (errored/aborted) — its response is the only surviving copy, so it
+   * renders even though it would otherwise be considered redundant. */
+  isOrphanAnswer: boolean;
 }) {
   const { t } = useTranslation();
   const isRunning = step.status === 'running';
@@ -122,7 +127,20 @@ function ThinkingStepRow({
   const hasStructuredCalls = !isRunning && !!step.calls?.length;
   const hasStructuredSources = !isRunning && !!step.sources?.length;
   const hasItems = !isRunning && !!step.items && step.items.length > 0;
-  const showResponse = !isRunning && !!step.response && !isFinalAnswer;
+  // The response block only earns its place when it says something the row
+  // doesn't already: a tool-calling round's response is the preamble shown
+  // as narration above, and pipeline nodes' detail line ("Intent: …",
+  // "Rewrote the query to: …") already carries their outcome. The one
+  // override is an errored turn's terminal step, where the response is the
+  // only copy of the answer left.
+  const showResponse =
+    !isRunning &&
+    !!step.response &&
+    !isFinalAnswer &&
+    (isOrphanAnswer ||
+      (!step.tool_calls?.length &&
+        !step.detail &&
+        step.response !== step.reasoning));
 
   // reasoning is deliberately NOT part of this: it renders always-visible
   // below (it's the turn's narration), so it alone never warrants a toggle.
@@ -274,9 +292,10 @@ export default function ThinkingSteps({
   if (steps.length === 0) return null;
 
   // Only dedup against an answer the message actually shows — on an errored
-  // turn with no answer text, the step's response is the only copy left.
-  const finalAnswerIdx =
-    finalText.trim().length > 0 ? finalAnswerStepIndex(steps) : -1;
+  // turn with no answer text, the terminal step's response is the only copy
+  // left and renders instead (isOrphanAnswer).
+  const terminalIdx = finalAnswerStepIndex(steps);
+  const hasFinalText = finalText.trim().length > 0;
 
   return (
     <ol className={styles.steps} data-testid="thinking-step-list">
@@ -287,7 +306,8 @@ export default function ThinkingSteps({
           key={`${step.node}-${i}`}
           step={step}
           isThinking={isThinking}
-          isFinalAnswer={i === finalAnswerIdx}
+          isFinalAnswer={i === terminalIdx && hasFinalText}
+          isOrphanAnswer={i === terminalIdx && !hasFinalText}
         />
       ))}
     </ol>
