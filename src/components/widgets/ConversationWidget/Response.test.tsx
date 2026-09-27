@@ -644,7 +644,10 @@ describe('Response Widget Component', () => {
     ];
     render(<Response blockId="block-1" responseMessages={withThinking} />);
 
-    // Not thinking anymore → the row starts collapsed (auto-collapse on completion)
+    // Not thinking anymore → the whole section starts collapsed; the row
+    // inside is collapsed too once the section is opened
+    expect(screen.queryByText('step one')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('thinking-section-toggle'));
     expect(screen.queryByText('step one')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('thinking-step-toggle'));
@@ -674,8 +677,10 @@ describe('Response Widget Component', () => {
     ];
     render(<Response blockId="block-1" responseMessages={withStructured} />);
 
-    // The list, step name and detail are always visible — no top-level
-    // toggle to mount them anymore, collapse is per-row
+    // Completed turn → the whole section starts collapsed behind its header
+    expect(screen.queryByTestId('thinking-step-list')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('thinking-section-toggle'));
+
     expect(screen.getByTestId('thinking-step-list')).toBeInTheDocument();
     expect(screen.getByText('Document Retriever')).toBeInTheDocument();
     expect(

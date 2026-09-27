@@ -326,10 +326,11 @@ interface ResponseProps {
 
 /**
  * Thinking summary shown inside each response card, between the header and
- * the response text (formerly the separate ResponseThinking widget). Each
- * step now manages its own expand/collapse (see ThinkingSteps) — this wrapper
- * just merges the legacy flat step list with the structured one and shows the
- * overall "thinking" / "Thought for Ns" label.
+ * the response text (formerly the separate ResponseThinking widget). The
+ * whole section collapses behind the "Thinking / Thought for Ns" header —
+ * open while the turn is live, auto-collapsed once the answer lands — and
+ * each step inside additionally manages its own expand/collapse (see
+ * ThinkingSteps).
  */
 function ThinkingSection({
   steps,
@@ -345,6 +346,13 @@ function ThinkingSection({
   text: string;
 }) {
   const { t } = useTranslation();
+  // Expanded only while live thinking — historical loads start collapsed
+  const [isExpanded, setIsExpanded] = useState(isThinking);
+
+  // Auto-collapse the whole section once the answer lands
+  useEffect(() => {
+    if (!isThinking) setIsExpanded(false);
+  }, [isThinking]);
 
   // Legacy flat "k" strings become plain steps (label only, no icon) so the
   // whole section renders through one component; structured "ks" steps follow
@@ -372,15 +380,23 @@ function ThinkingSection({
 
   return (
     <div className={styles.thinkingSection} data-testid="thinking-section">
-      <div className={styles.thinkingHeader}>
+      <button
+        className={styles.thinkingToggle}
+        onClick={() => setIsExpanded(prev => !prev)}
+        aria-expanded={isExpanded}
+        data-testid="thinking-section-toggle"
+      >
         {isThinking && <span className={styles.pulse} />}
         <span className={styles.thinkingLabel}>{label}</span>
-      </div>
-      <ThinkingSteps
-        steps={displaySteps}
-        isThinking={isThinking}
-        finalText={text}
-      />
+        <span className={styles.chevron}>{isExpanded ? '▼' : '▶'}</span>
+      </button>
+      {isExpanded && (
+        <ThinkingSteps
+          steps={displaySteps}
+          isThinking={isThinking}
+          finalText={text}
+        />
+      )}
     </div>
   );
 }

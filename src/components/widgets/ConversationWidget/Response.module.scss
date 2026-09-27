@@ -230,19 +230,31 @@
   margin-bottom: 1rem;
 }
 
-.thinkingHeader {
+.thinkingToggle {
   display: flex;
   align-items: center;
   align-self: flex-start;
   gap: 0.4rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
   color: $color-text-muted;
   font-size: 0.8rem;
   opacity: 0.75;
+
+  &:hover {
+    opacity: 1;
+  }
 }
 
 .thinkingLabel {
   font-size: 0.8rem;
   color: $color-text-muted;
+}
+
+.chevron {
+  font-size: 0.65rem;
 }
 
 .pulse {
