@@ -203,7 +203,7 @@ describe('ThinkingSteps', () => {
     );
   });
 
-  test('the terminal step response is not duplicated when it matches the message final text', () => {
+  test('the terminal step response is never duplicated under the thinking flow', () => {
     const steps: ThinkingStep[] = [
       {
         node: 'gen',
@@ -228,6 +228,70 @@ describe('ThinkingSteps', () => {
     expect(
       screen.queryByTestId('thinking-step-response')
     ).not.toBeInTheDocument();
+  });
+
+  test('the terminal response stays hidden even when trace truncation makes it differ from the final text', () => {
+    // The backend truncates a step's trace response (1500 chars), so on long
+    // answers step.response !== message text — the dedup must be structural
+    // (last answer-producing LLM step), not a string comparison.
+    const steps: ThinkingStep[] = [
+      {
+        node: 'rewriter',
+        name: 'Query Rewriter',
+        kind: 'LLM',
+        status: 'done',
+        response: 'the rewritten query',
+      },
+      {
+        node: 'gen',
+        name: 'Generate Response',
+        kind: 'LLM',
+        status: 'done',
+        detail: 'Calling tools: web_search(query="x")',
+        tool_calls: [{ name: 'web_search', args: { query: 'x' } }],
+        response: '',
+      },
+      {
+        node: 'gen',
+        name: 'Generate Response',
+        kind: 'LLM',
+        status: 'done',
+        detail: 'Response generated',
+        response: 'The final answer text, cut off by the trace limi',
+      },
+    ];
+    render(
+      <ThinkingSteps
+        steps={steps}
+        isThinking
+        finalText="The final answer text, cut off by the trace limit — full version."
+      />
+    );
+
+    // Intermediate steps keep their response blocks; only the terminal
+    // generator round's is suppressed.
+    const responses = screen.getAllByTestId('thinking-step-response');
+    expect(responses).toHaveLength(1);
+    expect(screen.getByText('the rewritten query')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/cut off by the trace limi/)
+    ).not.toBeInTheDocument();
+  });
+
+  test('with no final text (errored turn) the terminal response still shows', () => {
+    const steps: ThinkingStep[] = [
+      {
+        node: 'gen',
+        name: 'Generate Response',
+        kind: 'LLM',
+        status: 'done',
+        detail: 'Response generated',
+        response: 'The only surviving copy of the answer.',
+      },
+    ];
+    render(<ThinkingSteps steps={steps} isThinking finalText="" />);
+
+    expect(screen.getByTestId('thinking-step-response')).toBeInTheDocument();
   });
 
   test('a terminal step with nothing but the duplicate response renders no toggle', () => {

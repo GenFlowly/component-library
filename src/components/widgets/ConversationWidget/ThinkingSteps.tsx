@@ -97,11 +97,14 @@ function ToolCallBlock({ call }: { call: ThinkingStepToolCall }) {
 function ThinkingStepRow({
   step,
   isThinking,
-  finalText,
+  isFinalAnswer,
 }: {
   step: ThinkingStep;
   isThinking: boolean;
-  finalText: string;
+  /** True for the terminal generator step whose response IS the message's
+   * answer, already rendered in full by the outer TextContainer below —
+   * its response block is skipped rather than shown twice. */
+  isFinalAnswer: boolean;
 }) {
   const { t } = useTranslation();
   const isRunning = step.status === 'running';
@@ -118,11 +121,6 @@ function ThinkingStepRow({
   const hasStructuredCalls = !isRunning && !!step.calls?.length;
   const hasStructuredSources = !isRunning && !!step.sources?.length;
   const hasItems = !isRunning && !!step.items && step.items.length > 0;
-  // The terminal Response Generator step's response is the message's own
-  // answer text, already shown in full below by the outer TextContainer —
-  // skip it here rather than showing the final answer a second time.
-  const isFinalAnswer =
-    !isRunning && !!step.response && step.response === finalText;
   const showResponse = !isRunning && !!step.response && !isFinalAnswer;
 
   // reasoning is deliberately NOT part of this: it renders always-visible
@@ -240,6 +238,26 @@ function ThinkingStepRow({
  * lands. Historical/loaded conversations (isThinking always false) render
  * every step collapsed by default; the user can still expand any of them.
  */
+/** Index of the terminal generator step — the LAST completed LLM-backed step
+ * that produced answer text rather than tool calls. Its `response` IS the
+ * message's answer (modulo server-side trace truncation, which is why this
+ * is structural instead of comparing text), so its response block is never
+ * rendered inside the thinking flow. -1 when no step qualifies. */
+function finalAnswerStepIndex(steps: ThinkingStep[]): number {
+  for (let i = steps.length - 1; i >= 0; i--) {
+    const step = steps[i];
+    if (
+      step.status === 'done' &&
+      (step.kind === 'LLM' || step.kind === 'REFLECTION') &&
+      !!step.response &&
+      !step.tool_calls?.length
+    ) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 export default function ThinkingSteps({
   steps,
   isThinking = false,
@@ -251,6 +269,11 @@ export default function ThinkingSteps({
 }) {
   if (steps.length === 0) return null;
 
+  // Only dedup against an answer the message actually shows — on an errored
+  // turn with no answer text, the step's response is the only copy left.
+  const finalAnswerIdx =
+    finalText.trim().length > 0 ? finalAnswerStepIndex(steps) : -1;
+
   return (
     <ol className={styles.steps} data-testid="thinking-step-list">
       {steps.map((step, i) => (
@@ -260,7 +283,7 @@ export default function ThinkingSteps({
           key={`${step.node}-${i}`}
           step={step}
           isThinking={isThinking}
-          finalText={finalText}
+          isFinalAnswer={i === finalAnswerIdx}
         />
       ))}
     </ol>
