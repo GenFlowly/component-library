@@ -223,11 +223,13 @@ describe('ThinkingSteps', () => {
       />
     );
 
-    // Prompt still shows — only the duplicate response block is skipped
+    // Prompt still shows — the duplicate response block is skipped, and so
+    // is the "Response generated" detail (the answer below already says so)
     expect(screen.getByText('Answer the question…')).toBeInTheDocument();
     expect(
       screen.queryByTestId('thinking-step-response')
     ).not.toBeInTheDocument();
+    expect(screen.queryByText('Response generated')).not.toBeInTheDocument();
   });
 
   test('the terminal response stays hidden even when trace truncation makes it differ from the final text', () => {

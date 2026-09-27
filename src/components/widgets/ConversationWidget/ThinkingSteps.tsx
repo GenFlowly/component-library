@@ -103,7 +103,8 @@ function ThinkingStepRow({
   isThinking: boolean;
   /** True for the terminal generator step whose response IS the message's
    * answer, already rendered in full by the outer TextContainer below —
-   * its response block is skipped rather than shown twice. */
+   * its response block is skipped rather than shown twice, and its
+   * "Response generated" detail line is dropped as stating the obvious. */
   isFinalAnswer: boolean;
 }) {
   const { t } = useTranslation();
@@ -172,9 +173,12 @@ function ThinkingStepRow({
           {step.reasoning}
         </span>
       )}
-      {!isRunning && step.detail && !hasStructuredToolCalls && (
-        <span className={styles.detail}>{step.detail}</span>
-      )}
+      {/* The terminal step's "Response generated" detail is dropped — the
+          answer sitting right below already says so. */}
+      {!isRunning &&
+        step.detail &&
+        !hasStructuredToolCalls &&
+        !isFinalAnswer && <span className={styles.detail}>{step.detail}</span>}
       {expanded && (
         <>
           {hasStructuredToolCalls && (
