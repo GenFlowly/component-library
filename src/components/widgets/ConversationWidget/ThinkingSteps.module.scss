@@ -129,6 +129,41 @@ $step-indent: 1.4rem;
   overflow-y: auto;
 }
 
+// The agent's current plan (write_todos) — always visible on the newest
+// todos-carrying step, like .reasoning: part of the turn's story.
+.todoList {
+  margin: 0.2rem 0 0.2rem $step-indent;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+}
+
+.todoItem {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+
+  &[data-status='completed'] .todoContent {
+    opacity: 0.6;
+    text-decoration: line-through;
+  }
+
+  &[data-status='in_progress'] .todoContent {
+    font-weight: 600;
+  }
+}
+
+.todoBox {
+  flex-shrink: 0;
+}
+
+.todoContent {
+  overflow-wrap: anywhere;
+}
+
 // Text the model wrote alongside a tool call (why it's searching again, etc.)
 .reasoning {
   margin-left: $step-indent;

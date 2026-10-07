@@ -15,6 +15,7 @@ import {
   ThinkingStep,
   ThinkingStepKind,
   ThinkingStepToolCall,
+  TodoItem,
   WebSource,
 } from './conversation.models';
 import styles from './ThinkingSteps.module.scss';
@@ -69,6 +70,28 @@ function SourceLinks({ sources }: { sources: WebSource[] }) {
   );
 }
 
+/** The agent's current plan as a checklist. Rendered always-visible (like
+ * `reasoning`) on the newest step that carried a todos update — the plan is
+ * part of the turn's story, not a debug artifact behind the expander. */
+function TodoChecklist({ todos }: { todos: TodoItem[] }) {
+  return (
+    <ul className={styles.todoList} data-testid="thinking-step-todos">
+      {todos.map((todo, i) => (
+        <li key={i} className={styles.todoItem} data-status={todo.status}>
+          <span className={styles.todoBox} aria-hidden="true">
+            {todo.status === 'completed'
+              ? '☑'
+              : todo.status === 'in_progress'
+                ? '◐'
+                : '☐'}
+          </span>
+          <span className={styles.todoContent}>{todo.content}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** One individual tool call's breakdown: its call signature, then either its
  * error or its own sources — never a merged list across calls. */
 function ToolCallBlock({ call }: { call: ThinkingStepToolCall }) {
@@ -99,9 +122,13 @@ function ThinkingStepRow({
   isThinking,
   isFinalAnswer,
   isOrphanAnswer,
+  showTodos,
 }: {
   step: ThinkingStep;
   isThinking: boolean;
+  /** True only for the newest step carrying a todos update — earlier steps'
+   * stale snapshots of the plan stay hidden. */
+  showTodos?: boolean;
   /** True for the terminal generator step whose response IS the message's
    * answer, already rendered in full by the outer TextContainer below —
    * its response block is skipped rather than shown twice, and its
@@ -190,6 +217,9 @@ function ThinkingStepRow({
         >
           {step.reasoning}
         </span>
+      )}
+      {showTodos && !!step.todos?.length && (
+        <TodoChecklist todos={step.todos} />
       )}
       {/* The terminal step's "Response generated" detail is dropped — the
           answer sitting right below already says so. */}
@@ -296,6 +326,15 @@ export default function ThinkingSteps({
   // left and renders instead (isOrphanAnswer).
   const terminalIdx = finalAnswerStepIndex(steps);
   const hasFinalText = finalText.trim().length > 0;
+  // Every todos-carrying step holds the FULL list as of that round; only the
+  // newest one is the plan's current state, so only it renders.
+  let todosIdx = -1;
+  for (let i = steps.length - 1; i >= 0; i--) {
+    if (steps[i].todos?.length) {
+      todosIdx = i;
+      break;
+    }
+  }
 
   return (
     <ol className={styles.steps} data-testid="thinking-step-list">
@@ -308,6 +347,7 @@ export default function ThinkingSteps({
           isThinking={isThinking}
           isFinalAnswer={i === terminalIdx && hasFinalText}
           isOrphanAnswer={i === terminalIdx && !hasFinalText}
+          showTodos={i === todosIdx}
         />
       ))}
     </ol>

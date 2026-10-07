@@ -641,4 +641,46 @@ describe('ThinkingSteps', () => {
     expect(link).toHaveAttribute('href', 'https://example.com');
     expect(screen.queryByTestId('thinking-step-items')).not.toBeInTheDocument();
   });
+
+  test('the agent todo checklist renders, newest snapshot only', () => {
+    // Two TOOL rounds each carried the full plan; only the newest one is the
+    // current state, so the older snapshot must not render. The checklist is
+    // always-visible (not behind the expander), like reasoning.
+    const toolStep = (todos: ThinkingStep['todos']): ThinkingStep => ({
+      node: 'tools',
+      name: 'Tools',
+      kind: 'TOOL',
+      status: 'done',
+      detail: 'Executed 1 tool(s)',
+      todos,
+    });
+    const steps: ThinkingStep[] = [
+      toolStep([{ content: 'Search the KB', status: 'in_progress' }]),
+      toolStep([
+        { content: 'Search the KB', status: 'completed' },
+        { content: 'Draft the answer', status: 'in_progress' },
+      ]),
+    ];
+    render(<ThinkingSteps steps={steps} />);
+
+    const checklists = screen.getAllByTestId('thinking-step-todos');
+    expect(checklists).toHaveLength(1);
+    expect(screen.getByText('Draft the answer')).toBeInTheDocument();
+    const done = screen.getByText('Search the KB').closest('li') as HTMLElement;
+    expect(done).toHaveAttribute('data-status', 'completed');
+  });
+
+  test('steps without todos render no checklist', () => {
+    const steps: ThinkingStep[] = [
+      {
+        node: 'tools',
+        name: 'Tools',
+        kind: 'TOOL',
+        status: 'done',
+        detail: 'Executed 1 tool(s)',
+      },
+    ];
+    render(<ThinkingSteps steps={steps} />);
+    expect(screen.queryByTestId('thinking-step-todos')).not.toBeInTheDocument();
+  });
 });

@@ -92,6 +92,19 @@ export interface ThinkingStep {
    * accompanying text, which is common and not itself a problem.
    */
   reasoning?: string;
+  /**
+   * Done, TOOL kind: the agent's todo checklist as of this round, present on
+   * steps where the agent updated its plan (write_todos). Each occurrence is
+   * the FULL current list, so the newest step carrying one is the plan's
+   * current state — render that one.
+   */
+  todos?: TodoItem[];
+}
+
+/** One item of the agent's plan (the write_todos harness tool). */
+export interface TodoItem {
+  content: string;
+  status: 'pending' | 'in_progress' | 'completed';
 }
 
 /**
