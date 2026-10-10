@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Options } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeHighlight from 'rehype-highlight';
@@ -70,17 +70,27 @@ export const MarkdownLink = ({ node, children, ...props }: any) => (
 );
 
 // Stable plugin/component identities so ReactMarkdown props don't change
-// between renders with the same content
-const REMARK_PLUGINS = [remarkGfm, remarkMath];
+// between renders with the same content.
+// Single-dollar math must stay OFF: two currency amounts in one paragraph
+// ("raised $50M … around $1.5M") would otherwise pair up as one inline-math
+// span and KaTeX would typeset the prose between them (spaces dropped,
+// ** rendered as ∗∗). Inline math uses the $$…$$ form instead, which
+// normalizeMathDelimiters emits for \(...\).
+export const REMARK_PLUGINS: Options['remarkPlugins'] = [
+  remarkGfm,
+  [remarkMath, { singleDollarTextMath: false }],
+];
 const REHYPE_PLUGINS = [rehypeKatex, rehypeHighlight];
 const MARKDOWN_COMPONENTS = { pre: PreBlock, a: MarkdownLink };
 
 /**
  * LLMs emit TeX-style math delimiters — \[...\] for display math and
  * \(...\) for inline — but remark-math only parses the dollar forms, so
- * without this the raw TeX shows up as literal text. Convert to $$/$
- * everywhere EXCEPT inside code fences and inline code spans, which must
- * stay byte-for-byte intact.
+ * without this the raw TeX shows up as literal text. Both convert to the
+ * double-dollar form (block $$ fences for display, $$…$$ for inline)
+ * because single-dollar parsing is disabled in REMARK_PLUGINS — currency
+ * amounts would trigger it. Convert everywhere EXCEPT inside code fences
+ * and inline code spans, which must stay byte-for-byte intact.
  */
 export function normalizeMathDelimiters(markdown: string): string {
   return markdown
@@ -92,7 +102,7 @@ export function normalizeMathDelimiters(markdown: string): string {
           /\\\[([\s\S]+?)\\\]/g,
           (_m, expr) => `\n$$\n${expr.trim()}\n$$\n`
         )
-        .replace(/\\\((.+?)\\\)/g, (_m, expr) => `$${expr.trim()}$`);
+        .replace(/\\\((.+?)\\\)/g, (_m, expr) => `$$${expr.trim()}$$`);
     })
     .join('');
 }

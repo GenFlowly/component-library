@@ -238,10 +238,20 @@ describe('TextContainer Internals', () => {
       expect(out).not.toContain('\\[');
     });
 
-    test('converts TeX inline math to single dollars', () => {
+    test('converts TeX inline math to double dollars (single-dollar math is disabled)', () => {
       expect(normalizeMathDelimiters('where \\( x^2 \\) grows')).toBe(
-        'where $x^2$ grows'
+        'where $$x^2$$ grows'
       );
+    });
+
+    test('leaves currency dollar amounts untouched', () => {
+      // Real prod regression: two currency amounts in one paragraph must not
+      // be altered — with singleDollarTextMath disabled they render as prose.
+      const prose =
+        'the studio itself has raised roughly **$50M total** to fund this ' +
+        'activity across **35+ spinouts** since 2015 — averages somewhere ' +
+        'around $1–1.5M, though that is my arithmetic.';
+      expect(normalizeMathDelimiters(prose)).toBe(prose);
     });
 
     test('leaves code fences and inline code untouched', () => {
@@ -254,6 +264,20 @@ describe('TextContainer Internals', () => {
       expect(normalizeMathDelimiters('plain [brackets] (parens)')).toBe(
         'plain [brackets] (parens)'
       );
+    });
+  });
+
+  describe('REMARK_PLUGINS math config', () => {
+    const { REMARK_PLUGINS } = jest.requireActual('./TextContainerCore');
+
+    test('disables single-dollar inline math so currency stays prose', () => {
+      // Guards the prod bug where "$50M … $1.5M" in one paragraph was
+      // typeset as a single KaTeX span (spaces dropped, ** became ∗∗).
+      const mathEntry = REMARK_PLUGINS.find((plugin: any) =>
+        Array.isArray(plugin)
+      );
+      expect(mathEntry).toBeDefined();
+      expect(mathEntry[1]).toEqual({ singleDollarTextMath: false });
     });
   });
 
