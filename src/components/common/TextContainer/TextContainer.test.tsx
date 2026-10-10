@@ -267,6 +267,106 @@ describe('TextContainer Internals', () => {
     });
   });
 
+  describe('rehypeTableMeta', () => {
+    const { rehypeTableMeta, MarkdownTable } = jest.requireActual(
+      './TextContainerCore'
+    );
+
+    // Minimal hast table mirroring remark-gfm output, including the
+    // whitespace text nodes it interleaves between elements
+    const el = (tagName: string, children: any[] = [], properties: any = {}) =>
+      ({ type: 'element', tagName, properties, children }) as any;
+    const text = (value: string) => ({ type: 'text', value }) as any;
+    const makeTable = (headers: string[], rows: string[][]) =>
+      el('table', [
+        text('\n'),
+        el('thead', [
+          el(
+            'tr',
+            headers.map(h => el('th', [text(h)]))
+          ),
+        ]),
+        text('\n'),
+        el('tbody', [
+          text('\n'),
+          ...rows.map(cells =>
+            el(
+              'tr',
+              cells.map(c => el('td', [text(c)]))
+            )
+          ),
+        ]),
+      ]);
+
+    const run = (table: any) => {
+      rehypeTableMeta()({ type: 'root', children: [table] });
+      return table;
+    };
+
+    const bodyCells = (table: any) =>
+      table.children
+        .filter((n: any) => n.tagName === 'tbody')
+        .flatMap((tbody: any) =>
+          tbody.children.filter((n: any) => n.tagName === 'tr')
+        )
+        .flatMap((tr: any) =>
+          tr.children.filter((n: any) => n.tagName === 'td')
+        );
+
+    test('5+ column tables stack early, cells carry their header label', () => {
+      const table = run(
+        makeTable(
+          ['Model', 'Context', 'Price', 'Speed', 'Notes'],
+          [['Fable 5', '1M', '$15', 'fast', 'best']]
+        )
+      );
+      expect(table.properties.dataStack).toBe('early');
+      expect(
+        bodyCells(table).map((td: any) => td.properties.dataLabel)
+      ).toEqual(['Model', 'Context', 'Price', 'Speed', 'Notes']);
+    });
+
+    test('3-4 column tables stack late', () => {
+      const table = run(
+        makeTable(['Name', 'Role', 'Team'], [['Ada', 'Eng', 'Core']])
+      );
+      expect(table.properties.dataStack).toBe('late');
+    });
+
+    test('1-2 column tables are left untouched — wrapping alone keeps them legible', () => {
+      const table = run(makeTable(['Key', 'Value'], [['a', '1']]));
+      expect(table.properties.dataStack).toBeUndefined();
+      expect(
+        bodyCells(table).every(
+          (td: any) => td.properties.dataLabel === undefined
+        )
+      ).toBe(true);
+    });
+
+    test('extra cells beyond the header get no label', () => {
+      const table = run(
+        makeTable(['A', 'B', 'C'], [['1', '2', '3', 'surplus']])
+      );
+      const labels = bodyCells(table).map((td: any) => td.properties.dataLabel);
+      expect(labels).toEqual(['A', 'B', 'C', undefined]);
+    });
+
+    test('MarkdownTable wraps the table in the scroll safety net', () => {
+      render(
+        <MarkdownTable data-stack="early">
+          <tbody>
+            <tr>
+              <td>cell</td>
+            </tr>
+          </tbody>
+        </MarkdownTable>
+      );
+      const table = screen.getByRole('table');
+      expect(table).toHaveAttribute('data-stack', 'early');
+      expect(table.parentElement?.className).toContain('tableScroll');
+    });
+  });
+
   describe('REMARK_PLUGINS math config', () => {
     const { REMARK_PLUGINS } = jest.requireActual('./TextContainerCore');
 

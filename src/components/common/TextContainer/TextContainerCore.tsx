@@ -34,7 +34,9 @@ export const PreBlock = ({ node, children, ...props }: any) => {
     : '';
 
   return (
-    <div style={{ position: 'relative' }}>
+    // min/max width keep the code block shrinkable (its own overflow-x takes
+    // over) even when a consumer mounts TextContainer in a row-flex parent
+    <div style={{ position: 'relative', maxWidth: '100%', minWidth: 0 }}>
       <div
         style={{
           position: 'absolute',
@@ -69,6 +71,72 @@ export const MarkdownLink = ({ node, children, ...props }: any) => (
   </a>
 );
 
+const isElement = (node: any, tagName?: string): boolean =>
+  node?.type === 'element' && (!tagName || node.tagName === tagName);
+
+const elementChildren = (node: any, tagName: string): any[] =>
+  (node?.children || []).filter((child: any) => isElement(child, tagName));
+
+// Column-count buckets for the stacked-table container queries: tables the
+// model emits with many columns can't fit a narrow card even with wrapping
+// cells, so they restack earlier (at a wider container) than modest ones.
+// 1–2 column tables never stack — cell wrapping alone keeps them legible.
+const STACK_EARLY_MIN_COLS = 5;
+const STACK_LATE_MIN_COLS = 3;
+
+/**
+ * Rehype plugin that decorates GFM tables with the metadata the stacked
+ * layout in TextContainer.module.scss needs: data-stack on the <table>
+ * (when/if it should restack in narrow containers) and data-label on each
+ * <td> (its column header, shown by CSS when the header row is hidden).
+ * Pure decoration — the DOM stays a semantic table in both presentations.
+ */
+export function rehypeTableMeta() {
+  return (tree: any) => {
+    const walk = (node: any) => {
+      if (isElement(node, 'table')) decorateTable(node);
+      (node.children || []).forEach(walk);
+    };
+    walk(tree);
+  };
+}
+
+export function decorateTable(table: any) {
+  const [thead] = elementChildren(table, 'thead');
+  const [headerRow] = elementChildren(thead, 'tr');
+  const labels = elementChildren(headerRow, 'th').map(th =>
+    extractText(th.children || []).trim()
+  );
+  if (labels.length < STACK_LATE_MIN_COLS) return;
+
+  table.properties = {
+    ...table.properties,
+    dataStack: labels.length >= STACK_EARLY_MIN_COLS ? 'early' : 'late',
+  };
+  for (const tbody of elementChildren(table, 'tbody')) {
+    for (const row of elementChildren(tbody, 'tr')) {
+      elementChildren(row, 'td').forEach((td, i) => {
+        if (labels[i]) {
+          td.properties = { ...td.properties, dataLabel: labels[i] };
+        }
+      });
+    }
+  }
+}
+
+/**
+ * Tables never scroll by design — cells wrap, and in narrow containers the
+ * container queries in TextContainer.module.scss restack rows into cards.
+ * The wrapper is a safety net for pathological content a cell can't wrap
+ * (an image, an unbreakable token): it contains the overflow as a local
+ * scroll instead of letting the table paint over the neighboring column.
+ */
+export const MarkdownTable = ({ node, children, ...props }: any) => (
+  <div className={styles.tableScroll}>
+    <table {...props}>{children}</table>
+  </div>
+);
+
 // Stable plugin/component identities so ReactMarkdown props don't change
 // between renders with the same content.
 // Single-dollar math must stay OFF: two currency amounts in one paragraph
@@ -80,8 +148,12 @@ export const REMARK_PLUGINS: Options['remarkPlugins'] = [
   remarkGfm,
   [remarkMath, { singleDollarTextMath: false }],
 ];
-const REHYPE_PLUGINS = [rehypeKatex, rehypeHighlight];
-const MARKDOWN_COMPONENTS = { pre: PreBlock, a: MarkdownLink };
+const REHYPE_PLUGINS = [rehypeTableMeta, rehypeKatex, rehypeHighlight];
+const MARKDOWN_COMPONENTS = {
+  pre: PreBlock,
+  a: MarkdownLink,
+  table: MarkdownTable,
+};
 
 /**
  * LLMs emit TeX-style math delimiters — \[...\] for display math and
@@ -116,13 +188,18 @@ const MarkdownContent = React.memo(function MarkdownContent({
   content: string;
 }) {
   return (
-    <ReactMarkdown
-      remarkPlugins={REMARK_PLUGINS}
-      rehypePlugins={REHYPE_PLUGINS}
-      components={MARKDOWN_COMPONENTS}
-    >
-      {normalizeMathDelimiters(content)}
-    </ReactMarkdown>
+    // The wrapper is the @container root the table/stacking rules measure
+    // against, so markdown adapts to the card's width (2-column layout,
+    // mobile), not the viewport's
+    <div className={styles.markdownBody}>
+      <ReactMarkdown
+        remarkPlugins={REMARK_PLUGINS}
+        rehypePlugins={REHYPE_PLUGINS}
+        components={MARKDOWN_COMPONENTS}
+      >
+        {normalizeMathDelimiters(content)}
+      </ReactMarkdown>
+    </div>
   );
 });
 

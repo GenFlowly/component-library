@@ -68,6 +68,126 @@
     font-style: italic;
     margin: 1.2rem 0;
   }
+
+  table {
+    // Narrow tables keep their natural width; wide ones cap at the card and
+    // wrap inside cells instead of forcing the card wider
+    width: max-content;
+    max-width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+
+    th,
+    td {
+      padding: 0.55rem 0.8rem;
+      border: 1px solid $color-border-light;
+      text-align: left;
+      vertical-align: top;
+      overflow-wrap: anywhere;
+    }
+
+    th {
+      background: $color-background-tertiary;
+      font-weight: 600;
+    }
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  // Wide display math scrolls inside its own strip (same convention as code
+  // blocks) instead of overflowing the card
+  :global(.katex-display) {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.25rem 0;
+  }
+}
+
+// The @container root the table rules below measure against: markdown adapts
+// to the CARD's width (half-row column, mobile, sidebar states), never the
+// viewport. Also the wrap-anywhere net for long unbreakable tokens (URLs,
+// hashes) outside <p> — list items, headings, table cells.
+.markdownBody {
+  container-type: inline-size;
+  overflow-wrap: anywhere;
+}
+
+// Safety net only — with wrapping cells and the stacked layout, tables
+// should never need this; it catches content a cell cannot wrap (images,
+// unbreakable tokens) so the failure mode is a scroll contained in the
+// card rather than paint over the neighboring column.
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+}
+
+// --- Stacked tables for narrow containers ----------------------------------
+// Below a column-count-dependent container width, a table restacks: each
+// body row becomes a bordered card and each cell renders as a
+// "header-label | value" pair (the label comes from data-label, stamped by
+// rehypeTableMeta in TextContainerCore). One DOM, two presentations — no
+// horizontal scrolling.
+@mixin table-stacked {
+  width: 100%;
+
+  thead {
+    display: none;
+  }
+
+  tbody {
+    display: block;
+  }
+
+  tr {
+    display: block;
+    border: 1px solid $color-border-light;
+    border-radius: $radius-md;
+    margin-bottom: 0.75rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  td {
+    // display: table makes the ::before label a cell and CSS table fixup
+    // wraps the cell's inline content (text, links, code spans) into a
+    // single anonymous cell beside it — a robust two-column line without
+    // needing an extra wrapper element around the value.
+    display: table;
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid $color-border-light;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  td[data-label]::before {
+    content: attr(data-label);
+    display: table-cell;
+    width: 38%;
+    padding-right: 0.8rem;
+    font-weight: 600;
+    color: $color-text-secondary;
+  }
+}
+
+@container (max-width: 760px) {
+  .article table[data-stack='early'] {
+    @include table-stacked;
+  }
+}
+
+@container (max-width: 500px) {
+  .article table[data-stack='late'] {
+    @include table-stacked;
+  }
 }
 
 // --- Dark-mode syntax highlighting ----------------------------------------
