@@ -166,6 +166,103 @@ export const WithLoadMore: Story = {
   ),
 };
 
+const folderIcon = (
+  <svg
+    viewBox="0 0 16 16"
+    width="14"
+    height="14"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.2"
+    aria-hidden="true"
+  >
+    <path d="M1.5 3.5h4l1.5 2h7.5v7a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-9z" />
+  </svg>
+);
+
+const conv = (id: string, label: string, details: string) => ({
+  id,
+  label,
+  details,
+  onSelect: () => console.log(`select ${id}`),
+});
+
+const projectSubsections = (
+  projectId: string,
+  projectName: string
+): SidebarListGroup[] => [
+  {
+    id: `${projectId}-pinned`,
+    label: 'Pinned',
+    items: [
+      conv(`${projectId}-p1`, `${projectName} pinned conversation 1`, '14:32'),
+      conv(`${projectId}-p2`, `${projectName} pinned conversation 2`, 'Tue'),
+    ],
+  },
+  {
+    id: `${projectId}-recent`,
+    label: 'Recent',
+    items: [
+      conv(`${projectId}-c3`, `${projectName} conversation 3`, '09:10'),
+      conv(`${projectId}-c4`, `${projectName} conversation 4`, 'Mon'),
+    ],
+  },
+];
+
+// The conversation-history layout: a Projects section of collapsible
+// project rows (each with Pinned/Recent subsections), then global
+// Pinned and Recents sections
+export const ProjectsPinnedRecents: Story = {
+  args: {
+    ...Default.args,
+    title: undefined,
+  },
+  render: args => (
+    <SidebarListPanel
+      {...args}
+      groups={[
+        {
+          id: 'projects',
+          label: 'Projects',
+          groups: [
+            {
+              id: 'proj-1',
+              label: 'Project Alpha',
+              collapsible: true,
+              defaultExpanded: true,
+              icon: folderIcon,
+              groups: projectSubsections('proj-1', 'Alpha'),
+            },
+            {
+              id: 'proj-2',
+              label: 'Project Beta with a very long name that truncates',
+              collapsible: true,
+              icon: folderIcon,
+              groups: projectSubsections('proj-2', 'Beta'),
+            },
+          ],
+        },
+        {
+          id: 'pinned',
+          label: 'Pinned',
+          items: [
+            conv('pin-1', 'Pinned conversation 1', 'Yesterday'),
+            conv('pin-2', 'Pinned conversation 2', 'Fri'),
+          ],
+        },
+        {
+          id: 'recents',
+          label: 'Recents',
+          items: [
+            conv('rec-1', 'Conversation 3', '16:20'),
+            conv('rec-2', 'Conversation 4', 'Thu'),
+          ],
+        },
+      ]}
+    />
+  ),
+};
+
 export const Loading: Story = {
   args: {
     ...Default.args,

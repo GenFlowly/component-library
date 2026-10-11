@@ -1,21 +1,22 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import SidebarListPanel, { SidebarListGroup } from './SidebarListPanel';
+import SidebarListPanel, {
+  SidebarListGroup,
+  SidebarListItem,
+} from './SidebarListPanel';
 import '@testing-library/jest-dom';
 
-describe('SidebarListPanel actions', () => {
-  const baseProps = {
-    title: 'History',
-    isLoading: false,
-    hasError: false,
-    errorText: 'error',
-    emptyText: 'empty',
-  };
+const baseProps = {
+  title: 'History',
+  isLoading: false,
+  hasError: false,
+  errorText: 'error',
+  emptyText: 'empty',
+};
 
-  const makeGroups = (
-    item: Partial<SidebarListGroup['items'][number]>
-  ): SidebarListGroup[] => [
+describe('SidebarListPanel actions', () => {
+  const makeGroups = (item: Partial<SidebarListItem>): SidebarListGroup[] => [
     {
       id: 'g1',
       label: 'Today',
@@ -140,5 +141,116 @@ describe('SidebarListPanel actions', () => {
       screen.queryByRole('button', { name: 'Pin' })
     ).not.toBeInTheDocument();
     expect(screen.getByText('Item one')).toBeInTheDocument();
+  });
+});
+
+describe('SidebarListPanel nested groups', () => {
+  const item = (id: string, label: string): SidebarListItem => ({
+    id,
+    label,
+    onSelect: jest.fn(),
+  });
+
+  const projectGroups = (
+    overrides: Partial<SidebarListGroup> = {}
+  ): SidebarListGroup[] => [
+    {
+      id: 'projects',
+      label: 'Projects',
+      groups: [
+        {
+          id: 'p1',
+          label: 'Project One',
+          collapsible: true,
+          icon: <span data-testid="folder-icon">f</span>,
+          testId: 'project-row',
+          groups: [
+            {
+              id: 'p1-pinned',
+              label: 'Pinned',
+              items: [item('a', 'Pinned conv')],
+            },
+            {
+              id: 'p1-recent',
+              label: 'Recent',
+              items: [item('b', 'Recent conv')],
+            },
+          ],
+          ...overrides,
+        },
+      ],
+    },
+    { id: 'pinned', label: 'Pinned', items: [item('c', 'Global pinned conv')] },
+  ];
+
+  test('renders nested subsections and items when expanded by default', () => {
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        groups={projectGroups({ defaultExpanded: true })}
+      />
+    );
+
+    expect(screen.getByText('Projects')).toBeInTheDocument();
+    expect(screen.getByText('Project One')).toBeInTheDocument();
+    expect(screen.getByText('Pinned conv')).toBeInTheDocument();
+    expect(screen.getByText('Recent conv')).toBeInTheDocument();
+    expect(screen.getByText('Global pinned conv')).toBeInTheDocument();
+    expect(screen.getByTestId('project-row')).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+  });
+
+  test('collapsible group starts collapsed and toggles on click', async () => {
+    const onToggle = jest.fn();
+    render(
+      <SidebarListPanel {...baseProps} groups={projectGroups({ onToggle })} />
+    );
+
+    const row = screen.getByTestId('project-row');
+    expect(row).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByTestId('folder-icon')).toBeInTheDocument();
+    expect(screen.queryByText('Pinned conv')).not.toBeInTheDocument();
+
+    await userEvent.click(row);
+    expect(row).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Pinned conv')).toBeInTheDocument();
+    expect(onToggle).toHaveBeenLastCalledWith(true);
+
+    await userEvent.click(row);
+    expect(row).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Pinned conv')).not.toBeInTheDocument();
+    expect(onToggle).toHaveBeenLastCalledWith(false);
+  });
+
+  test('a collapsible row counts as content, not the empty state', () => {
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        groups={[
+          {
+            id: 'projects',
+            label: 'Projects',
+            groups: [{ id: 'p1', label: 'Empty project', collapsible: true }],
+          },
+        ]}
+      />
+    );
+
+    expect(screen.queryByText('empty')).not.toBeInTheDocument();
+    expect(screen.getByText('Empty project')).toBeInTheDocument();
+  });
+
+  test('groups holding only empty item lists still show the empty state', () => {
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        groups={[{ id: 'g1', label: 'Today', items: [] }]}
+      />
+    );
+
+    expect(screen.getByText('empty')).toBeInTheDocument();
+    expect(screen.queryByText('Today')).not.toBeInTheDocument();
   });
 });

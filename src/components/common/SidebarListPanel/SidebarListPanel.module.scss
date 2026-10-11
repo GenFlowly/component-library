@@ -62,6 +62,77 @@
   gap: 1px;
 }
 
+// Collapsible group header (e.g. a project row): styled like an item row,
+// with a rotating chevron and an optional leading icon
+.collapsibleHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.35rem 0.5rem 0.35rem 0.35rem;
+  border: none;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $color-text-secondary;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: $color-background-hover;
+  }
+}
+
+.collapsibleLabel {
+  @include ellipsis;
+  flex: 1;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.groupIcon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: $color-text-muted;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: $color-text-muted;
+  transition: transform $transition-fast;
+}
+
+.chevronExpanded {
+  transform: rotate(90deg);
+}
+
+// Expanded contents of a collapsible group: indented under a tree guide
+.groupChildren {
+  margin-left: 0.55rem;
+  padding-left: 0.35rem;
+  border-left: 1px solid $color-border-light;
+}
+
+// Groups nested inside a section sit as tight as item rows; subsections
+// inside an expanded collapsible keep a little separation
+.group .group {
+  margin-bottom: 1px;
+}
+
+.groupChildren .group {
+  margin-bottom: 0.25rem;
+}
+
 .item {
   display: flex;
   align-items: flex-start;
