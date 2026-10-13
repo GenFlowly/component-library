@@ -220,11 +220,35 @@ const projectRowActions = (projectId: string) => [
   },
 ];
 
+const archiveIcon = (
+  <svg
+    viewBox="0 0 16 16"
+    width="14"
+    height="14"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.2"
+    aria-hidden="true"
+  >
+    <path d="M2 3h12v3H2zM3 6h10v6.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V6zM6.5 8.5h3" />
+  </svg>
+);
+
+// Items carry a visible trailing action so the story demos the shared
+// action column: header folder+, project-row plus, and item archive all
+// share one right offset
 const conv = (id: string, label: string, details: string) => ({
   id,
   label,
   details,
   onSelect: () => console.log(`select ${id}`),
+  actions: [
+    {
+      icon: archiveIcon,
+      label: 'Archive conversation',
+      onClick: () => console.log(`archive ${id}`),
+    },
+  ],
 });
 
 const projectSubsections = (

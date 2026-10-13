@@ -180,18 +180,6 @@
     padding-right: 3.8rem;
   }
 
-  // Row actions line up with the section header's action buttons (same
-  // right offset and 20px hit target), so e.g. a project row's action
-  // forms one visual column with the Projects header's folder+ button
-  .actionsWrap {
-    right: 0.75rem;
-  }
-
-  .actionBtn {
-    width: 20px;
-    height: 20px;
-  }
-
   &:hover .hoverReveal,
   &:focus-within .hoverReveal {
     opacity: 1;
@@ -220,7 +208,7 @@
   display: flex;
   align-items: flex-start;
   width: 100%;
-  padding: 0.35rem 2rem 0.35rem 0.35rem; // Reduced vertical and left padding
+  padding: 0.35rem 2.4rem 0.35rem 0.35rem; // Right padding clears one trailing action button
   border-radius: $radius-sm;
   background: transparent;
   border: none;
@@ -358,27 +346,32 @@
   align-items: center;
 }
 
+// One shared right offset for every trailing action (item rows, collapsible
+// rows, and — via .groupHeader's 0.75rem padding — header actions), so the
+// rightmost button of each row forms a single vertical column: folder+ on
+// the header, plus on a project row, archive on a conversation row.
 .actionsWrap {
   position: absolute;
-  right: 4px;
+  right: 0.75rem;
   display: flex;
   align-items: center;
   gap: 2px;
   z-index: 1;
 }
 
-// The default 2rem right padding on .item only clears one action button;
+// The default 2.4rem right padding on .item only clears one action button;
 // rows with two or more need the label to truncate earlier
 .multiAction .item {
-  padding-right: 3.5rem;
+  padding-right: 3.8rem;
 }
 
+// Same 20px hit target as .groupHeaderBtn, so the column also matches in size
 .actionBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   border: none;
   border-radius: 4px;
