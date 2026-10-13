@@ -173,11 +173,23 @@
   // Clear the overlaid button(s) so the label truncates before sliding
   // under them — same clearance scheme as .item / .multiAction
   &.hasActions .collapsibleHeader {
-    padding-right: 2rem;
+    padding-right: 2.4rem;
   }
 
   &.multiAction .collapsibleHeader {
-    padding-right: 3.5rem;
+    padding-right: 3.8rem;
+  }
+
+  // Row actions line up with the section header's action buttons (same
+  // right offset and 20px hit target), so e.g. a project row's action
+  // forms one visual column with the Projects header's folder+ button
+  .actionsWrap {
+    right: 0.75rem;
+  }
+
+  .actionBtn {
+    width: 20px;
+    height: 20px;
   }
 
   &:hover .hoverReveal,
