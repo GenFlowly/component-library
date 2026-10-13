@@ -242,6 +242,61 @@ describe('SidebarListPanel nested groups', () => {
     expect(screen.getByText('Empty project')).toBeInTheDocument();
   });
 
+  test('static group header renders its action buttons', async () => {
+    const onNew = jest.fn();
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        groups={[
+          {
+            id: 'projects',
+            label: 'Projects',
+            actions: [
+              {
+                icon: <span>+</span>,
+                label: 'New project',
+                onClick: onNew,
+                testId: 'new-project-btn',
+              },
+            ],
+            groups: [{ id: 'p1', label: 'Project One', collapsible: true }],
+          },
+        ]}
+      />
+    );
+
+    const btn = screen.getByTestId('new-project-btn');
+    expect(btn).toHaveAttribute('title', 'New project');
+    expect(btn).toHaveAttribute('aria-label', 'New project');
+    await userEvent.click(btn);
+    expect(onNew).toHaveBeenCalledTimes(1);
+  });
+
+  test('a group with only header actions still counts as content', () => {
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        groups={[
+          {
+            id: 'projects',
+            label: 'Projects',
+            actions: [
+              {
+                icon: <span>+</span>,
+                label: 'New project',
+                onClick: jest.fn(),
+              },
+            ],
+          },
+        ]}
+      />
+    );
+
+    expect(screen.queryByText('empty')).not.toBeInTheDocument();
+    expect(screen.getByText('Projects')).toBeInTheDocument();
+    expect(screen.getByLabelText('New project')).toBeInTheDocument();
+  });
+
   test('groups holding only empty item lists still show the empty state', () => {
     render(
       <SidebarListPanel

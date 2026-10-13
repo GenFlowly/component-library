@@ -48,6 +48,10 @@ export interface SidebarListGroup {
   // Leading node on collapsible headers (e.g. a folder icon for a project)
   icon?: ReactNode;
   onToggle?: (expanded: boolean) => void;
+  // Icon buttons at the right edge of the section header (e.g. "new
+  // project"). Rendered on static headers only — a collapsible header is
+  // itself a button and cannot nest more of them.
+  actions?: SidebarListItemAction[];
   testId?: string;
 }
 
@@ -179,10 +183,27 @@ function GroupSection({ group }: { group: SidebarListGroup }) {
   );
 
   if (!group.collapsible) {
+    const headerActions = group.actions ?? [];
     return (
       <div className={styles.group}>
         <div className={styles.groupHeader} data-testid={group.testId}>
-          {group.label}
+          <span className={styles.groupHeaderLabel}>{group.label}</span>
+          {headerActions.length > 0 && (
+            <span className={styles.groupHeaderActions}>
+              {headerActions.map((action, index) => (
+                <button
+                  key={index}
+                  className={styles.groupHeaderBtn}
+                  onClick={action.onClick}
+                  title={action.label}
+                  aria-label={action.label}
+                  data-testid={action.testId}
+                >
+                  {action.icon}
+                </button>
+              ))}
+            </span>
+          )}
         </div>
         {content}
       </div>
@@ -222,12 +243,15 @@ function GroupSection({ group }: { group: SidebarListGroup }) {
 }
 
 // A group renders something when it has items, is a collapsible row (content
-// in itself, even while collapsed and empty), or nests a group that does
+// in itself, even while collapsed and empty), carries header actions (which
+// must stay reachable even when the group holds nothing yet), or nests a
+// group that does
 function hasContent(groups: SidebarListGroup[]): boolean {
   return groups.some(
     group =>
       (group.items?.length ?? 0) > 0 ||
       group.collapsible === true ||
+      (group.actions?.length ?? 0) > 0 ||
       (group.groups != null && hasContent(group.groups))
   );
 }

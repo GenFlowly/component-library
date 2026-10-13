@@ -180,6 +180,21 @@ const folderIcon = (
   </svg>
 );
 
+const folderPlusIcon = (
+  <svg
+    viewBox="0 0 16 16"
+    width="14"
+    height="14"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.2"
+    aria-hidden="true"
+  >
+    <path d="M1.5 3.5h4l1.5 2h7.5v7a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-9z" />
+    <path d="M8 7.5v4M6 9.5h4" />
+  </svg>
+);
+
 const conv = (id: string, label: string, details: string) => ({
   id,
   label,
@@ -224,6 +239,13 @@ export const ProjectsPinnedRecents: Story = {
         {
           id: 'projects',
           label: 'Projects',
+          actions: [
+            {
+              icon: folderPlusIcon,
+              label: 'New project',
+              onClick: () => console.log('new project'),
+            },
+          ],
           groups: [
             {
               id: 'proj-1',
