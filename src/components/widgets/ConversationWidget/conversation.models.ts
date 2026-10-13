@@ -269,6 +269,14 @@ export interface IConversationContext {
   setVendorSelectionForBlock: (blockId: string, vendors: string[]) => void;
   loadConversation: (id: string) => Promise<void>;
   resetConversation: () => void;
+  /**
+   * Project the NEXT brand-new conversation will be created into (set by the
+   * history sidebar's per-project "new conversation" action; cleared by
+   * resetConversation). Optional: hosts without projects don't model it.
+   */
+  pendingProjectId?: string | null;
+  /** Reset to a fresh conversation that will be born inside [projectId]. */
+  startConversationInProject?: (projectId: string) => void;
 
   /** Active Instruction Management */
   selectedInstructionId: string | null;

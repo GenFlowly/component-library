@@ -224,6 +224,42 @@ describe('SidebarListPanel nested groups', () => {
     expect(onToggle).toHaveBeenLastCalledWith(false);
   });
 
+  test('collapsible row actions render as siblings and do not toggle expansion', async () => {
+    const onNewConversation = jest.fn();
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        groups={projectGroups({
+          actions: [
+            {
+              icon: <span>m</span>,
+              label: 'New conversation',
+              onClick: onNewConversation,
+              revealOnHover: true,
+              testId: 'project-new-conv-btn',
+            },
+          ],
+        })}
+      />
+    );
+
+    const row = screen.getByTestId('project-row');
+    const btn = screen.getByTestId('project-new-conv-btn');
+    expect(btn).toHaveAttribute('title', 'New conversation');
+    expect(btn).toHaveAttribute('aria-label', 'New conversation');
+    expect(btn.className).toContain('hoverReveal');
+
+    await userEvent.click(btn);
+    expect(onNewConversation).toHaveBeenCalledTimes(1);
+    // The action lives beside the header button, not inside it — clicking
+    // it must not expand the row
+    expect(row).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Pinned conv')).not.toBeInTheDocument();
+
+    await userEvent.click(row);
+    expect(row).toHaveAttribute('aria-expanded', 'true');
+  });
+
   test('a collapsible row counts as content, not the empty state', () => {
     render(
       <SidebarListPanel

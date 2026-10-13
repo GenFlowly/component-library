@@ -48,9 +48,11 @@ export interface SidebarListGroup {
   // Leading node on collapsible headers (e.g. a folder icon for a project)
   icon?: ReactNode;
   onToggle?: (expanded: boolean) => void;
-  // Icon buttons at the right edge of the section header (e.g. "new
-  // project"). Rendered on static headers only — a collapsible header is
-  // itself a button and cannot nest more of them.
+  // Icon buttons at the right edge of the group header (e.g. "new project",
+  // "new conversation"). On a static section header they sit inline beside
+  // the label; on a collapsible row they overlay the row's right edge as
+  // sibling buttons (clicking one never toggles expansion), honoring
+  // revealOnHover like item actions.
   actions?: SidebarListItemAction[];
   testId?: string;
 }
@@ -211,6 +213,7 @@ function GroupSection({ group }: { group: SidebarListGroup }) {
   }
 
   const contentId = `sidebar-list-group-${group.id}`;
+  const headerActions = group.actions ?? [];
   const handleToggle = () => {
     const next = !expanded;
     setExpanded(next);
@@ -219,20 +222,40 @@ function GroupSection({ group }: { group: SidebarListGroup }) {
 
   return (
     <div className={styles.group}>
-      <button
-        className={styles.collapsibleHeader}
-        onClick={handleToggle}
-        aria-expanded={expanded}
-        aria-controls={expanded ? contentId : undefined}
-        title={group.label}
-        data-testid={group.testId}
+      <div
+        className={`${styles.collapsibleHeaderRow} ${headerActions.length > 0 ? styles.hasActions : ''} ${headerActions.length > 1 ? styles.multiAction : ''}`}
       >
-        <Chevron expanded={expanded} />
-        {group.icon != null && (
-          <span className={styles.groupIcon}>{group.icon}</span>
+        <button
+          className={styles.collapsibleHeader}
+          onClick={handleToggle}
+          aria-expanded={expanded}
+          aria-controls={expanded ? contentId : undefined}
+          title={group.label}
+          data-testid={group.testId}
+        >
+          <Chevron expanded={expanded} />
+          {group.icon != null && (
+            <span className={styles.groupIcon}>{group.icon}</span>
+          )}
+          <span className={styles.collapsibleLabel}>{group.label}</span>
+        </button>
+        {headerActions.length > 0 && (
+          <div className={styles.actionsWrap}>
+            {headerActions.map((action, index) => (
+              <button
+                key={index}
+                className={`${styles.actionBtn} ${action.revealOnHover ? styles.hoverReveal : ''}`}
+                onClick={action.onClick}
+                title={action.label}
+                aria-label={action.label}
+                data-testid={action.testId}
+              >
+                {action.icon}
+              </button>
+            ))}
+          </div>
         )}
-        <span className={styles.collapsibleLabel}>{group.label}</span>
-      </button>
+      </div>
       {expanded && (
         <div id={contentId} className={styles.groupChildren}>
           {content}

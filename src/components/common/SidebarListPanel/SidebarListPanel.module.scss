@@ -162,6 +162,31 @@
   transform: rotate(90deg);
 }
 
+// Wrapper letting a collapsible header carry trailing icon buttons: the
+// actions overlay the row's right edge (same scheme as .itemRow), so
+// clicking one never toggles expansion
+.collapsibleHeaderRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  // Clear the overlaid button(s) so the label truncates before sliding
+  // under them — same clearance scheme as .item / .multiAction
+  &.hasActions .collapsibleHeader {
+    padding-right: 2rem;
+  }
+
+  &.multiAction .collapsibleHeader {
+    padding-right: 3.5rem;
+  }
+
+  &:hover .hoverReveal,
+  &:focus-within .hoverReveal {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 // Expanded contents of a collapsible group: indented under a tree guide
 .groupChildren {
   margin-left: 0.55rem;

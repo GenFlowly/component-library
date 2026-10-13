@@ -195,6 +195,31 @@ const folderPlusIcon = (
   </svg>
 );
 
+const messagePlusIcon = (
+  <svg
+    viewBox="0 0 16 16"
+    width="14"
+    height="14"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.2"
+    aria-hidden="true"
+  >
+    <path d="M14.5 7.3c0 2.9-2.9 5.2-6.5 5.2-.6 0-1.2-.1-1.7-.2-.9.6-2 1.1-3.3 1.1.5-.6.9-1.3 1-2.1C2.6 10.3 1.5 8.9 1.5 7.3c0-2.9 2.9-5.2 6.5-5.2s6.5 2.3 6.5 5.2z" />
+    <path d="M8 5.3v4M6 7.3h4" />
+  </svg>
+);
+
+// Hover a project row to reveal its "new conversation" action
+const projectRowActions = (projectId: string) => [
+  {
+    icon: messagePlusIcon,
+    label: 'New conversation',
+    onClick: () => console.log(`new conversation in ${projectId}`),
+    revealOnHover: true,
+  },
+];
+
 const conv = (id: string, label: string, details: string) => ({
   id,
   label,
@@ -253,6 +278,7 @@ export const ProjectsPinnedRecents: Story = {
               collapsible: true,
               defaultExpanded: true,
               icon: folderIcon,
+              actions: projectRowActions('proj-1'),
               groups: projectSubsections('proj-1', 'Alpha'),
             },
             {
@@ -260,6 +286,7 @@ export const ProjectsPinnedRecents: Story = {
               label: 'Project Beta with a very long name that truncates',
               collapsible: true,
               icon: folderIcon,
+              actions: projectRowActions('proj-2'),
               groups: projectSubsections('proj-2', 'Beta'),
             },
           ],
