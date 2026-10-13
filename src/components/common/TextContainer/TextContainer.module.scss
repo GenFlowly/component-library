@@ -133,6 +133,10 @@
 // horizontal scrolling.
 @mixin table-stacked {
   width: 100%;
+  // The base rule's border-collapse: collapse would inherit into the
+  // display: table cells below, and a collapsed-borders table box has no
+  // padding (CSS 2.1 §17.6.2) — the cards collapsed to cramped hairlines.
+  border-collapse: separate;
 
   thead {
     display: none;
