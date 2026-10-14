@@ -14,6 +14,8 @@ describe('isImageFile', () => {
       'DSC_0042.nef',
       'A7R.arw',
       'X100.RAF',
+      'SDIM0001.X3F',
+      'P0001.IIQ',
     ]) {
       expect(isImageFile('', name)).toBe(true);
       expect(isImageFile('application/octet-stream', name)).toBe(true);
@@ -25,21 +27,63 @@ describe('isImageFile', () => {
     expect(isImageFile('application/octet-stream', 'archive.zip')).toBe(false);
     expect(isImageFile('application/pdf', 'scan.dng')).toBe(false);
   });
+
+  test('extensions other files also use are not taken for camera RAW', () => {
+    // .raw: audio / disk images, .dcr: Shockwave, .mos: various
+    for (const name of ['capture.raw', 'movie.dcr', 'track.mos']) {
+      expect(isImageFile('', name)).toBe(false);
+      expect(isImageFile('application/octet-stream', name)).toBe(false);
+    }
+  });
 });
 
-test('the picker accepts camera RAW extensions', () => {
+describe('ATTACHMENT_FILE_INPUT_ACCEPT', () => {
   const accept = ATTACHMENT_FILE_INPUT_ACCEPT.split(',');
-  expect(accept).toEqual(
-    expect.arrayContaining([
-      'image/*',
+
+  test('offers camera RAW alongside every image type', () => {
+    expect(accept).toEqual(
+      expect.arrayContaining([
+        'image/*',
+        '.dng',
+        '.cr2',
+        'image/x-canon-cr3',
+        '.nef',
+        '.arw',
+        '.raf',
+        '.orf',
+        '.rw2',
+      ])
+    );
+  });
+
+  test('only lists entries Android maps to image types', () => {
+    // Chrome on Android maps each extension to a MIME type; one it can't
+    // map becomes application/octet-stream and replaces the photo picker
+    // with a generic all-files chooser.
+    const androidImageExtensions = [
+      '.heic',
+      '.heif',
+      '.avif',
+      '.tif',
+      '.tiff',
+      '.bmp',
       '.dng',
       '.cr2',
-      '.cr3',
+      '.crw',
       '.nef',
+      '.nrw',
       '.arw',
       '.raf',
       '.orf',
       '.rw2',
-    ])
-  );
+      '.pef',
+      '.srw',
+      '.erf',
+    ];
+    for (const entry of accept) {
+      expect(
+        entry.startsWith('image/') || androidImageExtensions.includes(entry)
+      ).toBe(true);
+    }
+  });
 });

@@ -739,7 +739,7 @@ describe('Request Widget Component', () => {
           '.heic',
           '.heif',
           '.dng',
-          '.cr3',
+          'image/x-canon-cr3',
           '.nef',
           '.arw',
           '.raf',

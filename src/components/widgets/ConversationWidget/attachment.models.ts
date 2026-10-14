@@ -41,55 +41,70 @@ export const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
 export const MAX_ATTACHMENTS_PER_MESSAGE = 10;
 
 /**
- * Image extensions browsers/OSes often report with a blank (or generic) MIME
- * type: HEIC/HEIF from iPhones on Chrome/Firefox, AVIF, TIFF, BMP, and camera
- * RAW files (DNG incl. phone ProRAW, Canon, Nikon, Sony, Fujifilm, Olympus,
- * Panasonic, Pentax, Samsung, Sigma, Hasselblad, Phase One, Leica, ...), which
- * the backend renders with LibRaw.
+ * Image extensions Android maps to an image/* type: HEIC/HEIF, AVIF, TIFF,
+ * BMP, and the camera RAW formats phones and most cameras write (DNG incl.
+ * phone ProRAW, Canon, Nikon, Sony, Fujifilm, Olympus, Panasonic, Pentax,
+ * Samsung, Epson). Browsers/OSes often report them with a blank or generic
+ * MIME type.
  */
-const IMAGE_FILE_EXTENSIONS = [
+const PICKER_IMAGE_EXTENSIONS = [
   '.heic',
   '.heif',
   '.avif',
   '.tif',
   '.tiff',
   '.bmp',
-  // camera RAW
   '.dng',
   '.cr2',
-  '.cr3',
   '.crw',
   '.nef',
   '.nrw',
   '.arw',
-  '.srf',
-  '.sr2',
   '.raf',
   '.orf',
   '.rw2',
-  '.raw',
-  '.rwl',
   '.pef',
   '.srw',
+  '.erf',
+];
+
+/**
+ * Further camera RAW extensions (Canon CR3, older Sony, Leica, Sigma,
+ * Hasselblad, Phase One, Minolta, Kodak) that are recognised on paste but
+ * kept out of the picker filter: Chrome on Android turns an extension it
+ * can't map to image/* into application/octet-stream and then shows a
+ * generic all-files chooser instead of the photo picker. Ambiguous ones
+ * (.raw, .dcr, .mos — also audio, Shockwave, ... files) are left out.
+ */
+const OTHER_RAW_EXTENSIONS = [
+  '.cr3',
+  '.srf',
+  '.sr2',
+  '.rwl',
   '.x3f',
   '.3fr',
   '.fff',
   '.iiq',
-  '.erf',
   '.mrw',
-  '.mos',
   '.kdc',
-  '.dcr',
+];
+
+const IMAGE_FILE_EXTENSIONS = [
+  ...PICKER_IMAGE_EXTENSIONS,
+  ...OTHER_RAW_EXTENSIONS,
 ];
 
 /**
  * File-picker filter: every image type the browser recognises plus the
- * extensions above. Only a picker hint — no type or size check is applied to
- * attachments; the backend converts/compresses each image for the vendors.
+ * extensions above that Android maps to image types (so the photo picker
+ * stays), and CR3 by MIME type. Only a picker hint — no type or size check is
+ * applied to attachments; the backend converts/compresses each image (the
+ * camera RAW formats it reads with LibRaw) for the vendors.
  */
 export const ATTACHMENT_FILE_INPUT_ACCEPT = [
   'image/*',
-  ...IMAGE_FILE_EXTENSIONS,
+  ...PICKER_IMAGE_EXTENSIONS,
+  'image/x-canon-cr3',
 ].join(',');
 
 /**
