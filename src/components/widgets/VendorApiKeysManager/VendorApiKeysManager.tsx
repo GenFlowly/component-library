@@ -15,6 +15,11 @@ export interface VendorApiKeyRowData {
   label: React.ReactNode;
   /** Whether a valid key is currently stored for the vendor. */
   keySet: boolean;
+  /**
+   * Stored default reasoning effort for this vendor ('' / undefined = vendor
+   * default; else "none"|"low"|"medium"|"high"), used to prefill the select.
+   */
+  savedThinkingLevel?: string;
   /** Stored model selection, used to prefill the model dropdown. */
   savedModel?: string | null;
   /** Stored failover priority (1 = primary), used to prefill the dropdown. */
@@ -48,6 +53,12 @@ export interface VendorApiKeysManagerStrings {
   modelHint: string;
   modelPlaceholder: string;
   modelsLoadingPlaceholder: string;
+  reasoningHint: string;
+  reasoningDefaultOption: string;
+  reasoningNone: string;
+  reasoningLow: string;
+  reasoningMedium: string;
+  reasoningHigh: string;
   priorityHint: string;
   priorityPlaceholder: string;
   saveConfig: string;
@@ -72,6 +83,12 @@ const DEFAULT_STRINGS: VendorApiKeysManagerStrings = {
   modelHint: 'Model',
   modelPlaceholder: 'Select a model…',
   modelsLoadingPlaceholder: 'Loading models…',
+  reasoningHint: 'Reasoning effort',
+  reasoningDefaultOption: 'Vendor default',
+  reasoningNone: 'None (fastest)',
+  reasoningLow: 'Low',
+  reasoningMedium: 'Medium',
+  reasoningHigh: 'High',
   priorityHint: 'Priority',
   priorityPlaceholder: '—',
   saveConfig: 'Save configuration',
@@ -94,13 +111,15 @@ export interface VendorApiKeysManagerProps {
    */
   onDeleteKey?: (vendor: string) => Promise<void | boolean>;
   /**
-   * Persist the model + failover priority for a keyed vendor. Omit to hide
-   * the whole configuration row.
+   * Persist the model + failover priority (+ default reasoning effort; '' =
+   * vendor default) for a keyed vendor. Omit to hide the whole configuration
+   * row.
    */
   onSaveConfig?: (
     vendor: string,
     model: string,
-    priority: number
+    priority: number,
+    thinkingLevel: string
   ) => Promise<void>;
   /** Overrides for the built-in English strings (i18n hook-in point). */
   strings?: Partial<VendorApiKeysManagerStrings>;
@@ -115,6 +134,7 @@ type RowState = {
   messageKind: 'success' | 'error' | null;
   selectedModel: string;
   priority: string;
+  thinkingLevel: string;
   savingConfig: boolean;
 };
 
@@ -125,6 +145,7 @@ const emptyRowState = (): RowState => ({
   messageKind: null,
   selectedModel: '',
   priority: '',
+  thinkingLevel: '',
   savingConfig: false,
 });
 
@@ -167,6 +188,7 @@ export default function VendorApiKeysManager({
           priority:
             current.priority ||
             (row.savedPriority != null ? String(row.savedPriority) : ''),
+          thinkingLevel: current.thinkingLevel || row.savedThinkingLevel || '',
         };
       });
       return next;
@@ -223,6 +245,7 @@ export default function VendorApiKeysManager({
         messageKind: 'success',
         selectedModel: '',
         priority: '',
+        thinkingLevel: '',
       });
     } catch (e) {
       updateRow(vendor, {
@@ -239,7 +262,12 @@ export default function VendorApiKeysManager({
     if (!row.selectedModel || !row.priority) return;
     updateRow(vendor, { savingConfig: true, message: null, messageKind: null });
     try {
-      await onSaveConfig(vendor, row.selectedModel, Number(row.priority));
+      await onSaveConfig(
+        vendor,
+        row.selectedModel,
+        Number(row.priority),
+        row.thinkingLevel
+      );
       updateRow(vendor, {
         savingConfig: false,
         message: strings.configSaved(row.selectedModel, Number(row.priority)),
@@ -267,7 +295,8 @@ export default function VendorApiKeysManager({
         const configDirty =
           state.selectedModel !== (row.savedModel ?? '') ||
           state.priority !==
-            (row.savedPriority != null ? String(row.savedPriority) : '');
+            (row.savedPriority != null ? String(row.savedPriority) : '') ||
+          state.thinkingLevel !== (row.savedThinkingLevel ?? '');
         const models = row.models ?? [];
         const modelOptions = [
           // Keep a stored model visible even if it's missing from the
@@ -353,6 +382,23 @@ export default function VendorApiKeysManager({
                   options={modelOptions}
                   className={styles.modelSelect}
                   data-testid={`${rowId}-model`}
+                />
+                <InputSelectWithHint
+                  hint={strings.reasoningHint}
+                  placeholder={strings.reasoningDefaultOption}
+                  value={state.thinkingLevel}
+                  onChange={value =>
+                    updateRow(row.vendor, { thinkingLevel: value })
+                  }
+                  options={[
+                    { label: strings.reasoningDefaultOption, value: '' },
+                    { label: strings.reasoningNone, value: 'none' },
+                    { label: strings.reasoningLow, value: 'low' },
+                    { label: strings.reasoningMedium, value: 'medium' },
+                    { label: strings.reasoningHigh, value: 'high' },
+                  ]}
+                  className={styles.modelSelect}
+                  data-testid={`${rowId}-thinking`}
                 />
                 <InputSelectWithHint
                   hint={strings.priorityHint}

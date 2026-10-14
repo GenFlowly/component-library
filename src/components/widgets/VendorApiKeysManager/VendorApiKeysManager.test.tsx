@@ -121,11 +121,32 @@ describe('VendorApiKeysManager', () => {
     fireEvent.click(saveConfig);
 
     await waitFor(() => {
-      expect(onSaveConfig).toHaveBeenCalledWith('OPENAI', 'gpt-5', 1);
+      expect(onSaveConfig).toHaveBeenCalledWith('OPENAI', 'gpt-5', 1, '');
     });
     expect(
       await screen.findByTestId('vendor-api-keys-OPENAI-message')
     ).toHaveTextContent('Saved: gpt-5 at priority 1');
+  });
+
+  test('reasoning effort dirties the config and rides the save', async () => {
+    renderAll();
+    const saveConfig = screen.getByTestId('vendor-api-keys-OPENAI-save-config');
+    expect(saveConfig).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId('vendor-api-keys-OPENAI-thinking'), {
+      target: { value: 'low' },
+    });
+    expect(saveConfig).toBeEnabled();
+    fireEvent.click(saveConfig);
+
+    await waitFor(() => {
+      expect(onSaveConfig).toHaveBeenCalledWith(
+        'OPENAI',
+        expect.any(String),
+        expect.any(Number),
+        'low'
+      );
+    });
   });
 
   test('a cancelled delete (resolving false) shows no message', async () => {

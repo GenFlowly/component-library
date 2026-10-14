@@ -103,8 +103,27 @@ describe('AgentMaker', () => {
       outputFormat: 'text',
       vendor: '',
       model: '',
+      thinkingLevel: '',
       inputTemplate: '{{instructionText}}',
     });
+  });
+
+  test('reasoning effort selection rides the submitted values', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    renderMaker({ onSubmit });
+    fireEvent.change(screen.getByTestId('agent-maker-name'), {
+      target: { value: 'Thinker' },
+    });
+    fireEvent.change(screen.getByTestId('agent-maker-instruction'), {
+      target: { value: 'inst-2' },
+    });
+    fireEvent.change(screen.getByTestId('agent-maker-thinking'), {
+      target: { value: 'none' },
+    });
+    fireEvent.click(screen.getByTestId('agent-maker-submit'));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0].thinkingLevel).toBe('none');
   });
 
   test('vendor selection loads models and renders the model select', async () => {
@@ -411,6 +430,35 @@ describe('AgentMaker', () => {
         model: 'gpt-5',
       });
       expect(config.model_override).toBe('gpt-5');
+    });
+
+    test('reasoning effort writes thinking_level and clears back to vendor default', () => {
+      renderNode();
+      fireEvent.change(screen.getByTestId('agent-maker-thinking'), {
+        target: { value: 'low' },
+      });
+      let config = JSON.parse(
+        onConfigChange.mock.calls[onConfigChange.mock.calls.length - 1][0]
+      );
+      expect(config.thinking_level).toBe('low');
+      // Untouched keys survive the edit
+      expect(config.custom_key).toBe('kept');
+
+      // Clearing to vendor default removes the key entirely
+      renderNode({
+        node: {
+          ...generationNode,
+          config: JSON.stringify({ thinking_level: 'high' }),
+        },
+      });
+      const selects = screen.getAllByTestId('agent-maker-thinking');
+      const fresh = selects[selects.length - 1];
+      expect(fresh).toHaveValue('high');
+      fireEvent.change(fresh, { target: { value: '' } });
+      config = JSON.parse(
+        onConfigChange.mock.calls[onConfigChange.mock.calls.length - 1][0]
+      );
+      expect(config.thinking_level).toBeUndefined();
     });
 
     test('a legacy bare model_override stays visible and editable', () => {

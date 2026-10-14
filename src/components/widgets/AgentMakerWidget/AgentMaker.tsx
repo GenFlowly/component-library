@@ -25,9 +25,19 @@ export interface AgentMakerValues {
   vendor: string;
   /** Model for the chosen vendor; ignored when `vendor` is empty. */
   model: string;
+  /**
+   * Reasoning effort ('' = vendor default, or one of {@link THINKING_LEVELS}).
+   * Stored as the node config's `thinking_level`; the graph runtime maps it to
+   * each vendor's native control (OpenAI reasoning_effort, Anthropic adaptive
+   * thinking effort, Gemini thinking budget/level).
+   */
+  thinkingLevel?: string;
   /** User-message template (e.g. "{{instructionText}}"). */
   inputTemplate: string;
 }
+
+/** Normalized reasoning depths the graph runtime accepts for thinking_level. */
+export const THINKING_LEVELS = ['none', 'low', 'medium', 'high'] as const;
 
 export const emptyAgentMakerValues = (): AgentMakerValues => ({
   name: '',
@@ -35,6 +45,7 @@ export const emptyAgentMakerValues = (): AgentMakerValues => ({
   outputFormat: 'text',
   vendor: '',
   model: '',
+  thinkingLevel: '',
   inputTemplate: '',
 });
 
@@ -87,6 +98,12 @@ export interface AgentMakerStrings {
   modelPlaceholder: string;
   modelSelectPlaceholder: string;
   modelsLoadingPlaceholder: string;
+  reasoningHint: string;
+  reasoningDefaultOption: string;
+  reasoningNone: string;
+  reasoningLow: string;
+  reasoningMedium: string;
+  reasoningHigh: string;
   inputTemplateHint: string;
   inputTemplatePlaceholder: string;
   hintsTitle: string;
@@ -149,6 +166,12 @@ const DEFAULT_STRINGS: AgentMakerStrings = {
   modelPlaceholder: 'e.g. gpt-5',
   modelSelectPlaceholder: 'Select a model…',
   modelsLoadingPlaceholder: 'Loading models…',
+  reasoningHint: 'Reasoning effort',
+  reasoningDefaultOption: 'Vendor default',
+  reasoningNone: 'None (fastest)',
+  reasoningLow: 'Low',
+  reasoningMedium: 'Medium',
+  reasoningHigh: 'High',
   inputTemplateHint: 'Input template',
   inputTemplatePlaceholder: 'e.g. {{instructionText}}',
   hintsTitle:
@@ -301,13 +324,20 @@ interface ModelPreferenceFieldsProps {
   disabled?: boolean;
   /** Show the model field even with no vendor (legacy bare model strings). */
   allowBareModel?: boolean;
+  /**
+   * Reasoning effort ('' = vendor default). Pass with its handler to render
+   * the select alongside the vendor/model pair; it is vendor-agnostic — the
+   * runtime maps the normalized level to whichever vendor serves the call.
+   */
+  thinkingLevel?: string;
+  onThinkingLevelChange?: (level: string) => void;
   onVendorChange: (vendor: string) => void;
   onModelChange: (model: string) => void;
   strings: AgentMakerStrings;
   testId: string;
 }
 
-/** The vendor dropdown + model picker pair, identical in both flavors. */
+/** The vendor dropdown + model picker (+ reasoning effort), identical in both flavors. */
 function ModelPreferenceFields({
   vendor,
   model,
@@ -316,6 +346,8 @@ function ModelPreferenceFields({
   hasLoader,
   disabled = false,
   allowBareModel = false,
+  thinkingLevel,
+  onThinkingLevelChange,
   onVendorChange,
   onModelChange,
   strings,
@@ -373,6 +405,23 @@ function ModelPreferenceFields({
             data-testid={`${testId}-model`}
           />
         ))}
+      {onThinkingLevelChange && (
+        <InputSelectWithHint
+          hint={strings.reasoningHint}
+          placeholder={strings.reasoningDefaultOption}
+          value={thinkingLevel ?? ''}
+          onChange={onThinkingLevelChange}
+          options={[
+            { label: strings.reasoningDefaultOption, value: '' },
+            { label: strings.reasoningNone, value: 'none' },
+            { label: strings.reasoningLow, value: 'low' },
+            { label: strings.reasoningMedium, value: 'medium' },
+            { label: strings.reasoningHigh, value: 'high' },
+          ]}
+          className={styles.modelField}
+          data-testid={`${testId}-thinking`}
+        />
+      )}
     </>
   );
 }
@@ -389,6 +438,7 @@ const KNOWN_CONFIG_KEYS = [
   'input_template',
   'model_preference',
   'model_override',
+  'thinking_level',
   'output_key',
 ];
 
@@ -526,6 +576,9 @@ function NodeFlavor({
     });
     onConfigChange?.(JSON.stringify(next));
   };
+
+  const thinkingLevel =
+    typeof parsed.thinking_level === 'string' ? parsed.thinking_level : '';
 
   const instructionId =
     typeof parsed.instruction_id === 'string' ? parsed.instruction_id : '';
@@ -807,6 +860,10 @@ function NodeFlavor({
           vendorModels={vendorModels}
           hasLoader={Boolean(getModelsForVendor)}
           allowBareModel
+          thinkingLevel={thinkingLevel}
+          onThinkingLevelChange={level =>
+            updateConfig({ thinking_level: level || undefined })
+          }
           onVendorChange={vendor => {
             setModelPref({ vendor, model: '' });
             if (vendor && !(vendor in vendorModels)) {
@@ -1187,6 +1244,8 @@ function AgentFlavor({
           vendorModels={vendorModels}
           hasLoader={Boolean(getModelsForVendor)}
           disabled={busy}
+          thinkingLevel={form.thinkingLevel ?? ''}
+          onThinkingLevelChange={level => updateForm({ thinkingLevel: level })}
           onVendorChange={value => {
             updateForm({ vendor: value, model: '' });
             if (value && !(value in vendorModels)) {
