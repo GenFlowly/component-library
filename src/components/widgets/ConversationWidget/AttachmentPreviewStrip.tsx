@@ -1,11 +1,62 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ICONS } from '../../../constants/icons';
+import { Icon } from '../../common/Icon/Icon';
 import { AttachmentRef } from './attachment.models';
 import {
   useConversationAuth,
   useConversationServices,
 } from './ConversationWidgetContext';
 import styles from './AttachmentPreview.module.scss';
+
+interface ThumbImageProps {
+  src: string;
+  alt: string;
+  className: string;
+  onClick?: () => void;
+  'data-testid'?: string;
+}
+
+/**
+ * <img> that swaps to a generic image tile when the browser can't decode the
+ * format (e.g. HEIC outside Safari). Any image type can be attached — the
+ * backend converts it for the model — so a failed preview is not an error.
+ */
+function ThumbImage({
+  src,
+  alt,
+  className,
+  onClick,
+  'data-testid': testId,
+}: ThumbImageProps): React.ReactElement {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => setFailed(false), [src]);
+
+  if (failed) {
+    return (
+      <div
+        className={`${className} ${styles.thumbPlaceholder}`}
+        title={alt || undefined}
+        onClick={onClick}
+        data-testid="attachment-thumbnail-placeholder"
+      >
+        <Icon src={ICONS.IMAGE_ATTACHMENT} alt={alt} size={22} />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      onClick={onClick}
+      onError={() => setFailed(true)}
+      data-testid={testId}
+    />
+  );
+}
 
 /** An image being attached in the editor: uploads to S3 in the background after paste. */
 export interface PendingAttachment {
@@ -39,7 +90,7 @@ export default function AttachmentPreviewStrip({
           className={`${styles.thumbWrapper} ${attachment.status === 'uploading' ? styles.uploading : ''}`}
           data-testid="attachment-thumbnail"
         >
-          <img
+          <ThumbImage
             src={attachment.previewUrl}
             alt={attachment.fileName}
             className={styles.thumb}
@@ -140,7 +191,7 @@ export function ResolvedAttachmentThumbnails({
       data-testid="resolved-attachment-strip"
     >
       {loaded.map(attachment => (
-        <img
+        <ThumbImage
           key={attachment.attachmentId}
           src={urls[attachment.attachmentId]}
           alt=""

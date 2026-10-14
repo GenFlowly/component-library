@@ -21,9 +21,9 @@ import AttachmentPreviewStrip, {
   ResolvedAttachmentThumbnails,
 } from './AttachmentPreviewStrip';
 import {
-  ALLOWED_ATTACHMENT_MEDIA_TYPES,
+  ATTACHMENT_FILE_INPUT_ACCEPT,
   MAX_ATTACHMENTS_PER_MESSAGE,
-  MAX_ATTACHMENT_SIZE_BYTES,
+  isImageFile,
 } from './attachment.models';
 import { useWindowSize } from './useWindowSize';
 
@@ -188,14 +188,9 @@ function Request({
       // Attachments need the host's upload service — without it the paste
       // path is simply off
       if (!uploadAttachment) return;
-      if (!ALLOWED_ATTACHMENT_MEDIA_TYPES.includes(file.type)) {
-        showToast(t('conversation.request.attachmentUnsupportedType'));
-        return;
-      }
-      if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
-        showToast(t('conversation.request.attachmentTooLarge'));
-        return;
-      }
+      // No type or size check: any image goes up as-is (HEIC from iPhones,
+      // multi-MB photos) and the backend converts/compresses it for the
+      // LLM vendors
       if (pendingAttachmentsRef.current.length >= MAX_ATTACHMENTS_PER_MESSAGE) {
         showToast(
           t('conversation.request.attachmentLimitReached', {
@@ -252,9 +247,9 @@ function Request({
     (e: React.ClipboardEvent) => {
       if (!uploadAttachment) return;
       const files = Array.from(e.clipboardData?.items ?? [])
-        .filter(item => item.kind === 'file' && item.type.startsWith('image/'))
+        .filter(item => item.kind === 'file')
         .map(item => item.getAsFile())
-        .filter((f): f is File => f !== null);
+        .filter((f): f is File => f !== null && isImageFile(f.type, f.name));
 
       if (files.length === 0) return;
 
@@ -477,7 +472,7 @@ function Request({
             <input
               ref={attachmentInputRef}
               type="file"
-              accept={ALLOWED_ATTACHMENT_MEDIA_TYPES.join(',')}
+              accept={ATTACHMENT_FILE_INPUT_ACCEPT}
               multiple
               hidden
               onChange={handleAttachmentInputChange}

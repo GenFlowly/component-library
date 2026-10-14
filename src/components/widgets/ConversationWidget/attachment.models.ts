@@ -21,7 +21,10 @@ export interface GetAttachmentUrlResponse {
   url: string;
 }
 
-/** Media types the backend accepts — the intersection all LLM vendors support. */
+/**
+ * @deprecated No longer enforced: the composer accepts any image type, and the
+ * backend converts each image to a format every LLM vendor supports.
+ */
 export const ALLOWED_ATTACHMENT_MEDIA_TYPES = [
   'image/png',
   'image/jpeg',
@@ -29,7 +32,43 @@ export const ALLOWED_ATTACHMENT_MEDIA_TYPES = [
   'image/gif',
 ];
 
-/** 5 MB — matches the backend's per-image limit (Anthropic's, the strictest vendor). */
+/**
+ * @deprecated No longer enforced: there is no upload size limit, and the
+ * backend compresses each image to fit the vendors' per-image limits.
+ */
 export const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
 
 export const MAX_ATTACHMENTS_PER_MESSAGE = 10;
+
+/**
+ * Image extensions some browsers/OSes report with a blank MIME type (HEIC/HEIF
+ * from iPhones on Chrome/Firefox, AVIF, TIFF, BMP on some platforms).
+ */
+const IMAGE_FILE_EXTENSIONS = [
+  '.heic',
+  '.heif',
+  '.avif',
+  '.tif',
+  '.tiff',
+  '.bmp',
+];
+
+/**
+ * File-picker filter: every image type the browser recognises plus the
+ * extensions above. Only a picker hint — no type or size check is applied to
+ * attachments; the backend converts/compresses each image for the vendors.
+ */
+export const ATTACHMENT_FILE_INPUT_ACCEPT = [
+  'image/*',
+  ...IMAGE_FILE_EXTENSIONS,
+].join(',');
+
+/**
+ * Whether a clipboard file is an image: an image/* MIME type, or a blank type
+ * with a known image extension. Tells image pastes apart from other files.
+ */
+export function isImageFile(type: string, fileName: string): boolean {
+  if (type.startsWith('image/')) return true;
+  const name = fileName.toLowerCase();
+  return type === '' && IMAGE_FILE_EXTENSIONS.some(ext => name.endsWith(ext));
+}
