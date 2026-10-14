@@ -92,12 +92,40 @@
       border: 1px solid $color-border-light;
       text-align: left;
       vertical-align: top;
-      overflow-wrap: anywhere;
+      // The floor below counts the padding, whatever the consumer's default
+      box-sizing: border-box;
+      // Whole words count toward the cell's min-content width, so auto
+      // layout never squeezes a short column (dates, labels) below its
+      // longest word next to a long prose column. With anywhere here every
+      // cell's min-content was one glyph, and on phones short columns
+      // rendered a letter or two per line.
+      overflow-wrap: break-word;
+
+      // Runs too long to count whole — code, links and the identifiers /
+      // hashes rehypeTableMeta marks [data-token] — wrap anywhere, so they
+      // never push the table past the card and starve the other columns
+      :is(code, a, [data-token]) {
+        overflow-wrap: anywhere;
+      }
+
+      // ...and a floor keeps a column of nothing but such runs from being
+      // starved the same way. Must be a length: WebKit ignores percentage
+      // min-widths when sizing table columns.
+      &:has(code, a, [data-token]) {
+        min-width: 7rem;
+      }
     }
 
     th {
       background: $color-background-tertiary;
       font-weight: 600;
+    }
+
+    // Seven floors (49rem) overflow the narrowest container a 5+ column
+    // table is still a grid in (just over the 760px 'early' stacking query
+    // below); six fit
+    &:has(th:nth-child(7)) :is(th, td) {
+      min-width: 0;
     }
   }
 
@@ -125,9 +153,10 @@
 }
 
 // Safety net only — with wrapping cells and the stacked layout, tables
-// should never need this; it catches content a cell cannot wrap (images,
-// unbreakable tokens) so the failure mode is a scroll contained in the
-// card rather than paint over the neighboring column.
+// should rarely need this; it catches content a cell cannot wrap (images,
+// long words kept whole that don't fit side by side) so the failure mode is
+// a scroll contained in the card rather than paint over the neighboring
+// column.
 .tableScroll {
   max-width: 100%;
   overflow-x: auto;
@@ -181,6 +210,10 @@
     width: 100%;
     border: none;
     border-bottom: 1px solid $color-border-light;
+    // A card is as wide as the container, so a long token in a value must
+    // wrap anywhere to fit it; the grid-only floor doesn't apply
+    overflow-wrap: anywhere;
+    min-width: 0;
 
     &:last-child {
       border-bottom: none;
@@ -194,6 +227,15 @@
     padding-right: 0.8rem;
     font-weight: 600;
     color: $color-text-secondary;
+  }
+}
+
+// Without container queries (iOS 15, Chrome < 105) 3+ column tables never
+// restack, and as grids on a phone they only fit with the old wrapping
+@supports not (container-type: inline-size) {
+  .article table[data-stack] :is(th, td) {
+    overflow-wrap: anywhere;
+    min-width: 0;
   }
 }
 

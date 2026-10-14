@@ -351,6 +351,179 @@ describe('TextContainer Internals', () => {
       expect(labels).toEqual(['A', 'B', 'C', undefined]);
     });
 
+    test('marks long unbreakable runs in cells as data-token spans', () => {
+      const table = run(
+        makeTable(
+          ['Variable', 'Purpose'],
+          [['NEXT_PUBLIC_SUPABASE_ANON_KEY', 'Anon key for the browser client']]
+        )
+      );
+      const [key, purpose] = bodyCells(table);
+      expect(key.children).toEqual([
+        el('span', [text('NEXT_PUBLIC_SUPABASE_ANON_KEY')], {
+          dataToken: true,
+        }),
+      ]);
+      // Ordinary prose is left as one text node
+      expect(purpose.children).toEqual([
+        text('Anon key for the browser client'),
+      ]);
+    });
+
+    // Token spans hold their text with a soft break after each slash
+    const wbr = () => el('wbr');
+    const token = (...parts: string[]) =>
+      el(
+        'span',
+        parts.flatMap((part, i) => (i ? [wbr(), text(part)] : [text(part)])),
+        { dataToken: true }
+      );
+    const runCell = (cell: any) => {
+      run(
+        el('table', [
+          el('thead', [el('tr', [el('th', [text('Notes')])])]),
+          el('tbody', [el('tr', [cell])]),
+        ])
+      );
+      return cell.children;
+    };
+
+    test('keeps the text around a token and recurses into formatting', () => {
+      expect(
+        runCell(
+          el('td', [
+            text('see java.util.concurrent.ConcurrentHashMap docs '),
+            el('strong', [text('/var/lib/postgresql/data')]),
+            el('code', [text('a_very_long_identifier_in_code')]),
+          ])
+        )
+      ).toEqual([
+        text('see '),
+        token('java.util.concurrent.ConcurrentHashMap'),
+        text(' docs '),
+        el('strong', [token('/', 'var/', 'lib/', 'postgresql/', 'data')]),
+        // Code already wraps anywhere on its own, and ends the run
+        el('code', [text('a_very_long_identifier_in_code')]),
+      ]);
+    });
+
+    test('a run continues across formatting and literal HTML', () => {
+      // The browser lays **PostgreSQL**/**MySQL**… out as one unbroken run
+      expect(
+        runCell(
+          el('td', [
+            el('strong', [text('PostgreSQL')]),
+            text('/'),
+            el('strong', [text('MySQL')]),
+            text('/'),
+            el('strong', [text('SQLite')]),
+            text(' or none'),
+          ])
+        )
+      ).toEqual([
+        el('strong', [token('PostgreSQL')]),
+        token('/'),
+        el('strong', [token('MySQL')]),
+        token('/'),
+        el('strong', [token('SQLite')]),
+        text(' or none'),
+      ]);
+      // Without rehype-raw, <br> renders as text
+      const raw = (value: string) => ({ type: 'raw', value }) as any;
+      expect(
+        runCell(
+          el('td', [
+            text('Mon'),
+            raw('<br>'),
+            text('Tue'),
+            raw('<br>'),
+            text('Wed'),
+            raw('<br>'),
+            text('Thu'),
+          ])
+        )
+      ).toEqual([
+        token('Mon'),
+        token('<br>'),
+        token('Tue'),
+        token('<br>'),
+        token('Wed'),
+        token('<br>'),
+        token('Thu'),
+      ]);
+    });
+
+    test('leaves links, images, whitespace and short runs alone', () => {
+      const cell = el('td', [
+        el('a', [text('https://example.com/a/very/long/path/to/a/page')], {
+          href: 'https://example.com/a/very/long/path/to/a/page',
+        }),
+        text(' left' + ' '.repeat(30) + 'right '),
+        el('img', [], { alt: 'a_very_long_image_alt_text_here' }),
+      ]);
+      const before = JSON.stringify(cell);
+      runCell(cell);
+      expect(JSON.stringify(cell)).toBe(before);
+    });
+
+    test('marks header cells too, and labels stay plain text', () => {
+      const table = run(
+        makeTable(
+          ['Key', 'storage.retention_period_days', 'Notes'],
+          [['a', '30', 'b']]
+        )
+      );
+      const [th] = table.children
+        .find((n: any) => n.tagName === 'thead')
+        .children[0].children.slice(1);
+      expect(th.children).toEqual([token('storage.retention_period_days')]);
+      expect(bodyCells(table)[1].properties.dataLabel).toBe(
+        'storage.retention_period_days'
+      );
+    });
+
+    test('isLongToken: identifiers sooner than words', () => {
+      const { isLongToken } = jest.requireActual('./TextContainerCore');
+      // Identifier-like runs from 16 characters
+      expect(isLongToken('order_created_at_utc')).toBe(true);
+      expect(isLongToken('src/components/App.tsx')).toBe(true);
+      expect(isLongToken('ConcurrentHashMap')).toBe(true);
+      expect(isLongToken('DATABASE_URL')).toBe(false);
+      // Ordinary words stay whole until absurdly long
+      expect(isLongToken('Internationalization')).toBe(false);
+      expect(isLongToken('well-established,')).toBe(false);
+      expect(isLongToken('Auftragsverarbeitungsvertrag')).toBe(true);
+      // Numbers stay whole up to 21 characters
+      expect(isLongToken('$210,352,000,000')).toBe(false);
+      expect(isLongToken('602,214,076,000,000,000,000,000')).toBe(true);
+      expect(isLongToken('')).toBe(false);
+      expect(isLongToken(' '.repeat(30))).toBe(false);
+    });
+
+    test('isLongToken: CJK and Thai sentences break on their own', () => {
+      const { isLongToken } = jest.requireActual('./TextContainerCore');
+      expect(
+        isLongToken('欧盟范围内保护个人数据的法规，自二零一八年五月起生效。')
+      ).toBe(false);
+      expect(isLongToken('個人データの保護に関する欧州連合の規則です。')).toBe(
+        false
+      );
+      expect(isLongToken('ข้อบังคับคุ้มครองข้อมูลส่วนบุคคลของสหภาพยุโรป')).toBe(
+        false
+      );
+      // ...but an identifier written into one still counts
+      expect(
+        isLongToken('在.env文件中设置NEXT_PUBLIC_SUPABASE_ANON_KEY环境变量')
+      ).toBe(true);
+    });
+
+    test('runs before rehype-katex, while inline math is still <code>', () => {
+      const { REHYPE_PLUGINS, rehypeTableMeta: plugin } = jest.requireActual(
+        './TextContainerCore'
+      );
+      expect(REHYPE_PLUGINS[0]).toBe(plugin);
+    });
+
     test('MarkdownTable wraps the table in the scroll safety net', () => {
       render(
         <MarkdownTable data-stack="early">
