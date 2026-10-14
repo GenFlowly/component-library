@@ -538,10 +538,13 @@ describe('Request Widget Component', () => {
 
       const heic = new File(['x'], 'IMG_0001.HEIC', { type: '' });
       pasteFile(heic);
-      expect(
-        await screen.findByTestId('attachment-thumbnail')
-      ).toBeInTheDocument();
+      const raw = new File(['x'], 'DSC_0042.NEF', { type: '' });
+      pasteFile(raw);
+      expect(await screen.findAllByTestId('attachment-thumbnail')).toHaveLength(
+        2
+      );
       expect(mockUploadAttachment).toHaveBeenCalledWith('test-token', heic);
+      expect(mockUploadAttachment).toHaveBeenCalledWith('test-token', raw);
     });
 
     test('remove button discards the attachment before send', async () => {
@@ -731,7 +734,16 @@ describe('Request Widget Component', () => {
         .getAttribute('accept')!
         .split(',');
       expect(accept).toEqual(
-        expect.arrayContaining(['image/*', '.heic', '.heif'])
+        expect.arrayContaining([
+          'image/*',
+          '.heic',
+          '.heif',
+          '.dng',
+          '.cr3',
+          '.nef',
+          '.arw',
+          '.raf',
+        ])
       );
     });
 

@@ -41,8 +41,11 @@ export const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
 export const MAX_ATTACHMENTS_PER_MESSAGE = 10;
 
 /**
- * Image extensions some browsers/OSes report with a blank MIME type (HEIC/HEIF
- * from iPhones on Chrome/Firefox, AVIF, TIFF, BMP on some platforms).
+ * Image extensions browsers/OSes often report with a blank (or generic) MIME
+ * type: HEIC/HEIF from iPhones on Chrome/Firefox, AVIF, TIFF, BMP, and camera
+ * RAW files (DNG incl. phone ProRAW, Canon, Nikon, Sony, Fujifilm, Olympus,
+ * Panasonic, Pentax, Samsung, Sigma, Hasselblad, Phase One, Leica, ...), which
+ * the backend renders with LibRaw.
  */
 const IMAGE_FILE_EXTENSIONS = [
   '.heic',
@@ -51,6 +54,32 @@ const IMAGE_FILE_EXTENSIONS = [
   '.tif',
   '.tiff',
   '.bmp',
+  // camera RAW
+  '.dng',
+  '.cr2',
+  '.cr3',
+  '.crw',
+  '.nef',
+  '.nrw',
+  '.arw',
+  '.srf',
+  '.sr2',
+  '.raf',
+  '.orf',
+  '.rw2',
+  '.raw',
+  '.rwl',
+  '.pef',
+  '.srw',
+  '.x3f',
+  '.3fr',
+  '.fff',
+  '.iiq',
+  '.erf',
+  '.mrw',
+  '.mos',
+  '.kdc',
+  '.dcr',
 ];
 
 /**
@@ -64,11 +93,13 @@ export const ATTACHMENT_FILE_INPUT_ACCEPT = [
 ].join(',');
 
 /**
- * Whether a clipboard file is an image: an image/* MIME type, or a blank type
- * with a known image extension. Tells image pastes apart from other files.
+ * Whether a clipboard file is an image: an image/* MIME type, or a blank or
+ * generic (application/octet-stream) type with a known image extension.
+ * Tells image pastes apart from other files.
  */
 export function isImageFile(type: string, fileName: string): boolean {
   if (type.startsWith('image/')) return true;
+  if (type !== '' && type !== 'application/octet-stream') return false;
   const name = fileName.toLowerCase();
-  return type === '' && IMAGE_FILE_EXTENSIONS.some(ext => name.endsWith(ext));
+  return IMAGE_FILE_EXTENSIONS.some(ext => name.endsWith(ext));
 }
