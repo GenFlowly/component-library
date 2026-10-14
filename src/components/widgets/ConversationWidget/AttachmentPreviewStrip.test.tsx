@@ -142,7 +142,7 @@ describe('ResolvedAttachmentThumbnails', () => {
     const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
 
     render(<ResolvedAttachmentThumbnails attachments={[refs[0]]} />);
-    await waitFor(() => screen.getByTestId('resolved-attachment-thumbnail'));
+    await screen.findByTestId('resolved-attachment-thumbnail');
     fireEvent.click(screen.getByTestId('resolved-attachment-thumbnail'));
 
     expect(openSpy).toHaveBeenCalledWith(
