@@ -84,11 +84,153 @@ const elementChildren = (node: any, tagName: string): any[] =>
 const STACK_EARLY_MIN_COLS = 5;
 const STACK_LATE_MIN_COLS = 3;
 
+// Table cells count whole words toward their column's min width (see the
+// cell rule in TextContainer.module.scss), so a run without spaces that is
+// too long to sit whole on a phone has to be marked to wrap anywhere, like
+// code and links do. Identifier-like runs (_ . / : @ digits, camelCase)
+// qualify sooner than ordinary words, which only do when absurdly long.
+const TOKEN_MIN_CHARS = 16;
+const WORD_TOKEN_MIN_CHARS = 22;
+// Letters (and marks) with inner hyphens/apostrophes, edged by punctuation
+const PLAIN_WORD =
+  /^[^\p{L}\p{N}]*[\p{L}\p{M}]+(?:['’-][\p{L}\p{M}]+)*[^\p{L}\p{N}]*$/u;
+const CAMEL_CASE = /\p{Ll}\p{Lu}/u;
+const HAS_LETTER = /\p{L}/u;
+// Scripts the line breaker already breaks inside (between ideographs or
+// syllables, or at dictionary words): a sentence in them has no spaces but
+// is never one unbreakable run
+const SELF_BREAKING =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]+/u;
+
+export function isLongToken(run: string): boolean {
+  if (/\s/.test(run)) return false;
+  const length = Array.from(run).length;
+  if (length < TOKEN_MIN_CHARS) return false;
+  // Judge only what sits between such scripts, e.g. an identifier written
+  // without spaces inside a Chinese sentence
+  if (SELF_BREAKING.test(run)) {
+    return run.split(SELF_BREAKING).some(isLongToken);
+  }
+  if (length >= WORD_TOKEN_MIN_CHARS) return true;
+  // Numbers ("$210,352,000,000") read worse split than whole, until they
+  // are long enough to overflow
+  if (!HAS_LETTER.test(run)) return false;
+  return !PLAIN_WORD.test(run) || CAMEL_CASE.test(run);
+}
+
+// Code, links and images wrap anywhere on their own, so they end a run.
+// Inline math is a <code> until rehype-katex renders it after this plugin.
+const TOKEN_SKIP_TAGS = new Set(['code', 'a', 'pre', 'kbd', 'samp', 'img']);
+
+// A cell's text leaves in order, with null where a skipped element ends the
+// run. Raw nodes count as text: without rehype-raw, react-markdown renders
+// literal HTML such as "Mon<br>Tue" as text.
+function textLeaves(node: any, out: any[] = []): any[] {
+  for (const child of node.children || []) {
+    if (child.type === 'text' || child.type === 'raw') {
+      out.push(child);
+    } else if (child.type === 'element') {
+      if (TOKEN_SKIP_TAGS.has(child.tagName)) out.push(null);
+      else textLeaves(child, out);
+    }
+  }
+  return out;
+}
+
+function tokenSpan(value: string) {
+  // A soft break after each slash, so a run like Frontend/Backend breaks
+  // between its parts before it breaks inside one
+  const children: any[] = [];
+  (value.match(/[^/]*\/+|[^/]+$/g) || [value]).forEach((part, i) => {
+    if (i) {
+      children.push({
+        type: 'element',
+        tagName: 'wbr',
+        properties: {},
+        children: [],
+      });
+    }
+    children.push({ type: 'text', value: part });
+  });
+  return {
+    type: 'element',
+    tagName: 'span',
+    properties: { dataToken: true },
+    children,
+  };
+}
+
 /**
- * Rehype plugin that decorates GFM tables with the metadata the stacked
- * layout in TextContainer.module.scss needs: data-stack on the <table>
- * (when/if it should restack in narrow containers) and data-label on each
- * <td> (its column header, shown by CSS when the header row is hidden).
+ * Wraps each long run in a cell's text in <span data-token> (see
+ * isLongToken). A run continues across inline formatting, the way the
+ * browser lays it out: when PostgreSQL/MySQL has each name in bold, every
+ * piece of the run is wrapped. Copying the table still yields the text.
+ */
+export function markLongTokens(cell: any) {
+  type Piece = { leaf: number; text: string; space: boolean; token?: boolean };
+  const leaves = textLeaves(cell);
+  // Each leaf split into whitespace and non-whitespace pieces; a skipped
+  // element counts as whitespace
+  const leafPieces: Piece[][] = leaves.map((leaf, i) =>
+    leaf
+      ? leaf.value
+          .split(/(\s+)/)
+          .filter(Boolean)
+          .map((text: string) => ({ leaf: i, text, space: /^\s/.test(text) }))
+      : [{ leaf: -1, text: '', space: true }]
+  );
+  const pieces = leafPieces.flat();
+
+  let marked = false;
+  for (let start = 0; start < pieces.length;) {
+    let end = start;
+    while (end < pieces.length && !pieces[end].space) end++;
+    const run = pieces.slice(start, end);
+    if (run.length && isLongToken(run.map(p => p.text).join(''))) {
+      run.forEach(p => (p.token = true));
+      marked = true;
+    }
+    start = end + 1;
+  }
+  if (!marked) return;
+
+  const replacements = new Map<any, any[]>();
+  leaves.forEach((leaf, i) => {
+    const own = leafPieces[i];
+    if (!leaf || !own.some(p => p.token)) return;
+    const out: any[] = [];
+    let plain = '';
+    for (const piece of own) {
+      if (!piece.token) {
+        plain += piece.text;
+        continue;
+      }
+      if (plain) out.push({ type: 'text', value: plain });
+      plain = '';
+      out.push(tokenSpan(piece.text));
+    }
+    if (plain) out.push({ type: 'text', value: plain });
+    replacements.set(leaf, out);
+  });
+
+  const replace = (node: any) => {
+    node.children = node.children.flatMap((child: any) => {
+      if (replacements.has(child)) return replacements.get(child);
+      if (child.type === 'element' && !TOKEN_SKIP_TAGS.has(child.tagName)) {
+        replace(child);
+      }
+      return [child];
+    });
+  };
+  replace(cell);
+}
+
+/**
+ * Rehype plugin that decorates GFM tables with the metadata the layout in
+ * TextContainer.module.scss needs: data-stack on the <table> (when/if it
+ * should restack in narrow containers), data-label on each <td> (its column
+ * header, shown by CSS when the header row is hidden), and data-token spans
+ * around long unbreakable runs in cells.
  * Pure decoration — the DOM stays a semantic table in both presentations.
  */
 export function rehypeTableMeta() {
@@ -107,6 +249,17 @@ export function decorateTable(table: any) {
   const labels = elementChildren(headerRow, 'th').map(th =>
     extractText(th.children || []).trim()
   );
+
+  for (const section of [thead, ...elementChildren(table, 'tbody')]) {
+    for (const row of elementChildren(section, 'tr')) {
+      for (const cell of row.children || []) {
+        if (isElement(cell, 'th') || isElement(cell, 'td')) {
+          markLongTokens(cell);
+        }
+      }
+    }
+  }
+
   if (labels.length < STACK_LATE_MIN_COLS) return;
 
   table.properties = {
@@ -127,9 +280,10 @@ export function decorateTable(table: any) {
 /**
  * Tables never scroll by design — cells wrap, and in narrow containers the
  * container queries in TextContainer.module.scss restack rows into cards.
- * The wrapper is a safety net for pathological content a cell can't wrap
- * (an image, an unbreakable token): it contains the overflow as a local
- * scroll instead of letting the table paint over the neighboring column.
+ * The wrapper is a safety net for content a cell can't wrap (an image, or
+ * long words kept whole that don't fit side by side on a narrow phone): it
+ * contains the overflow as a local scroll instead of letting the table
+ * paint over the neighboring column.
  */
 export const MarkdownTable = ({ node, children, ...props }: any) => (
   <div className={styles.tableScroll}>
@@ -148,7 +302,7 @@ export const REMARK_PLUGINS: Options['remarkPlugins'] = [
   remarkGfm,
   [remarkMath, { singleDollarTextMath: false }],
 ];
-const REHYPE_PLUGINS = [rehypeTableMeta, rehypeKatex, rehypeHighlight];
+export const REHYPE_PLUGINS = [rehypeTableMeta, rehypeKatex, rehypeHighlight];
 const MARKDOWN_COMPONENTS = {
   pre: PreBlock,
   a: MarkdownLink,
