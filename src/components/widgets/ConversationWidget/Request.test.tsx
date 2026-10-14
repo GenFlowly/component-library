@@ -501,29 +501,47 @@ describe('Request Widget Component', () => {
       );
     });
 
-    test('rejects unsupported media types with a toast', () => {
-      render(<Request blockId="block-1" />);
-      pasteImage(
-        screen.getByTestId('request-widget-container'),
-        makeImageFile('image/tiff')
-      );
+    test('uploads any image type and size without a toast', async () => {
+      mockUploadAttachment.mockResolvedValue({
+        attachmentId: 'att-1',
+        s3Key: 'k',
+        mediaType: 'image/heic',
+      });
 
-      expect(mockShowToast).toHaveBeenCalled();
+      render(<Request blockId="block-1" />);
+      const heic = makeImageFile('image/heic', 40 * 1024 * 1024);
+      pasteImage(screen.getByTestId('request-widget-container'), heic);
+
       expect(
-        screen.queryByTestId('attachment-thumbnail')
-      ).not.toBeInTheDocument();
-      expect(mockUploadAttachment).not.toHaveBeenCalled();
+        await screen.findByTestId('attachment-thumbnail')
+      ).toBeInTheDocument();
+      expect(mockUploadAttachment).toHaveBeenCalledWith('test-token', heic);
+      expect(mockShowToast).not.toHaveBeenCalled();
     });
 
-    test('rejects oversized images with a toast', () => {
-      render(<Request blockId="block-1" />);
-      pasteImage(
-        screen.getByTestId('request-widget-container'),
-        makeImageFile('image/png', 6 * 1024 * 1024)
-      );
+    test('pastes blank-type files only when the name is an image', async () => {
+      mockUploadAttachment.mockResolvedValue({
+        attachmentId: 'att-1',
+        s3Key: 'k',
+        mediaType: 'application/octet-stream',
+      });
+      const pasteFile = (file: File) =>
+        fireEvent.paste(screen.getByTestId('request-widget-container'), {
+          clipboardData: {
+            items: [{ kind: 'file', type: '', getAsFile: () => file }],
+          },
+        });
 
-      expect(mockShowToast).toHaveBeenCalled();
+      render(<Request blockId="block-1" />);
+      pasteFile(new File(['x'], 'notes.pdf', { type: '' }));
       expect(mockUploadAttachment).not.toHaveBeenCalled();
+
+      const heic = new File(['x'], 'IMG_0001.HEIC', { type: '' });
+      pasteFile(heic);
+      expect(
+        await screen.findByTestId('attachment-thumbnail')
+      ).toBeInTheDocument();
+      expect(mockUploadAttachment).toHaveBeenCalledWith('test-token', heic);
     });
 
     test('remove button discards the attachment before send', async () => {
@@ -679,19 +697,64 @@ describe('Request Widget Component', () => {
       );
     });
 
-    test('rejects unsupported file types with a toast', () => {
+    test('selecting more photos than the limit uploads only up to it', async () => {
+      mockUploadAttachment.mockResolvedValue({
+        attachmentId: 'att-1',
+        s3Key: 'k',
+        mediaType: 'application/octet-stream',
+      });
+
       render(<Request blockId="block-1" />);
       setViewportWidth(500);
 
-      const input = screen.getByTestId(
-        'attachment-file-input'
-      ) as HTMLInputElement;
-      fireEvent.change(input, {
-        target: { files: [makeImageFile('image/tiff')] },
+      const photos = Array.from(
+        { length: 12 },
+        (_, i) => new File(['x'], `IMG_${i}.HEIC`, { type: '' })
+      );
+      fireEvent.change(screen.getByTestId('attachment-file-input'), {
+        target: { files: photos },
       });
 
-      expect(mockShowToast).toHaveBeenCalled();
-      expect(mockUploadAttachment).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(screen.getAllByTestId('attachment-thumbnail')).toHaveLength(10);
+      });
+      expect(mockUploadAttachment).toHaveBeenCalledTimes(10);
+      expect(mockShowToast).toHaveBeenCalledTimes(1);
+    });
+
+    test('picker accepts every image type, including HEIC', () => {
+      render(<Request blockId="block-1" />);
+      setViewportWidth(500);
+
+      const accept = screen
+        .getByTestId('attachment-file-input')
+        .getAttribute('accept')!
+        .split(',');
+      expect(accept).toEqual(
+        expect.arrayContaining(['image/*', '.heic', '.heif'])
+      );
+    });
+
+    test('uploads a picked file the browser reports with a blank type', async () => {
+      mockUploadAttachment.mockResolvedValue({
+        attachmentId: 'att-9',
+        s3Key: 'k',
+        mediaType: 'application/octet-stream',
+      });
+
+      render(<Request blockId="block-1" />);
+      setViewportWidth(500);
+
+      const photo = makeImageFile('', 12 * 1024 * 1024);
+      fireEvent.change(screen.getByTestId('attachment-file-input'), {
+        target: { files: [photo] },
+      });
+
+      expect(
+        await screen.findByTestId('attachment-thumbnail')
+      ).toBeInTheDocument();
+      expect(mockUploadAttachment).toHaveBeenCalledWith('test-token', photo);
+      expect(mockShowToast).not.toHaveBeenCalled();
     });
   });
 });

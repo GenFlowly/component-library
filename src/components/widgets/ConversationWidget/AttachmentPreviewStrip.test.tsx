@@ -71,6 +71,20 @@ describe('AttachmentPreviewStrip', () => {
     fireEvent.click(screen.getAllByTestId('attachment-remove-button')[0]);
     expect(onRemove).toHaveBeenCalledWith('l1');
   });
+
+  test('shows a placeholder tile when the browser cannot preview the image', () => {
+    render(
+      <AttachmentPreviewStrip attachments={attachments} onRemove={jest.fn()} />
+    );
+    fireEvent.error(screen.getByAltText('a.png'));
+
+    expect(screen.queryByAltText('a.png')).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('attachment-thumbnail-placeholder')
+    ).toHaveAttribute('title', 'a.png');
+    // The attachment itself stays (and stays removable)
+    expect(screen.getAllByTestId('attachment-thumbnail')).toHaveLength(2);
+  });
 });
 
 describe('ResolvedAttachmentThumbnails', () => {
@@ -145,6 +159,25 @@ describe('ResolvedAttachmentThumbnails', () => {
     await screen.findByTestId('resolved-attachment-thumbnail');
     fireEvent.click(screen.getByTestId('resolved-attachment-thumbnail'));
 
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://s3/view/att-1',
+      '_blank',
+      'noopener'
+    );
+    openSpy.mockRestore();
+  });
+
+  test('unpreviewable images fall back to a placeholder that still opens', async () => {
+    mockGetAttachmentViewUrl.mockResolvedValue('https://s3/view/att-1');
+    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+
+    render(<ResolvedAttachmentThumbnails attachments={[refs[0]]} />);
+    fireEvent.error(await screen.findByTestId('resolved-attachment-thumbnail'));
+    fireEvent.click(screen.getByTestId('attachment-thumbnail-placeholder'));
+
+    expect(
+      screen.queryByTestId('resolved-attachment-thumbnail')
+    ).not.toBeInTheDocument();
     expect(openSpy).toHaveBeenCalledWith(
       'https://s3/view/att-1',
       '_blank',

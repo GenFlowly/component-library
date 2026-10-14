@@ -21,9 +21,9 @@ import AttachmentPreviewStrip, {
   ResolvedAttachmentThumbnails,
 } from './AttachmentPreviewStrip';
 import {
-  ALLOWED_ATTACHMENT_MEDIA_TYPES,
+  ATTACHMENT_FILE_INPUT_ACCEPT,
   MAX_ATTACHMENTS_PER_MESSAGE,
-  MAX_ATTACHMENT_SIZE_BYTES,
+  isImageFile,
 } from './attachment.models';
 import { useWindowSize } from './useWindowSize';
 
@@ -188,14 +188,9 @@ function Request({
       // Attachments need the host's upload service — without it the paste
       // path is simply off
       if (!uploadAttachment) return;
-      if (!ALLOWED_ATTACHMENT_MEDIA_TYPES.includes(file.type)) {
-        showToast(t('conversation.request.attachmentUnsupportedType'));
-        return;
-      }
-      if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
-        showToast(t('conversation.request.attachmentTooLarge'));
-        return;
-      }
+      // No type or size check: any image goes up as-is (HEIC from iPhones,
+      // multi-MB photos) and the backend converts/compresses it for the
+      // LLM vendors
       if (pendingAttachmentsRef.current.length >= MAX_ATTACHMENTS_PER_MESSAGE) {
         showToast(
           t('conversation.request.attachmentLimitReached', {
@@ -207,15 +202,16 @@ function Request({
 
       const localId = `attachment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const previewUrl = URL.createObjectURL(file);
-      setPendingAttachments(prev => [
-        ...prev,
-        {
-          localId,
-          fileName: file.name || 'pasted-image',
-          previewUrl,
-          status: 'uploading',
-        },
-      ]);
+      const entry: PendingAttachment = {
+        localId,
+        fileName: file.name || 'pasted-image',
+        previewUrl,
+        status: 'uploading',
+      };
+      // Reserve the slot now: several files arrive in one picker/paste event,
+      // before any re-render refreshes the ref, and each must see the others
+      pendingAttachmentsRef.current = [...pendingAttachmentsRef.current, entry];
+      setPendingAttachments(prev => [...prev, entry]);
 
       try {
         const token = await getAccessTokenSilently();
@@ -234,15 +230,33 @@ function Request({
     [getAccessTokenSilently, removeAttachment, showToast, t, uploadAttachment]
   );
 
+  // Several files from one picker/paste event: upload what fits under the
+  // per-message limit and tell the user once about the rest.
+  const addAttachments = React.useCallback(
+    (files: File[]) => {
+      const free =
+        MAX_ATTACHMENTS_PER_MESSAGE - pendingAttachmentsRef.current.length;
+      if (files.length > free) {
+        showToast(
+          t('conversation.request.attachmentLimitReached', {
+            max: MAX_ATTACHMENTS_PER_MESSAGE,
+          })
+        );
+      }
+      files.slice(0, Math.max(0, free)).forEach(uploadPastedImage);
+    },
+    [showToast, t, uploadPastedImage]
+  );
+
   // Mobile file-picker path: same validation/upload pipeline as paste.
   const attachmentInputRef = React.useRef<HTMLInputElement>(null);
   const handleAttachmentInputChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      Array.from(e.target.files ?? []).forEach(uploadPastedImage);
+      addAttachments(Array.from(e.target.files ?? []));
       // Allow re-selecting the same file later
       e.target.value = '';
     },
-    [uploadPastedImage]
+    [addAttachments]
   );
 
   // GitHub-style paste: an image in the clipboard uploads automatically,
@@ -252,17 +266,17 @@ function Request({
     (e: React.ClipboardEvent) => {
       if (!uploadAttachment) return;
       const files = Array.from(e.clipboardData?.items ?? [])
-        .filter(item => item.kind === 'file' && item.type.startsWith('image/'))
+        .filter(item => item.kind === 'file')
         .map(item => item.getAsFile())
-        .filter((f): f is File => f !== null);
+        .filter((f): f is File => f !== null && isImageFile(f.type, f.name));
 
       if (files.length === 0) return;
 
       e.preventDefault();
       e.stopPropagation();
-      files.forEach(uploadPastedImage);
+      addAttachments(files);
     },
-    [uploadPastedImage, uploadAttachment]
+    [addAttachments, uploadAttachment]
   );
 
   // Dependencies moved from TextEditor
@@ -477,7 +491,7 @@ function Request({
             <input
               ref={attachmentInputRef}
               type="file"
-              accept={ALLOWED_ATTACHMENT_MEDIA_TYPES.join(',')}
+              accept={ATTACHMENT_FILE_INPUT_ACCEPT}
               multiple
               hidden
               onChange={handleAttachmentInputChange}
