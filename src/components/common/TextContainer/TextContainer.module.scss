@@ -57,7 +57,10 @@
     border-radius: $radius-md;
     overflow-x: auto;
     font-size: 0.9rem;
-    border: 1px solid $color-border-light;
+    // $color-border, not border-light: in dark, border-light equals both the
+    // pre fill and the mobile response surface, so the boundary never paints
+    // visibly. In light the two tokens are the same value.
+    border: 1px solid $color-border;
     margin-bottom: 1.5rem;
   }
 
@@ -76,6 +79,12 @@
     max-width: 100%;
     border-collapse: collapse;
     font-size: 0.95rem;
+    // The markdown doesn't always sit on the card's $color-background: the
+    // mobile layout strips the card background and shows the response
+    // container's surface, which in dark mode equals $color-border-light —
+    // borders painted that color vanish into it. Carrying the surface with
+    // the table keeps the borders on a background they contrast with.
+    background-color: $color-background;
 
     th,
     td {
@@ -137,6 +146,9 @@
   // display: table cells below, and a collapsed-borders table box has no
   // padding (CSS 2.1 §17.6.2) — the cards collapsed to cramped hairlines.
   border-collapse: separate;
+  // The row cards below carry the surface instead; on the table box it
+  // would also fill the gaps between cards
+  background-color: transparent;
 
   thead {
     display: none;
@@ -151,6 +163,9 @@
     border: 1px solid $color-border-light;
     border-radius: $radius-md;
     margin-bottom: 0.75rem;
+    // Same surface-carrying rule as the base table — see the table rule in
+    // .article; on the mobile dark surface the border color is invisible
+    background-color: $color-background;
 
     &:last-child {
       margin-bottom: 0;
@@ -194,13 +209,25 @@
   }
 }
 
-// --- Dark-mode syntax highlighting ----------------------------------------
-// github.css (imported in TextContainerCore) only ships light token colors,
-// which are unreadable on the dark code-block surface. These are
-// highlight.js's github-dark palette — the standard dark companion of that
-// theme — scoped to the app's [data-theme='dark'] switch. The .hljs
-// background stays transparent so the themed pre background shows through.
+// --- Dark-mode code surfaces ------------------------------------------------
+// In dark, the tertiary surface (#3a3a3c) is the same value as border-light
+// AND the mobile response surface (where the card background is stripped), so
+// tertiary chips/blocks melt into the page on phones. Code surfaces use
+// secondary in dark instead — it reads against both the card and that surface.
 :global([data-theme='dark']) .article {
+  code {
+    background: $color-background-secondary;
+  }
+
+  pre {
+    background: $color-background-secondary;
+  }
+
+  // github.css (imported in TextContainerCore) only ships light token colors,
+  // which are unreadable on the dark code-block surface. These are
+  // highlight.js's github-dark palette — the standard dark companion of that
+  // theme — scoped to the app's [data-theme='dark'] switch. The .hljs
+  // background stays transparent so the themed pre background shows through.
   :global {
     .hljs {
       color: #c9d1d9;
