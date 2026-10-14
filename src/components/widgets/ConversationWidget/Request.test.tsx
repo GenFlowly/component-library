@@ -697,6 +697,31 @@ describe('Request Widget Component', () => {
       );
     });
 
+    test('selecting more photos than the limit uploads only up to it', async () => {
+      mockUploadAttachment.mockResolvedValue({
+        attachmentId: 'att-1',
+        s3Key: 'k',
+        mediaType: 'application/octet-stream',
+      });
+
+      render(<Request blockId="block-1" />);
+      setViewportWidth(500);
+
+      const photos = Array.from(
+        { length: 12 },
+        (_, i) => new File(['x'], `IMG_${i}.HEIC`, { type: '' })
+      );
+      fireEvent.change(screen.getByTestId('attachment-file-input'), {
+        target: { files: photos },
+      });
+
+      await waitFor(() => {
+        expect(screen.getAllByTestId('attachment-thumbnail')).toHaveLength(10);
+      });
+      expect(mockUploadAttachment).toHaveBeenCalledTimes(10);
+      expect(mockShowToast).toHaveBeenCalledTimes(1);
+    });
+
     test('picker accepts every image type, including HEIC', () => {
       render(<Request blockId="block-1" />);
       setViewportWidth(500);

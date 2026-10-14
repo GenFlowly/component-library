@@ -202,15 +202,16 @@ function Request({
 
       const localId = `attachment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const previewUrl = URL.createObjectURL(file);
-      setPendingAttachments(prev => [
-        ...prev,
-        {
-          localId,
-          fileName: file.name || 'pasted-image',
-          previewUrl,
-          status: 'uploading',
-        },
-      ]);
+      const entry: PendingAttachment = {
+        localId,
+        fileName: file.name || 'pasted-image',
+        previewUrl,
+        status: 'uploading',
+      };
+      // Reserve the slot now: several files arrive in one picker/paste event,
+      // before any re-render refreshes the ref, and each must see the others
+      pendingAttachmentsRef.current = [...pendingAttachmentsRef.current, entry];
+      setPendingAttachments(prev => [...prev, entry]);
 
       try {
         const token = await getAccessTokenSilently();
@@ -229,15 +230,33 @@ function Request({
     [getAccessTokenSilently, removeAttachment, showToast, t, uploadAttachment]
   );
 
+  // Several files from one picker/paste event: upload what fits under the
+  // per-message limit and tell the user once about the rest.
+  const addAttachments = React.useCallback(
+    (files: File[]) => {
+      const free =
+        MAX_ATTACHMENTS_PER_MESSAGE - pendingAttachmentsRef.current.length;
+      if (files.length > free) {
+        showToast(
+          t('conversation.request.attachmentLimitReached', {
+            max: MAX_ATTACHMENTS_PER_MESSAGE,
+          })
+        );
+      }
+      files.slice(0, Math.max(0, free)).forEach(uploadPastedImage);
+    },
+    [showToast, t, uploadPastedImage]
+  );
+
   // Mobile file-picker path: same validation/upload pipeline as paste.
   const attachmentInputRef = React.useRef<HTMLInputElement>(null);
   const handleAttachmentInputChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      Array.from(e.target.files ?? []).forEach(uploadPastedImage);
+      addAttachments(Array.from(e.target.files ?? []));
       // Allow re-selecting the same file later
       e.target.value = '';
     },
-    [uploadPastedImage]
+    [addAttachments]
   );
 
   // GitHub-style paste: an image in the clipboard uploads automatically,
@@ -255,9 +274,9 @@ function Request({
 
       e.preventDefault();
       e.stopPropagation();
-      files.forEach(uploadPastedImage);
+      addAttachments(files);
     },
-    [uploadPastedImage, uploadAttachment]
+    [addAttachments, uploadAttachment]
   );
 
   // Dependencies moved from TextEditor

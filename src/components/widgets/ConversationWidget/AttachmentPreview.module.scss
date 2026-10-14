@@ -31,16 +31,6 @@
   opacity: 0.4;
 }
 
-// Generic tile for formats the browser can't preview (e.g. HEIC outside Safari)
-.thumbPlaceholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  background-color: $color-background-secondary;
-  color: $color-text-secondary;
-}
-
 .spinnerOverlay {
   position: absolute;
   inset: 0;
@@ -105,4 +95,14 @@
   border: 1px solid $color-border;
   cursor: pointer;
   display: block;
+}
+
+// Generic tile for formats the browser can't preview (e.g. HEIC outside
+// Safari). Last in the file so its display wins over .thumb/.resolvedThumb.
+.thumbPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $color-background-secondary;
+  color: $color-text-secondary;
 }
