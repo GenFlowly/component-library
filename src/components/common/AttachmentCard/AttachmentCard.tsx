@@ -11,6 +11,8 @@ export interface AttachmentCardProps {
   mediaType?: string;
   /** File size in bytes; rendered human-readable when provided. */
   sizeBytes?: number;
+  /** Page count of a document (e.g. a generated PDF); shown when provided. */
+  pageCount?: number;
   /**
    * Resolves the download URL at click time (e.g. fetches a short-lived
    * presigned URL). A new tab opens synchronously on click and navigates to
@@ -32,7 +34,8 @@ function typeLabel(mediaType?: string, filename?: string): string {
   return ext ? ext.toUpperCase() : 'FILE';
 }
 
-function formatBytes(bytes?: number): string | null {
+/** 15417 -> "15 KB"; null when the size is unknown. */
+export function formatBytes(bytes?: number | null): string | null {
   if (bytes === undefined || bytes === null || bytes < 0) return null;
   if (bytes < 1024) return `${bytes} B`;
   const units = ['KB', 'MB', 'GB'];
@@ -56,6 +59,7 @@ export default function AttachmentCard({
   filename,
   mediaType,
   sizeBytes,
+  pageCount,
   getDownloadUrl,
   href,
   disabled = false,
@@ -104,7 +108,15 @@ export default function AttachmentCard({
   };
 
   const size = formatBytes(sizeBytes);
-  const meta = [typeLabel(mediaType, filename), size]
+  const pages =
+    typeof pageCount === 'number' && pageCount > 0
+      ? t('common.attachmentCard.pages', {
+          count: pageCount,
+          defaultValue: pageCount === 1 ? '{{count}} page' : '{{count}} pages',
+        })
+      : null;
+  // e.g. "PDF · 7 pages · 13 KB"
+  const meta = [typeLabel(mediaType, filename), pages, size]
     .filter(Boolean)
     .join(' · ');
 

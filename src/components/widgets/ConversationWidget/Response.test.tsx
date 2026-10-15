@@ -10,6 +10,7 @@ import '@testing-library/jest-dom';
 let mockVendorKeyStatuses: any[] = [];
 const mockGetLearnedFacts = jest.fn();
 const mockDeleteMemoryFact = jest.fn();
+const mockGetAttachmentViewUrl = jest.fn();
 jest.mock('./ConversationWidgetContext', () => ({
   useConversation: jest.fn(),
   useConversationLayout: jest.fn(),
@@ -21,7 +22,7 @@ jest.mock('./ConversationWidgetContext', () => ({
   useConversationServices: () => ({
     getLearnedFacts: mockGetLearnedFacts,
     deleteMemoryFact: mockDeleteMemoryFact,
-    getAttachmentViewUrl: jest.fn(),
+    getAttachmentViewUrl: mockGetAttachmentViewUrl,
   }),
 }));
 const { useConversationLayout } = require('./ConversationWidgetContext');
@@ -1146,6 +1147,61 @@ describe('Response Widget Component', () => {
       mockSelection = [AIVendor.OPENAI];
       render(<Response blockId="block-1" responseMessages={msg('')} />);
       expect(screen.queryByTestId('stop-reason')).not.toBeInTheDocument();
+    });
+  });
+  describe('generated attachments', () => {
+    const pdfMessage = (generatedAttachments: any[], isLoading = false) => [
+      {
+        messageId: 'm1',
+        text: 'Here is your report.',
+        aiVendor: AIVendor.OPENAI,
+        isLoading,
+        generatedAttachments,
+      },
+    ];
+
+    test('the card shows the page count and size of a generated PDF', () => {
+      mockSelection = [AIVendor.OPENAI];
+      render(
+        <Response
+          blockId="block-1"
+          responseMessages={pdfMessage([
+            {
+              attachmentId: 'art-1',
+              s3Key: '',
+              mediaType: 'application/pdf',
+              filename: 'report.pdf',
+              sizeBytes: 13 * 1024,
+              pageCount: 7,
+            },
+          ])}
+        />
+      );
+      expect(screen.getByText('report.pdf')).toBeInTheDocument();
+      expect(screen.getByTestId('attachment-card-meta')).toHaveTextContent(
+        'PDF · 7 pages · 13 KB'
+      );
+    });
+
+    test('a card without a page count (older records) shows type and size', () => {
+      mockSelection = [AIVendor.OPENAI];
+      render(
+        <Response
+          blockId="block-1"
+          responseMessages={pdfMessage([
+            {
+              attachmentId: 'art-1',
+              s3Key: 'customers/c/attachments/art-1',
+              mediaType: 'application/pdf',
+              filename: 'report.pdf',
+              sizeBytes: 13 * 1024,
+            },
+          ])}
+        />
+      );
+      expect(screen.getByTestId('attachment-card-meta')).toHaveTextContent(
+        /^PDF · 13 KB$/
+      );
     });
   });
 });

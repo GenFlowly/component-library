@@ -29,6 +29,49 @@ describe('AttachmentCard', () => {
     );
   });
 
+  it('shows the page count between the type and the size', () => {
+    render(
+      <AttachmentCard
+        filename="report.pdf"
+        mediaType="application/pdf"
+        sizeBytes={13 * 1024}
+        pageCount={7}
+        href="https://example.com/report.pdf"
+      />
+    );
+    expect(screen.getByTestId('attachment-card-meta')).toHaveTextContent(
+      'PDF · 7 pages · 13 KB'
+    );
+  });
+
+  it('uses the singular for one page and skips an unknown page count', () => {
+    const { rerender } = render(
+      <AttachmentCard
+        filename="memo.pdf"
+        mediaType="application/pdf"
+        sizeBytes={2048}
+        pageCount={1}
+        href="https://example.com/memo.pdf"
+      />
+    );
+    expect(screen.getByTestId('attachment-card-meta')).toHaveTextContent(
+      'PDF · 1 page · 2.0 KB'
+    );
+
+    rerender(
+      <AttachmentCard
+        filename="memo.pdf"
+        mediaType="application/pdf"
+        sizeBytes={2048}
+        pageCount={0}
+        href="https://example.com/memo.pdf"
+      />
+    );
+    expect(screen.getByTestId('attachment-card-meta')).toHaveTextContent(
+      /^PDF · 2\.0 KB$/
+    );
+  });
+
   it('derives the type label from the extension when mediaType is missing', () => {
     render(<AttachmentCard filename="notes.docx" href="https://x.test/f" />);
     expect(screen.getByTestId('attachment-card-meta')).toHaveTextContent(

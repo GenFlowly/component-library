@@ -132,6 +132,12 @@
     }
   },
   "common": {
+    "attachmentCard": {
+      "download": "Download {{filename}}",
+      "error": "Download failed — click to retry",
+      "pages_one": "{{count}} page",
+      "pages_other": "{{count}} pages"
+    },
     "breadcrumbs": {
       "ariaLabel": "Breadcrumbs"
     },

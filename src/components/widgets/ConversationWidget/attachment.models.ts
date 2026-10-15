@@ -1,12 +1,18 @@
 /** Reference to a file in the attachments S3 bucket. Mirrors the backend AttachmentRef. */
 export interface AttachmentRef {
   attachmentId: string;
+  /** Storage key. Not relayed for generated artifacts (the "ga" chunk drops it); never needed by the UI. */
   s3Key: string;
   mediaType: string;
-  /** Display name for downloads. Set for generated artifacts (e.g. PDFs); absent on uploaded images. */
+  /**
+   * Display name for downloads. Set for generated artifacts (e.g. PDFs) and,
+   * on newer records, for uploads (the name the file was uploaded with).
+   */
   filename?: string;
-  /** File size in bytes. Only present on artifacts streamed via the "ga" chunk. */
+  /** File size in bytes, when known (generated artifacts; newer uploads). */
   sizeBytes?: number;
+  /** Page count of a PDF, when known (generated PDFs). Shown on the attachment card. */
+  pageCount?: number;
 }
 
 export interface CreateAttachmentUploadResponse {

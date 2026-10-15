@@ -186,6 +186,7 @@ function GeneratedAttachmentsSection({
           filename={attachment.filename ?? 'attachment'}
           mediaType={attachment.mediaType}
           sizeBytes={attachment.sizeBytes}
+          pageCount={attachment.pageCount}
           getDownloadUrl={async () =>
             getAttachmentViewUrl(
               await getAccessTokenSilently(),
