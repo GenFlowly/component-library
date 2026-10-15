@@ -25,6 +25,7 @@ import {
   MAX_ATTACHMENTS_PER_MESSAGE,
   isImageFile,
 } from './attachment.models';
+import { useAttachmentValidation } from './useAttachmentValidation';
 import { useWindowSize } from './useWindowSize';
 
 interface RequestProps {
@@ -56,6 +57,7 @@ function Request({
   } = useConversationAuth();
   const { uploadAttachment } = useConversationServices();
   const { showToast } = useToast();
+  const validateAttachments = useAttachmentValidation();
   const hasAnyValidApiKey = aiVendorAPIKeyStatusList.some(s => s.isAPIKeyValid);
   const { width } = useWindowSize();
   const isMobile = width <= 768;
@@ -188,7 +190,8 @@ function Request({
       // Attachments need the host's upload service — without it the paste
       // path is simply off
       if (!uploadAttachment) return;
-      // No type or size check: any image goes up as-is (HEIC from iPhones,
+      // No size check, and the format was checked by addAttachments: any
+      // supported image goes up as-is (HEIC from iPhones, camera RAW,
       // multi-MB photos) and the backend converts/compresses it for the
       // LLM vendors
       if (pendingAttachmentsRef.current.length >= MAX_ATTACHMENTS_PER_MESSAGE) {
@@ -230,29 +233,43 @@ function Request({
     [getAccessTokenSilently, removeAttachment, showToast, t, uploadAttachment]
   );
 
-  // Several files from one picker/paste event: upload what fits under the
+  // Picker/paste events whose files are still being format-checked: nothing
+  // is in the strip yet, but Generate must wait for them like for uploads
+  const [validatingCount, setValidatingCount] = React.useState(0);
+
+  // Several files from one picker/paste event: drop (and toast about) the
+  // ones in a format the backend can't use, upload what fits under the
   // per-message limit and tell the user once about the rest.
   const addAttachments = React.useCallback(
-    (files: File[]) => {
+    async (files: File[]) => {
+      setValidatingCount(n => n + 1);
+      let supported: File[];
+      try {
+        supported = await validateAttachments(files);
+      } finally {
+        // Same tick as the uploads below reserve their slots: no Generate
+        // click can land in between
+        setValidatingCount(n => n - 1);
+      }
       const free =
         MAX_ATTACHMENTS_PER_MESSAGE - pendingAttachmentsRef.current.length;
-      if (files.length > free) {
+      if (supported.length > free) {
         showToast(
           t('conversation.request.attachmentLimitReached', {
             max: MAX_ATTACHMENTS_PER_MESSAGE,
           })
         );
       }
-      files.slice(0, Math.max(0, free)).forEach(uploadPastedImage);
+      supported.slice(0, Math.max(0, free)).forEach(uploadPastedImage);
     },
-    [showToast, t, uploadPastedImage]
+    [showToast, t, uploadPastedImage, validateAttachments]
   );
 
   // Mobile file-picker path: same validation/upload pipeline as paste.
   const attachmentInputRef = React.useRef<HTMLInputElement>(null);
   const handleAttachmentInputChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      addAttachments(Array.from(e.target.files ?? []));
+      void addAttachments(Array.from(e.target.files ?? []));
       // Allow re-selecting the same file later
       e.target.value = '';
     },
@@ -261,20 +278,27 @@ function Request({
 
   // GitHub-style paste: an image in the clipboard uploads automatically,
   // no file picker involved. Capture phase so the markdown editor doesn't
-  // swallow the event first.
+  // swallow the event first. Files that aren't images are taken too (and
+  // turned down with a toast) when the paste is files alone, e.g. copied
+  // in Finder/Explorer; next to text they're left to the editor.
   const handlePasteCapture = React.useCallback(
     (e: React.ClipboardEvent) => {
       if (!uploadAttachment) return;
-      const files = Array.from(e.clipboardData?.items ?? [])
+      const items = Array.from(e.clipboardData?.items ?? []);
+      const filesOnly = items.every(item => item.kind === 'file');
+      const files = items
         .filter(item => item.kind === 'file')
         .map(item => item.getAsFile())
-        .filter((f): f is File => f !== null && isImageFile(f.type, f.name));
+        .filter(
+          (f): f is File =>
+            f !== null && (filesOnly || isImageFile(f.type, f.name))
+        );
 
       if (files.length === 0) return;
 
       e.preventDefault();
       e.stopPropagation();
-      addAttachments(files);
+      void addAttachments(files);
     },
     [addAttachments, uploadAttachment]
   );
@@ -366,7 +390,10 @@ function Request({
 
   const handleGenerate = () => {
     if (!hasAnyValidApiKey) return;
-    if (pendingAttachments.some(a => a.status === 'uploading')) {
+    if (
+      validatingCount > 0 ||
+      pendingAttachments.some(a => a.status === 'uploading')
+    ) {
       showToast(t('conversation.request.attachmentsUploading'));
       return;
     }

@@ -177,6 +177,12 @@ export {
   MAX_ATTACHMENTS_PER_MESSAGE,
 } from './components/widgets/ConversationWidget/attachment.models';
 export {
+  SUPPORTED_IMAGE_FORMATS,
+  checkAttachmentFormat,
+} from './components/widgets/ConversationWidget/attachmentFormat';
+export type { AttachmentFormatVerdict } from './components/widgets/ConversationWidget/attachmentFormat';
+export { useAttachmentValidation } from './components/widgets/ConversationWidget/useAttachmentValidation';
+export {
   AIVendor,
   LEGACY_BY_CATALOG_ID,
   storedVendorId,
