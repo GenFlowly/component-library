@@ -13,8 +13,8 @@ export interface AttachmentCardProps {
   sizeBytes?: number;
   /**
    * Resolves the download URL at click time (e.g. fetches a short-lived
-   * presigned URL). The resolved URL is opened in a new tab. Ignored when
-   * `href` is provided.
+   * presigned URL). A new tab opens synchronously on click and navigates to
+   * the resolved URL. Ignored when `href` is provided.
    */
   getDownloadUrl?: () => Promise<string>;
   /** Direct download URL. Takes precedence over `getDownloadUrl`. */
@@ -47,9 +47,10 @@ function formatBytes(bytes?: number): string | null {
 
 /**
  * Download card for a file attached to a message (e.g. a generated PDF).
- * Renders as a button; clicking resolves the URL (spinner while pending) and
- * opens it in a new tab. Resolution failures show an inline error and the
- * card stays clickable for retry.
+ * Renders as a button; clicking opens a new tab right away (inside the click,
+ * so Safari/iOS don't block it as a popup), resolves the URL (spinner while
+ * pending) and points the tab at it. Resolution failures close the tab, show
+ * an inline error, and the card stays clickable for retry.
  */
 export default function AttachmentCard({
   filename,
@@ -69,7 +70,7 @@ export default function AttachmentCard({
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const handleClick = async () => {
+  const handleClick = () => {
     if (loading) return;
     setFailed(false);
     if (href) {
@@ -77,15 +78,29 @@ export default function AttachmentCard({
       return;
     }
     if (!getDownloadUrl) return;
+    // Safari and iOS block window.open() as a popup unless it runs inside
+    // the click itself, and resolving the URL awaits a token and a presign.
+    // So open an empty tab now and point it at the file once the URL
+    // resolves. ('noopener' would make window.open return null, leaving no
+    // tab to navigate; the opener link is cut by hand instead.)
+    const tab = window.open('about:blank', '_blank');
+    if (tab) tab.opener = null;
     setLoading(true);
-    try {
-      openUrl(await getDownloadUrl());
-    } catch (err) {
-      console.error('Failed to resolve attachment download URL:', err);
-      setFailed(true);
-    } finally {
-      setLoading(false);
-    }
+    getDownloadUrl()
+      .then(url => {
+        if (tab && !tab.closed) {
+          tab.location.href = url;
+        } else {
+          // Popup blocked (or the tab was closed meanwhile): best effort
+          openUrl(url);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to resolve attachment download URL:', err);
+        tab?.close();
+        setFailed(true);
+      })
+      .finally(() => setLoading(false));
   };
 
   const size = formatBytes(sizeBytes);

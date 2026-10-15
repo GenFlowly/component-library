@@ -48,7 +48,49 @@ describe('AttachmentCard', () => {
     );
   });
 
-  it('resolves the URL via getDownloadUrl and opens it', async () => {
+  /** A stand-in for the tab window.open returns. */
+  const fakeTab = () => ({
+    opener: {} as unknown,
+    closed: false,
+    location: { href: 'about:blank' },
+    close: jest.fn(),
+  });
+
+  it('opens a blank tab inside the click, then points it at the resolved URL', async () => {
+    const tab = fakeTab();
+    openSpy.mockImplementation(() => tab as unknown as Window);
+    let resolveUrl: (url: string) => void = () => undefined;
+    const getDownloadUrl = jest.fn(
+      () =>
+        new Promise<string>(resolve => {
+          resolveUrl = resolve;
+        })
+    );
+    render(<AttachmentCard filename="a.pdf" getDownloadUrl={getDownloadUrl} />);
+
+    await userEvent.click(screen.getByTestId('attachment-card'));
+    // Opened synchronously — before the URL is known (Safari/iOS popup rule)
+    expect(openSpy).toHaveBeenCalledTimes(1);
+    expect(openSpy).toHaveBeenCalledWith('about:blank', '_blank');
+    expect(tab.opener).toBeNull();
+    expect(tab.location.href).toBe('about:blank');
+    expect(screen.getByTestId('attachment-card-spinner')).toBeInTheDocument();
+
+    resolveUrl('https://signed.example.com/a.pdf');
+    await waitFor(() =>
+      expect(tab.location.href).toBe('https://signed.example.com/a.pdf')
+    );
+    expect(openSpy).toHaveBeenCalledTimes(1);
+    expect(tab.close).not.toHaveBeenCalled();
+    expect(getDownloadUrl).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId('attachment-card-spinner')
+      ).not.toBeInTheDocument()
+    );
+  });
+
+  it('falls back to opening the URL when the blank tab was blocked', async () => {
     const getDownloadUrl = jest
       .fn()
       .mockResolvedValue('https://signed.example.com/a.pdf');
@@ -61,14 +103,20 @@ describe('AttachmentCard', () => {
         'noopener,noreferrer'
       )
     );
-    expect(getDownloadUrl).toHaveBeenCalledTimes(1);
+    expect(openSpy).toHaveBeenNthCalledWith(1, 'about:blank', '_blank');
   });
 
-  it('shows an inline error when URL resolution fails and allows retry', async () => {
+  it('closes the blank tab and shows an inline error when URL resolution fails, and allows retry', async () => {
+    const first = fakeTab();
+    const second = fakeTab();
+    openSpy
+      .mockImplementationOnce(() => first as unknown as Window)
+      .mockImplementationOnce(() => second as unknown as Window);
     const getDownloadUrl = jest
       .fn()
       .mockRejectedValueOnce(new Error('boom'))
       .mockResolvedValueOnce('https://signed.example.com/retry.pdf');
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
     render(<AttachmentCard filename="a.pdf" getDownloadUrl={getDownloadUrl} />);
 
     await userEvent.click(screen.getByTestId('attachment-card'));
@@ -77,15 +125,16 @@ describe('AttachmentCard', () => {
         'Download failed'
       )
     );
-    expect(openSpy).not.toHaveBeenCalled();
+    expect(first.close).toHaveBeenCalledTimes(1);
+    expect(first.location.href).toBe('about:blank');
 
     await userEvent.click(screen.getByTestId('attachment-card'));
     await waitFor(() =>
-      expect(openSpy).toHaveBeenCalledWith(
-        'https://signed.example.com/retry.pdf',
-        '_blank',
-        'noopener,noreferrer'
-      )
+      expect(second.location.href).toBe('https://signed.example.com/retry.pdf')
+    );
+    expect(second.close).not.toHaveBeenCalled();
+    expect(screen.getByTestId('attachment-card-meta')).not.toHaveTextContent(
+      'Download failed'
     );
   });
 
