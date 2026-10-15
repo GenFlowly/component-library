@@ -79,10 +79,85 @@
   }
 }
 
+// Composer chip for a PDF being attached: icon, name, PDF badge and size
+.docChip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 56px; // Same height as the image thumbnails
+  max-width: 240px;
+  padding: 0 1.75rem 0 0.6rem; // Room on the right for the remove button
+  border: 1px solid $color-border;
+  border-radius: 6px;
+  background-color: $color-background-secondary;
+  color: $color-text-primary;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.docIcon {
+  color: $color-primary;
+}
+
+.docDetails {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.docName {
+  font-size: 0.8rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.docMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  color: $color-text-secondary;
+}
+
+.docBadge {
+  padding: 0 0.3rem;
+  border-radius: 3px;
+  background-color: $color-primary;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.4;
+}
+
+.uploading .docDetails,
+.uploading .docIcon {
+  opacity: 0.4;
+}
+
+.docSpinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.docRemove {
+  top: 50%;
+  transform: translateY(-50%);
+  right: 4px;
+}
+
 // Read-only thumbnails on resolved request cards
 .resolvedStrip {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
   margin-top: 0.75rem;
 }

@@ -3,7 +3,9 @@ import type { Meta, StoryObj } from '@storybook/react';
 import ConversationWidget from './ConversationWidget';
 import {
   ConversationWidgetProvider,
+  ConversationWidgetCapabilities,
   ConversationWidgetContextValue,
+  ConversationWidgetServices,
 } from './ConversationWidgetContext';
 import { ConversationBlock, Message } from './conversation.models';
 import { AIVendor } from './vendors';
@@ -35,10 +37,16 @@ type Story = StoryObj<typeof ConversationWidget>;
 function StoryHost({
   initialBlocks,
   initialSelections,
+  services,
+  capabilities,
 }: {
   initialBlocks: ConversationBlock[];
   /** Per-block vendor visibility to start from (blockId -> vendor ids). */
   initialSelections?: Record<string, string[]>;
+  /** Optional host services (e.g. a fake upload for attachments). */
+  services?: ConversationWidgetServices;
+  /** Optional attachment capabilities (e.g. PDF attachments). */
+  capabilities?: ConversationWidgetCapabilities;
 }) {
   const [blocks, setBlocks] = useState<ConversationBlock[]>(initialBlocks);
   const selectionsRef = useRef<Record<string, string[]>>(
@@ -152,9 +160,11 @@ function StoryHost({
         getAccessTokenSilently: async () => 'story-token',
       },
       layout: { isLeftSidebarExpanded: false, isRightSidebarExpanded: false },
+      services,
+      capabilities,
       showToast: message => console.log('[toast]', message),
     };
-  }, [blocks]);
+  }, [blocks, services, capabilities]);
 
   return (
     <div
@@ -177,6 +187,109 @@ export const EmptyDraft: Story = {
       initialBlocks={[
         {
           conversationBlockId: 'block-1',
+          prompt: '',
+          responseMessages: [],
+          isLoading: false,
+          status: 'draft',
+        },
+      ]}
+    />
+  ),
+};
+
+// --- PDFs: attach (picker, paste, drag-and-drop), sent PDFs, generated PDFs
+// with a page count, and the progress line while a PDF is being written.
+
+/** Fake upload: resolves a ref after a short delay, typed like the backend. */
+const fakeUploadAttachment = (_token: string, file: File) =>
+  new Promise<{
+    attachmentId: string;
+    s3Key: string;
+    mediaType: string;
+    filename: string;
+    sizeBytes: number;
+  }>(resolve =>
+    setTimeout(
+      () =>
+        resolve({
+          attachmentId: `story-${file.name}`,
+          s3Key: `customers/story/attachments/story-${file.name}`,
+          mediaType: file.type || 'application/octet-stream',
+          filename: file.name,
+          sizeBytes: file.size,
+        }),
+      900
+    )
+  );
+
+const PDF_SERVICES: ConversationWidgetServices = {
+  uploadAttachment: fakeUploadAttachment,
+  getAttachmentViewUrl: async () => 'https://example.com/file.pdf',
+};
+
+export const WithPdfAttachments: Story = {
+  render: () => (
+    <StoryHost
+      services={PDF_SERVICES}
+      capabilities={{
+        pdfAttachments: true,
+        modelsWithoutPdfInput: ['deepseek-chat'],
+      }}
+      initialBlocks={[
+        {
+          conversationBlockId: 'block-1',
+          prompt: 'Summarise the attached contract and draft a cover letter.',
+          attachments: [
+            {
+              attachmentId: 'doc-1',
+              s3Key: '',
+              mediaType: 'application/pdf',
+              filename: 'service-agreement.pdf',
+              sizeBytes: 482_000,
+            },
+          ],
+          responseMessages: [
+            {
+              aiVendor: AIVendor.CLAUDE,
+              model: 'claude-sonnet-4-6',
+              text: 'The agreement runs for **24 months**; the cover letter is attached.',
+              messageId: 'pdf-1',
+              generatedAttachments: [
+                {
+                  attachmentId: 'art-1',
+                  s3Key: '',
+                  mediaType: 'application/pdf',
+                  filename: 'cover-letter.pdf',
+                  sizeBytes: 13_400,
+                  pageCount: 2,
+                },
+              ],
+              learnedFacts: null,
+            },
+          ],
+          isLoading: false,
+          status: 'resolved',
+          sentAt: Date.now() - 120_000,
+        },
+        {
+          conversationBlockId: 'block-2',
+          prompt: 'Now turn it into a 20-page report.',
+          responseMessages: [
+            {
+              aiVendor: AIVendor.CLAUDE,
+              model: 'claude-sonnet-4-6',
+              text: "I'll write the report as a PDF.",
+              messageId: 'pdf-2',
+              isLoading: true,
+              progress: { tool: 'generate_pdf', chars: 18_342 },
+            },
+          ],
+          isLoading: true,
+          status: 'resolved',
+          sentAt: Date.now() - 20_000,
+        },
+        {
+          conversationBlockId: 'block-3',
           prompt: '',
           responseMessages: [],
           isLoading: false,

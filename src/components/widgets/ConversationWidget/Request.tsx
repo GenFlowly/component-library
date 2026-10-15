@@ -8,6 +8,7 @@ import { Icon } from '../../common/Icon/Icon';
 import {
   useConversation,
   useConversationAuth,
+  useConversationCapabilities,
   useConversationServices,
   useConversationUI,
   useToast,
@@ -22,10 +23,18 @@ import AttachmentPreviewStrip, {
 } from './AttachmentPreviewStrip';
 import {
   ATTACHMENT_FILE_INPUT_ACCEPT,
+  ATTACHMENT_FILE_INPUT_ACCEPT_WITH_PDF,
   MAX_ATTACHMENTS_PER_MESSAGE,
+  MAX_PDFS_PER_MESSAGE,
+  MAX_PDF_SIZE_BYTES,
   isImageFile,
+  isPdfFile,
 } from './attachment.models';
-import { useAttachmentValidation } from './useAttachmentValidation';
+import {
+  ClassifiedAttachment,
+  useAttachmentClassifier,
+} from './useAttachmentValidation';
+import { formatBytes } from '../../common/AttachmentCard/AttachmentCard';
 import { useWindowSize } from './useWindowSize';
 
 interface RequestProps {
@@ -56,8 +65,15 @@ function Request({
     getAccessTokenSilently,
   } = useConversationAuth();
   const { uploadAttachment } = useConversationServices();
+  // PDFs are accepted only where the host enabled them (the backend reads
+  // them for the model); the hint names selected models that can't read
+  // PDFs natively
+  const { pdfAttachments: pdfEnabled = false, modelsWithoutPdfInput = [] } =
+    useConversationCapabilities();
   const { showToast } = useToast();
-  const validateAttachments = useAttachmentValidation();
+  const classifyAttachments = useAttachmentClassifier({
+    allowPdf: pdfEnabled,
+  });
   const hasAnyValidApiKey = aiVendorAPIKeyStatusList.some(s => s.isAPIKeyValid);
   const { width } = useWindowSize();
   const isMobile = width <= 768;
@@ -161,7 +177,8 @@ function Request({
     conversationBlock?.prompt || ''
   );
 
-  // Images pasted into the editor; uploaded to S3 in the background
+  // Files attached in the editor (picker, paste, drag-and-drop); uploaded
+  // to S3 in the background
   const [pendingAttachments, setPendingAttachments] = React.useState<
     PendingAttachment[]
   >([]);
@@ -185,15 +202,15 @@ function Request({
     });
   }, []);
 
-  const uploadPastedImage = React.useCallback(
-    async (file: File) => {
-      // Attachments need the host's upload service — without it the paste
-      // path is simply off
+  const uploadAttachmentFile = React.useCallback(
+    async ({ file, kind }: ClassifiedAttachment) => {
+      // Attachments need the host's upload service — without it attaching
+      // is simply off
       if (!uploadAttachment) return;
-      // No size check, and the format was checked by addAttachments: any
-      // supported image goes up as-is (HEIC from iPhones, camera RAW,
-      // multi-MB photos) and the backend converts/compresses it for the
-      // LLM vendors
+      // Format, PDF size and PDF count were checked by addAttachments;
+      // images have no size check: any supported image goes up as-is (HEIC
+      // from iPhones, camera RAW, multi-MB photos) and the backend
+      // converts/compresses it for the LLM vendors
       if (pendingAttachmentsRef.current.length >= MAX_ATTACHMENTS_PER_MESSAGE) {
         showToast(
           t('conversation.request.attachmentLimitReached', {
@@ -207,9 +224,12 @@ function Request({
       const previewUrl = URL.createObjectURL(file);
       const entry: PendingAttachment = {
         localId,
-        fileName: file.name || 'pasted-image',
+        fileName:
+          file.name || (kind === 'pdf' ? 'document.pdf' : 'pasted-image'),
         previewUrl,
         status: 'uploading',
+        kind,
+        sizeBytes: file.size,
       };
       // Reserve the slot now: several files arrive in one picker/paste event,
       // before any re-render refreshes the ref, and each must see the others
@@ -237,35 +257,80 @@ function Request({
   // is in the strip yet, but Generate must wait for them like for uploads
   const [validatingCount, setValidatingCount] = React.useState(0);
 
-  // Several files from one picker/paste event: drop (and toast about) the
-  // ones in a format the backend can't use, upload what fits under the
+  // Several files from one picker/paste/drop event: drop (and toast about)
+  // the ones in a format the backend can't use, PDFs over the size limit
+  // and PDFs past the per-message PDF limit, upload what fits under the
   // per-message limit and tell the user once about the rest.
   const addAttachments = React.useCallback(
     async (files: File[]) => {
       setValidatingCount(n => n + 1);
-      let supported: File[];
+      let accepted: ClassifiedAttachment[];
       try {
-        supported = await validateAttachments(files);
+        accepted = await classifyAttachments(files);
       } finally {
         // Same tick as the uploads below reserve their slots: no Generate
         // click can land in between
         setValidatingCount(n => n - 1);
       }
+      const name = (file: File) =>
+        file.name || t('conversation.request.pastedFile');
+      const tooLarge: File[] = [];
+      let pdfCount = pendingAttachmentsRef.current.filter(
+        a => a.kind === 'pdf'
+      ).length;
+      let pdfLimitHit = false;
+      const toUpload = accepted.filter(({ file, kind }) => {
+        if (kind !== 'pdf') return true;
+        if (file.size > MAX_PDF_SIZE_BYTES) {
+          tooLarge.push(file);
+          return false;
+        }
+        if (pdfCount >= MAX_PDFS_PER_MESSAGE) {
+          pdfLimitHit = true;
+          return false;
+        }
+        pdfCount += 1;
+        return true;
+      });
+      if (tooLarge.length > 0) {
+        const max = formatBytes(MAX_PDF_SIZE_BYTES);
+        showToast(
+          tooLarge.length === 1
+            ? t('conversation.request.attachmentPdfTooLarge', {
+                name: name(tooLarge[0]),
+                size: formatBytes(tooLarge[0].size),
+                max,
+              })
+            : t('conversation.request.attachmentPdfsTooLarge', {
+                count: tooLarge.length,
+                names: tooLarge.map(name).join(', '),
+                max,
+              })
+        );
+      }
+      if (pdfLimitHit) {
+        showToast(
+          t('conversation.request.attachmentPdfLimitReached', {
+            max: MAX_PDFS_PER_MESSAGE,
+          })
+        );
+      }
       const free =
         MAX_ATTACHMENTS_PER_MESSAGE - pendingAttachmentsRef.current.length;
-      if (supported.length > free) {
+      if (toUpload.length > free) {
         showToast(
           t('conversation.request.attachmentLimitReached', {
             max: MAX_ATTACHMENTS_PER_MESSAGE,
           })
         );
       }
-      supported.slice(0, Math.max(0, free)).forEach(uploadPastedImage);
+      toUpload.slice(0, Math.max(0, free)).forEach(uploadAttachmentFile);
     },
-    [showToast, t, uploadPastedImage, validateAttachments]
+    [classifyAttachments, showToast, t, uploadAttachmentFile]
   );
 
-  // Mobile file-picker path: same validation/upload pipeline as paste.
+  // File-picker path (mobile button, desktop attach button): same
+  // validation/upload pipeline as paste.
   const attachmentInputRef = React.useRef<HTMLInputElement>(null);
   const handleAttachmentInputChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -276,11 +341,11 @@ function Request({
     [addAttachments]
   );
 
-  // GitHub-style paste: an image in the clipboard uploads automatically,
-  // no file picker involved. Capture phase so the markdown editor doesn't
-  // swallow the event first. Files that aren't images are taken too (and
-  // turned down with a toast) when the paste is files alone, e.g. copied
-  // in Finder/Explorer; next to text they're left to the editor.
+  // GitHub-style paste: an image (or, where enabled, a PDF) in the
+  // clipboard uploads automatically, no file picker involved. Capture phase
+  // so the markdown editor doesn't swallow the event first. Other files are
+  // taken too (and turned down with a toast) when the paste is files alone,
+  // e.g. copied in Finder/Explorer; next to text they're left to the editor.
   const handlePasteCapture = React.useCallback(
     (e: React.ClipboardEvent) => {
       if (!uploadAttachment) return;
@@ -291,7 +356,10 @@ function Request({
         .map(item => item.getAsFile())
         .filter(
           (f): f is File =>
-            f !== null && (filesOnly || isImageFile(f.type, f.name))
+            f !== null &&
+            (filesOnly ||
+              isImageFile(f.type, f.name) ||
+              (pdfEnabled && isPdfFile(f.type, f.name)))
         );
 
       if (files.length === 0) return;
@@ -300,8 +368,45 @@ function Request({
       e.stopPropagation();
       void addAttachments(files);
     },
-    [addAttachments, uploadAttachment]
+    [addAttachments, pdfEnabled, uploadAttachment]
   );
+
+  // Drag-and-drop: files dropped anywhere on the composer attach like a
+  // paste. Capture phase so the markdown editor never inserts a dropped
+  // file; drags without files (moving selected text) are left alone. A
+  // depth counter keeps the highlight steady while the drag crosses child
+  // elements.
+  const [isDragActive, setIsDragActive] = React.useState(false);
+  const dragDepthRef = React.useRef(0);
+  const isFileDrag = (e: React.DragEvent) =>
+    !!uploadAttachment &&
+    Array.from(e.dataTransfer?.types ?? []).includes('Files');
+
+  const handleDragEnterCapture = (e: React.DragEvent) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDragActive(true);
+  };
+  const handleDragOverCapture = (e: React.DragEvent) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+  const handleDragLeaveCapture = (e: React.DragEvent) => {
+    if (!isFileDrag(e)) return;
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setIsDragActive(false);
+  };
+  const handleDropCapture = (e: React.DragEvent) => {
+    if (!isFileDrag(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepthRef.current = 0;
+    setIsDragActive(false);
+    const files = Array.from(e.dataTransfer.files ?? []);
+    if (files.length > 0) void addAttachments(files);
+  };
 
   // Dependencies moved from TextEditor
   const storageTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
@@ -415,6 +520,16 @@ function Request({
 
   if (!conversationBlock) return null;
 
+  // The attach buttons name PDFs only where they're accepted
+  const attachLabel = pdfEnabled
+    ? t('conversation.request.attachFiles')
+    : t('conversation.request.addImageAttachment');
+  // Selected models that can't read a PDF natively get its extracted text
+  // only — say so while a PDF is attached
+  const showPdfHint =
+    modelsWithoutPdfInput.length > 0 &&
+    pendingAttachments.some(a => a.kind === 'pdf');
+
   // If we have responses AND loading is finished, this block is "resolved" -> Show static text
   // (Stopping an in-flight generation is done per-vendor from the Response widget.)
   // History blocks carry their author's profile (sender) — a shared
@@ -483,8 +598,28 @@ function Request({
     <div
       className={`${styles.container}${isFollowUpBlock ? ` ${styles.followUp}` : ''}`}
       onPasteCapture={handlePasteCapture}
+      onDragEnterCapture={handleDragEnterCapture}
+      onDragOverCapture={handleDragOverCapture}
+      onDragLeaveCapture={handleDragLeaveCapture}
+      onDropCapture={handleDropCapture}
       data-testid={testId || 'request-widget-container'}
     >
+      {uploadAttachment && (
+        // One hidden picker for the mobile and desktop attach buttons
+        <input
+          ref={attachmentInputRef}
+          type="file"
+          accept={
+            pdfEnabled
+              ? ATTACHMENT_FILE_INPUT_ACCEPT_WITH_PDF
+              : ATTACHMENT_FILE_INPUT_ACCEPT
+          }
+          multiple
+          hidden
+          onChange={handleAttachmentInputChange}
+          data-testid="attachment-file-input"
+        />
+      )}
       <div className={styles.editorWrapper} ref={editorWrapperRef}>
         <TextEditor
           id={blockId}
@@ -510,35 +645,51 @@ function Request({
         )}
 
         {isMobile && uploadAttachment && (
-          // 📱 Image-attachment picker to the LEFT of the generate
-          // button — mobile has no paste path for images, so this is
-          // the only way to attach them there. Desktop stays
-          // paste-only for now.
-          <>
-            <input
-              ref={attachmentInputRef}
-              type="file"
-              accept={ATTACHMENT_FILE_INPUT_ACCEPT}
-              multiple
-              hidden
-              onChange={handleAttachmentInputChange}
-              data-testid="attachment-file-input"
+          // 📱 Attachment picker to the LEFT of the generate button —
+          // mobile has no paste path, so this is the main way to attach
+          // images (and PDFs, where enabled) there
+          <button
+            className={styles.mobileAttachmentButton}
+            onClick={() => attachmentInputRef.current?.click()}
+            aria-label={attachLabel}
+            data-testid="attachment-button"
+          >
+            <Icon
+              src={pdfEnabled ? ICONS.ATTACH : ICONS.IMAGE_ATTACHMENT}
+              size={22}
             />
-            <button
-              className={styles.mobileAttachmentButton}
-              onClick={() => attachmentInputRef.current?.click()}
-              aria-label={t('conversation.request.addImageAttachment')}
-              data-testid="attachment-button"
-            >
-              <Icon src={ICONS.IMAGE_ATTACHMENT} size={22} />
-            </button>
-          </>
+          </button>
         )}
 
         <AttachmentPreviewStrip
           attachments={pendingAttachments}
           onRemove={removeAttachment}
         />
+
+        {showPdfHint && (
+          <div
+            className={styles.attachmentHint}
+            role="note"
+            data-testid="pdf-input-hint"
+          >
+            {t('conversation.request.pdfInputUnsupported', {
+              count: modelsWithoutPdfInput.length,
+              models: modelsWithoutPdfInput.join(', '),
+            })}
+          </div>
+        )}
+
+        {isDragActive && (
+          <div
+            className={styles.dropOverlay}
+            aria-hidden="true"
+            data-testid="attachment-drop-overlay"
+          >
+            {pdfEnabled
+              ? t('conversation.request.dropFiles')
+              : t('conversation.request.dropImages')}
+          </div>
+        )}
       </div>
 
       {!isMobile && (
@@ -546,6 +697,20 @@ function Request({
           className={styles.buttonWrapper}
           data-testid="generate-button-wrapper"
         >
+          {uploadAttachment && (
+            // Desktop attach button (paste and drag-and-drop work too)
+            <Tooltip content={attachLabel}>
+              <button
+                type="button"
+                className={styles.attachButton}
+                onClick={() => attachmentInputRef.current?.click()}
+                aria-label={attachLabel}
+                data-testid="attachment-button-desktop"
+              >
+                <Icon src={ICONS.ATTACH} size={20} />
+              </button>
+            </Tooltip>
+          )}
           <Tooltip
             content={
               !hasAnyValidApiKey ? t('conversation.request.noApiKeysSet') : ''

@@ -228,7 +228,59 @@
   width: 100%;
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0 0 1rem 0;
+}
+
+// Desktop attach button to the LEFT of Generate (paste and drag-and-drop
+// attach too)
+.attachButton {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid $color-border;
+  border-radius: 50%;
+  background-color: $color-background-secondary;
+  color: $color-text-primary;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $color-background-hover;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-border-focus;
+    outline-offset: 2px;
+  }
+}
+
+// "<model> can't read PDFs directly…" under the attachment strip
+.attachmentHint {
+  padding: 0 0 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: $color-text-secondary;
+}
+
+// Highlight while files are dragged over the composer
+.dropOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border: 2px dashed $color-primary;
+  border-radius: $radius-md;
+  background-color: $color-primary-light;
+  color: $color-primary;
+  font-weight: 600;
+  text-align: center;
+  pointer-events: none;
 }
 
 // 📱 Icon-only generate button floating inside the editor's bottom-right

@@ -17,6 +17,7 @@ import totalTokensIcon from '../assets/icons/total-tokens.svg';
 import cacheTokensIcon from '../assets/icons/cache-tokens.svg';
 import brainIcon from '../assets/icons/brain.svg';
 import imageAttachmentIcon from '../assets/icons/image-attachment-icon.svg';
+import attachIcon from '../assets/icons/attach.svg';
 
 export const ICONS = {
   USER_CIRCLE: userCircle,
@@ -35,4 +36,5 @@ export const ICONS = {
   CACHE_TOKENS: cacheTokensIcon,
   BRAIN: brainIcon,
   IMAGE_ATTACHMENT: imageAttachmentIcon,
+  ATTACH: attachIcon,
 };

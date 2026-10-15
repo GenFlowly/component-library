@@ -20,6 +20,12 @@ export interface CreateAttachmentUploadResponse {
   s3Key: string;
   mediaType: string;
   uploadUrl: string;
+  /**
+   * Headers the presigned PUT was signed with (e.g. x-amz-tagging for the
+   * retention tag on uploads that are not linked to a message yet). The
+   * client must send every entry on the PUT, or S3 rejects the signature.
+   */
+  requiredHeaders?: Record<string, string>;
 }
 
 export interface GetAttachmentUrlResponse {
@@ -46,6 +52,23 @@ export const ALLOWED_ATTACHMENT_MEDIA_TYPES = [
 export const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
 
 export const MAX_ATTACHMENTS_PER_MESSAGE = 10;
+
+/** Media type of PDF documents, which the model reads as documents (not images). */
+export const PDF_MEDIA_TYPE = 'application/pdf';
+
+/** Largest PDF the backend accepts as model input (10 MB per PDF). */
+export const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024;
+
+/** Most PDFs one message may carry (they count toward MAX_ATTACHMENTS_PER_MESSAGE too). */
+export const MAX_PDFS_PER_MESSAGE = 5;
+
+/**
+ * Per-media-type size limits checked before uploading. Types not listed
+ * (images) have none: the backend compresses images for the vendors.
+ */
+export const ATTACHMENT_SIZE_LIMITS: Readonly<Record<string, number>> = {
+  [PDF_MEDIA_TYPE]: MAX_PDF_SIZE_BYTES,
+};
 
 /**
  * Image extensions every Android version Chrome supports maps to an image/*
@@ -119,6 +142,42 @@ export const ATTACHMENT_FILE_INPUT_ACCEPT = [
   'image/avif',
   'image/x-canon-cr3',
 ].join(',');
+
+/**
+ * File-picker filter when PDF attachments are enabled: the image filter plus
+ * PDFs. (On Android this trades the photo picker for the system file
+ * chooser, which still offers photos.)
+ */
+export const ATTACHMENT_FILE_INPUT_ACCEPT_WITH_PDF = [
+  ATTACHMENT_FILE_INPUT_ACCEPT,
+  PDF_MEDIA_TYPE,
+  '.pdf',
+].join(',');
+
+/**
+ * Whether a clipboard/dropped file is declared as a PDF: the PDF media type,
+ * or a blank or generic type with a .pdf name. (The bytes decide in the
+ * end; see classifyAttachment.)
+ */
+export function isPdfFile(type: string, fileName: string): boolean {
+  const mediaType = type.split(';')[0].trim().toLowerCase();
+  if (mediaType === PDF_MEDIA_TYPE) return true;
+  if (mediaType !== '' && mediaType !== 'application/octet-stream') {
+    return false;
+  }
+  return fileName.toLowerCase().endsWith('.pdf');
+}
+
+/**
+ * Whether a stored attachment is a PDF document — rendered as a document
+ * card, never as an <img>. Goes by the media type; uploads stored before the
+ * backend kept application/pdf (untyped octet-stream) go by the name.
+ */
+export function isPdfAttachment(
+  ref: Pick<AttachmentRef, 'mediaType' | 'filename'>
+): boolean {
+  return isPdfFile(ref.mediaType ?? '', ref.filename ?? '');
+}
 
 /**
  * Whether a clipboard file is an image: an image/* MIME type, or a blank or

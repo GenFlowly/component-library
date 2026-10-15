@@ -145,6 +145,7 @@ export {
   useConversationAuth,
   useConversationServices,
   useConversationLayout,
+  useConversationCapabilities,
 } from './components/widgets/ConversationWidget/ConversationWidgetContext';
 export type {
   ConversationWidgetContextValue,
@@ -153,6 +154,7 @@ export type {
   ConversationWidgetAuth,
   ConversationWidgetServices,
   ConversationWidgetLayout,
+  ConversationWidgetCapabilities,
   ConversationWidgetVendorKeyStatus,
 } from './components/widgets/ConversationWidget/ConversationWidgetContext';
 export type {
@@ -176,13 +178,27 @@ export {
   ALLOWED_ATTACHMENT_MEDIA_TYPES,
   MAX_ATTACHMENT_SIZE_BYTES,
   MAX_ATTACHMENTS_PER_MESSAGE,
+  PDF_MEDIA_TYPE,
+  MAX_PDF_SIZE_BYTES,
+  MAX_PDFS_PER_MESSAGE,
+  ATTACHMENT_SIZE_LIMITS,
+  isPdfAttachment,
 } from './components/widgets/ConversationWidget/attachment.models';
 export {
   SUPPORTED_IMAGE_FORMATS,
+  SUPPORTED_DOCUMENT_FORMATS,
   checkAttachmentFormat,
+  classifyAttachment,
 } from './components/widgets/ConversationWidget/attachmentFormat';
-export type { AttachmentFormatVerdict } from './components/widgets/ConversationWidget/attachmentFormat';
-export { useAttachmentValidation } from './components/widgets/ConversationWidget/useAttachmentValidation';
+export type {
+  AttachmentFormatVerdict,
+  AttachmentKind,
+} from './components/widgets/ConversationWidget/attachmentFormat';
+export {
+  useAttachmentValidation,
+  useAttachmentClassifier,
+} from './components/widgets/ConversationWidget/useAttachmentValidation';
+export type { ClassifiedAttachment } from './components/widgets/ConversationWidget/useAttachmentValidation';
 export {
   AIVendor,
   LEGACY_BY_CATALOG_ID,

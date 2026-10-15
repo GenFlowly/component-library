@@ -1,4 +1,13 @@
-import { ATTACHMENT_FILE_INPUT_ACCEPT, isImageFile } from './attachment.models';
+import {
+  ATTACHMENT_FILE_INPUT_ACCEPT,
+  ATTACHMENT_FILE_INPUT_ACCEPT_WITH_PDF,
+  ATTACHMENT_SIZE_LIMITS,
+  MAX_PDFS_PER_MESSAGE,
+  MAX_PDF_SIZE_BYTES,
+  isImageFile,
+  isPdfAttachment,
+  isPdfFile,
+} from './attachment.models';
 
 describe('isImageFile', () => {
   test('any image/* type is an image', () => {
@@ -86,5 +95,55 @@ describe('ATTACHMENT_FILE_INPUT_ACCEPT', () => {
         entry.startsWith('image/') || androidImageExtensions.includes(entry)
       ).toBe(true);
     }
+  });
+});
+
+describe('PDF attachments', () => {
+  test('limits: 10 MB per PDF, 5 PDFs per message, no cap for images', () => {
+    expect(MAX_PDF_SIZE_BYTES).toBe(10 * 1024 * 1024);
+    expect(MAX_PDFS_PER_MESSAGE).toBe(5);
+    expect(ATTACHMENT_SIZE_LIMITS['application/pdf']).toBe(MAX_PDF_SIZE_BYTES);
+    expect(ATTACHMENT_SIZE_LIMITS['image/png']).toBeUndefined();
+  });
+
+  test('the PDF picker filter adds PDFs to the image filter', () => {
+    const accept = ATTACHMENT_FILE_INPUT_ACCEPT_WITH_PDF.split(',');
+    expect(accept).toEqual(
+      expect.arrayContaining([
+        ...ATTACHMENT_FILE_INPUT_ACCEPT.split(','),
+        'application/pdf',
+        '.pdf',
+      ])
+    );
+    expect(ATTACHMENT_FILE_INPUT_ACCEPT).not.toContain('pdf');
+  });
+
+  test('isPdfFile goes by the PDF type, or a .pdf name when untyped', () => {
+    expect(isPdfFile('application/pdf', 'scan')).toBe(true);
+    expect(isPdfFile('application/pdf; charset=binary', 'x')).toBe(true);
+    expect(isPdfFile('', 'Report.PDF')).toBe(true);
+    expect(isPdfFile('application/octet-stream', 'report.pdf')).toBe(true);
+    expect(isPdfFile('image/png', 'report.pdf')).toBe(false);
+    expect(isPdfFile('', 'notes.txt')).toBe(false);
+  });
+
+  test('isPdfAttachment tells stored documents from images', () => {
+    expect(
+      isPdfAttachment({ mediaType: 'application/pdf', filename: undefined })
+    ).toBe(true);
+    // Uploaded before the backend kept application/pdf
+    expect(
+      isPdfAttachment({
+        mediaType: 'application/octet-stream',
+        filename: 'scan.pdf',
+      })
+    ).toBe(true);
+    expect(
+      isPdfAttachment({
+        mediaType: 'application/octet-stream',
+        filename: 'IMG_0001.HEIC',
+      })
+    ).toBe(false);
+    expect(isPdfAttachment({ mediaType: 'image/png' })).toBe(false);
   });
 });

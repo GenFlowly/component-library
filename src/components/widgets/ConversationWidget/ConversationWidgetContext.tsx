@@ -75,7 +75,7 @@ export interface ConversationWidgetAuth {
 /**
  * Backend calls the widget performs directly. All optional — a missing
  * service disables the matching UI affordance instead of crashing:
- * no uploadAttachment → image paste/attach is off; no getAttachmentViewUrl →
+ * no uploadAttachment → attaching (picker, paste, drag-and-drop) is off; no getAttachmentViewUrl →
  * attachment thumbnails/downloads don't render; no getLearnedFacts → the
  * learned-facts stat is hidden; no getVendorDisplayName → title-cased
  * fallback names.
@@ -110,6 +110,26 @@ export interface ConversationWidgetLayout {
   isRightSidebarExpanded: boolean;
 }
 
+/**
+ * What the platform and the selected models can do with attachments,
+ * decided by the host (e.g. from its feature flags and model catalog).
+ */
+export interface ConversationWidgetCapabilities {
+  /**
+   * Accept PDF documents as attachments (file picker, paste and
+   * drag-and-drop), within the per-PDF size and per-message count limits.
+   * Off by default: enable it once the backend reads PDFs for the model.
+   */
+  pdfAttachments?: boolean;
+  /**
+   * Display names of the selected models that cannot read PDFs natively
+   * (the model catalog's supportsPdfInput is false). While a PDF is
+   * attached the composer explains that those models only get the PDF's
+   * extracted text. Empty or omitted: no hint.
+   */
+  modelsWithoutPdfInput?: string[];
+}
+
 export interface ConversationWidgetContextValue {
   conversation: ConversationWidgetApi;
   conversationUI: ConversationWidgetUiApi;
@@ -117,6 +137,8 @@ export interface ConversationWidgetContextValue {
   services?: ConversationWidgetServices;
   /** Sidebar state; both-collapsed enables the side-by-side response layout. */
   layout?: ConversationWidgetLayout;
+  /** Attachment capabilities; omitted = images only, no model hints. */
+  capabilities?: ConversationWidgetCapabilities;
   /** Shows a toast; `duration` (ms) is optional, for longer messages. */
   showToast?: (message: string, duration?: number) => void;
 }
@@ -173,6 +195,12 @@ const DEFAULT_LAYOUT: ConversationWidgetLayout = {
 
 export function useConversationLayout(): ConversationWidgetLayout {
   return useWidgetContext().layout ?? DEFAULT_LAYOUT;
+}
+
+const NO_CAPABILITIES: ConversationWidgetCapabilities = {};
+
+export function useConversationCapabilities(): ConversationWidgetCapabilities {
+  return useWidgetContext().capabilities ?? NO_CAPABILITIES;
 }
 
 const NOOP_TOAST = () => undefined;

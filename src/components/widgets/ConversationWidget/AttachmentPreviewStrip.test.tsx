@@ -74,6 +74,41 @@ describe('AttachmentPreviewStrip', () => {
     expect(onRemove).toHaveBeenCalledWith('l1');
   });
 
+  test('renders a PDF as a chip with its name, a PDF badge and its size — never an <img>', () => {
+    const onRemove = jest.fn();
+    render(
+      <AttachmentPreviewStrip
+        attachments={[
+          {
+            localId: 'p1',
+            fileName: 'quarterly-report.pdf',
+            previewUrl: 'blob:p1',
+            status: 'uploading',
+            kind: 'pdf',
+            sizeBytes: 1.5 * 1024 * 1024,
+          },
+        ]}
+        onRemove={onRemove}
+      />
+    );
+    const chip = screen.getByTestId('attachment-pdf-chip');
+    expect(chip).toHaveTextContent('quarterly-report.pdf');
+    expect(chip).toHaveTextContent('PDF');
+    expect(screen.getByTestId('attachment-pdf-size')).toHaveTextContent(
+      '1.5 MB'
+    );
+    expect(chip.querySelector('img')).toBeNull();
+    expect(
+      screen.queryByTestId('attachment-thumbnail')
+    ).not.toBeInTheDocument();
+    // Uploading shows a spinner; the chip stays removable
+    expect(
+      screen.getByTestId('attachment-uploading-spinner')
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('attachment-remove-button'));
+    expect(onRemove).toHaveBeenCalledWith('p1');
+  });
+
   test('shows a placeholder tile when the browser cannot preview the image', () => {
     render(
       <AttachmentPreviewStrip attachments={attachments} onRemove={jest.fn()} />
@@ -222,5 +257,98 @@ describe('ResolvedAttachmentThumbnails', () => {
       'noopener'
     );
     openSpy.mockRestore();
+  });
+
+  describe('PDFs', () => {
+    const pdfRef = {
+      attachmentId: 'doc-1',
+      s3Key: 'customers/c/attachments/doc-1',
+      mediaType: 'application/pdf',
+      filename: 'contract.pdf',
+      sizeBytes: 240 * 1024,
+      pageCount: 12,
+    };
+
+    test('render as a document card (name, PDF, pages, size), not an <img>', async () => {
+      mockGetAttachmentViewUrl.mockResolvedValue('https://s3/view/img');
+      const { container } = render(
+        <ResolvedAttachmentThumbnails attachments={[pdfRef, refs[0]]} />
+      );
+
+      expect(screen.getByTestId('resolved-attachment-pdf')).toHaveTextContent(
+        'contract.pdf'
+      );
+      expect(
+        screen.getByTestId('resolved-attachment-pdf-meta')
+      ).toHaveTextContent('PDF · 12 pages · 240 KB');
+      // Only the image's URL is resolved up front
+      await waitFor(() =>
+        expect(
+          screen.getAllByTestId('resolved-attachment-thumbnail')
+        ).toHaveLength(1)
+      );
+      expect(mockGetAttachmentViewUrl).toHaveBeenCalledTimes(1);
+      expect(mockGetAttachmentViewUrl).toHaveBeenCalledWith(
+        'token-1',
+        'att-1',
+        'conv-1'
+      );
+      expect(container.querySelectorAll('img')).toHaveLength(1);
+    });
+
+    test('a PDF card resolves its URL within the conversation when clicked', async () => {
+      mockGetAttachmentViewUrl.mockResolvedValue('https://s3/view/doc-1');
+      const tab = {
+        opener: {},
+        closed: false,
+        location: { href: 'about:blank' },
+        close: jest.fn(),
+      };
+      const openSpy = jest
+        .spyOn(window, 'open')
+        .mockImplementation(() => tab as unknown as Window);
+
+      render(<ResolvedAttachmentThumbnails attachments={[pdfRef]} />);
+      expect(mockGetAttachmentViewUrl).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByTestId('resolved-attachment-pdf'));
+
+      await waitFor(() =>
+        expect(tab.location.href).toBe('https://s3/view/doc-1')
+      );
+      expect(mockGetAttachmentViewUrl).toHaveBeenCalledWith(
+        'token-1',
+        'doc-1',
+        'conv-1'
+      );
+      openSpy.mockRestore();
+    });
+
+    test('an untyped upload named .pdf (older records) is still a document', () => {
+      render(
+        <ResolvedAttachmentThumbnails
+          attachments={[
+            {
+              attachmentId: 'doc-2',
+              s3Key: 'k',
+              mediaType: 'application/octet-stream',
+              filename: 'scan.pdf',
+            },
+          ]}
+        />
+      );
+      expect(screen.getByTestId('resolved-attachment-pdf')).toHaveTextContent(
+        'scan.pdf'
+      );
+      expect(mockGetAttachmentViewUrl).not.toHaveBeenCalled();
+    });
+
+    test('without a URL service the card shows but cannot be opened', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: false,
+        getAccessTokenSilently: jest.fn(),
+      });
+      render(<ResolvedAttachmentThumbnails attachments={[pdfRef]} />);
+      expect(screen.getByTestId('resolved-attachment-pdf')).toBeDisabled();
+    });
   });
 });

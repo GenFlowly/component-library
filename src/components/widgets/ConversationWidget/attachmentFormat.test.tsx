@@ -1,8 +1,11 @@
 import {
+  SUPPORTED_DOCUMENT_FORMATS,
   SUPPORTED_IMAGE_FORMATS,
   checkAttachmentFormat,
+  classifyAttachment,
   imageFormatFromTypeAndName,
   sniffImageFormat,
+  sniffPdf,
 } from './attachmentFormat';
 
 const bytes = (...parts: (string | number[])[]): Uint8Array =>
@@ -237,4 +240,81 @@ test('the supported formats are listed for users', () => {
     expect.arrayContaining(['JPEG', 'PNG', 'HEIC/HEIF', 'WebP'])
   );
   expect(SUPPORTED_IMAGE_FORMATS.join(', ')).toMatch(/camera RAW \(DNG/);
+});
+
+describe('sniffPdf', () => {
+  test('recognises the PDF header, also after a BOM or whitespace', () => {
+    expect(sniffPdf(pad(bytes('%PDF-1.7')))).toBe(true);
+    expect(sniffPdf(pad(bytes([0xef, 0xbb, 0xbf], '%PDF-2.0')))).toBe(true);
+    expect(sniffPdf(pad(bytes('\r\n %PDF-1.4')))).toBe(true);
+  });
+
+  test('anything else is not a PDF', () => {
+    expect(sniffPdf(pad(bytes('%PDF1.4')))).toBe(false);
+    expect(sniffPdf(pad(bytes('%!PS-Adobe-3.0')))).toBe(false);
+    expect(sniffPdf(pad(bytes([0xff, 0xd8, 0xff, 0xe0])))).toBe(false);
+    expect(sniffPdf(bytes('%PD'))).toBe(false);
+  });
+});
+
+describe('classifyAttachment', () => {
+  const pdf = bytes('%PDF-1.7\n%\xe2\xe3\xcf\xd3\n1 0 obj');
+  const png = bytes([0x89], 'PNG', [0x0d, 0x0a, 0x1a, 0x0a], 'rest');
+
+  test('a PDF goes by its bytes, whatever its name or declared type', async () => {
+    expect(
+      await classifyAttachment(
+        new File([pdf], 'report.pdf', { type: 'application/pdf' })
+      )
+    ).toBe('pdf');
+    // Pasted or dragged without a type or extension
+    expect(
+      await classifyAttachment(new File([pdf], 'document', { type: '' }))
+    ).toBe('pdf');
+    // A PNG renamed .pdf is still an image
+    expect(
+      await classifyAttachment(
+        new File([png], 'scan.pdf', { type: 'application/pdf' })
+      )
+    ).toBe('image');
+  });
+
+  test('a file declared as a PDF whose bytes are not one is turned down', async () => {
+    expect(
+      await classifyAttachment(
+        new File(['<html></html>'], 'invoice.pdf', { type: 'application/pdf' })
+      )
+    ).toBe('unsupported');
+    expect(
+      await classifyAttachment(new File(['xyz'], 'notes.pdf', { type: '' }))
+    ).toBe('unsupported');
+  });
+
+  test('an unreadable file declared as a PDF counts as one', async () => {
+    const unreadable = new File(['xyz'], 'scan.pdf', { type: '' });
+    unreadable.slice = () => {
+      throw new Error('not available offline');
+    };
+    expect(await classifyAttachment(unreadable)).toBe('pdf');
+  });
+
+  test('images and other files keep their image verdicts', async () => {
+    expect(
+      await classifyAttachment(new File([png], 'shot.png', { type: '' }))
+    ).toBe('image');
+    expect(
+      await classifyAttachment(
+        new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' })
+      )
+    ).toBe('unsupported');
+    expect(
+      await classifyAttachment(
+        new File([], 'empty.pdf', { type: 'application/pdf' })
+      )
+    ).toBe('unsupported');
+  });
+});
+
+test('PDF is listed as the supported document format', () => {
+  expect(SUPPORTED_DOCUMENT_FORMATS).toEqual(['PDF']);
 });

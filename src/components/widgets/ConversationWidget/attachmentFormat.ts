@@ -1,9 +1,10 @@
 /**
- * Which image formats can be attached, decided on the client before
- * uploading, to match what the backend can convert for the LLM vendors
+ * Which formats can be attached, decided on the client before uploading, to
+ * match what the backend can use for the LLM vendors: images it can convert
  * (genai-proxy-service retrieval-server: graph/image_normalize.py and
- * graph/raw_decode.py). The backend still has the final say; this only
- * spares users an upload that is bound to fail.
+ * graph/raw_decode.py) and, where the host enables them, PDF documents. The
+ * backend still has the final say; this only spares users an upload that is
+ * bound to fail.
  */
 
 /** Formats the backend accepts, for messages (e.g. the unsupported-format toast). */
@@ -23,6 +24,9 @@ export const SUPPORTED_IMAGE_FORMATS: readonly string[] = [
   'QOI',
   'camera RAW (DNG, CR2, CR3, NEF, ARW, RAF, ORF, RW2, PEF, SRW, X3F, …)',
 ];
+
+/** Document formats the backend reads for the model (when PDFs are enabled). */
+export const SUPPORTED_DOCUMENT_FORMATS: readonly string[] = ['PDF'];
 
 /** Extensions of the formats above, for files whose bytes can't be read. */
 const SUPPORTED_IMAGE_EXTENSIONS = [
@@ -149,6 +153,9 @@ const MEDIA_BRANDS = [
 ];
 
 export type AttachmentFormatVerdict = 'supported' | 'unsupported';
+
+/** What an attachment is to the backend: an image, a PDF document, or neither. */
+export type AttachmentKind = 'image' | 'pdf' | 'unsupported';
 
 const HEAD_BYTES = 512;
 
@@ -302,6 +309,21 @@ export function sniffImageFormat(
 }
 
 /**
+ * Whether a file's first bytes are a PDF header ("%PDF-", after an optional
+ * UTF-8 BOM or whitespace) — the same magic the backend checks.
+ */
+export function sniffPdf(bytes: Uint8Array): boolean {
+  let at = 0;
+  if (startsWith(bytes, [0xef, 0xbb, 0xbf])) at = 3;
+  while (
+    at < bytes.length &&
+    ' \t\r\n'.includes(String.fromCharCode(bytes[at]))
+  )
+    at++;
+  return startsWith(bytes, '%PDF-', at);
+}
+
+/**
  * The verdict from a file's declared type and name alone: an image/* type
  * (other than the known unusable ones) or a supported image extension.
  */
@@ -335,6 +357,39 @@ export async function checkAttachmentFormat(
     // unreadable (e.g. a cloud file not available offline): go by type/name
   }
   return imageFormatFromTypeAndName(file.type, file.name);
+}
+
+/**
+ * What a file is to the backend: a PDF or an image when its first bytes say
+ * so (whatever its name or declared type), else by its declared type and
+ * name; 'unsupported' for everything else, including empty files. A file
+ * declared as a PDF counts as one only when its bytes can't be read — the
+ * backend checks the "%PDF-" header too. PDFs are only told apart here;
+ * whether they may be attached is the caller's decision (see
+ * useAttachmentClassifier).
+ */
+export async function classifyAttachment(file: File): Promise<AttachmentKind> {
+  if (file.size === 0) return 'unsupported';
+  let head: Uint8Array | null = null;
+  try {
+    head = await readHead(file);
+  } catch {
+    // unreadable (e.g. a cloud file not available offline): go by type/name
+  }
+  if (head) {
+    if (sniffPdf(head)) return 'pdf';
+    const verdict = sniffImageFormat(head);
+    if (verdict) return verdict === 'supported' ? 'image' : 'unsupported';
+  }
+  const mediaType = file.type.split(';')[0].trim().toLowerCase();
+  const declaredPdf =
+    mediaType === 'application/pdf' ||
+    ((mediaType === '' || mediaType === 'application/octet-stream') &&
+      file.name.toLowerCase().endsWith('.pdf'));
+  if (declaredPdf) return head ? 'unsupported' : 'pdf';
+  return imageFormatFromTypeAndName(file.type, file.name) === 'supported'
+    ? 'image'
+    : 'unsupported';
 }
 
 /** The first HEAD_BYTES of a file (FileReader where Blob.arrayBuffer is missing). */

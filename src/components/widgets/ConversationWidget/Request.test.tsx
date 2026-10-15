@@ -18,11 +18,17 @@ import '@testing-library/jest-dom';
 // attachment upload service all flow through it)
 const mockShowToast = jest.fn();
 const mockUploadAttachment = jest.fn();
+// Attachment capabilities the host grants (PDFs off by default)
+let mockCapabilities: {
+  pdfAttachments?: boolean;
+  modelsWithoutPdfInput?: string[];
+} = {};
 jest.mock('./ConversationWidgetContext', () => ({
   useConversation: jest.fn(),
   useConversationUI: jest.fn(),
   useConversationAuth: jest.fn(),
   useConversationServices: () => ({ uploadAttachment: mockUploadAttachment }),
+  useConversationCapabilities: () => mockCapabilities,
   useToast: () => ({ showToast: mockShowToast }),
 }));
 
@@ -76,6 +82,7 @@ describe('Request Widget Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCapabilities = {};
     // setEditorPrompt moved to the ConversationUI context (perf split);
     // the main-context mocks below may still carry it harmlessly
     mockUseConversationUI.mockReturnValue({
@@ -663,7 +670,7 @@ describe('Request Widget Component', () => {
         fireEvent.click(screen.getByTestId('generate-button'));
         expect(mockGenerateResponsesStream).not.toHaveBeenCalled();
         expect(mockShowToast).toHaveBeenCalledWith(
-          'Images are still uploading'
+          'Attachments are still uploading'
         );
 
         await act(async () =>
@@ -933,6 +940,305 @@ describe('Request Widget Component', () => {
       ).toBeInTheDocument();
       expect(mockUploadAttachment).toHaveBeenCalledWith('test-token', photo);
       expect(mockShowToast).not.toHaveBeenCalled();
+    });
+  });
+  describe('PDF attachments', () => {
+    const originalInnerWidth = window.innerWidth;
+    const MB = 1024 * 1024;
+
+    // A real PDF header, so the format check (which reads the first bytes)
+    // takes it for a PDF; the reported size is overridden per test
+    const makePdf = (
+      name = 'report.pdf',
+      size = 1.2 * MB,
+      type = 'application/pdf'
+    ) => {
+      const file = new File(['%PDF-1.7\n%body'], name, { type });
+      Object.defineProperty(file, 'size', { value: size });
+      return file;
+    };
+    const pdfRef = (id = 'doc-1') => ({
+      attachmentId: id,
+      s3Key: `customers/cust-123/attachments/${id}`,
+      mediaType: 'application/pdf',
+      filename: 'report.pdf',
+      sizeBytes: 1.2 * MB,
+    });
+
+    const container = () => screen.getByTestId('request-widget-container');
+    const pickFiles = (files: File[]) =>
+      fireEvent.change(screen.getByTestId('attachment-file-input'), {
+        target: { files },
+      });
+    const fileItem = (file: File) => ({
+      kind: 'file',
+      type: file.type,
+      getAsFile: () => file,
+    });
+    const setViewportWidth = (width: number) => {
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: width,
+      });
+      act(() => {
+        window.dispatchEvent(new Event('resize'));
+      });
+    };
+
+    beforeEach(() => {
+      mockCapabilities = { pdfAttachments: true };
+      (global.URL.createObjectURL as any) = jest.fn(() => 'blob:preview');
+      (global.URL.revokeObjectURL as any) = jest.fn();
+      mockUploadAttachment.mockImplementation(async (_token, file: File) =>
+        file.type === 'application/pdf' || file.name.endsWith('.pdf')
+          ? { ...pdfRef(`doc-${file.name}`), filename: file.name }
+          : { attachmentId: 'img-1', s3Key: 'k', mediaType: 'image/png' }
+      );
+    });
+
+    afterEach(() => {
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: originalInnerWidth,
+      });
+    });
+
+    test('desktop has an attach button that opens a picker accepting PDFs', () => {
+      render(<Request blockId="block-1" />);
+      const input = screen.getByTestId(
+        'attachment-file-input'
+      ) as HTMLInputElement;
+      const click = jest.spyOn(input, 'click').mockImplementation(() => {});
+
+      const button = screen.getByTestId('attachment-button-desktop');
+      expect(button).toHaveAttribute('aria-label', 'Attach images or PDFs');
+      fireEvent.click(button);
+      expect(click).toHaveBeenCalledTimes(1);
+      expect(input.getAttribute('accept')!.split(',')).toEqual(
+        expect.arrayContaining(['image/*', '.heic', 'application/pdf', '.pdf'])
+      );
+      // The mobile button is mobile-only
+      expect(screen.queryByTestId('attachment-button')).not.toBeInTheDocument();
+    });
+
+    test('without PDF support the picker stays images-only', () => {
+      mockCapabilities = {};
+      render(<Request blockId="block-1" />);
+      expect(screen.getByTestId('attachment-button-desktop')).toHaveAttribute(
+        'aria-label',
+        'Add image attachment'
+      );
+      expect(
+        screen.getByTestId('attachment-file-input').getAttribute('accept')
+      ).not.toContain('pdf');
+    });
+
+    test('a picked PDF shows as a chip with its name, PDF badge and size, and is sent', async () => {
+      render(<Request blockId="block-1" />);
+      pickFiles([makePdf()]);
+
+      const chip = await screen.findByTestId('attachment-pdf-chip');
+      expect(chip).toHaveTextContent('report.pdf');
+      expect(chip).toHaveTextContent('PDF');
+      expect(chip).toHaveTextContent('1.2 MB');
+      expect(chip.querySelector('img')).toBeNull();
+      await waitFor(() =>
+        expect(
+          screen.queryByTestId('attachment-uploading-spinner')
+        ).not.toBeInTheDocument()
+      );
+      expect(mockShowToast).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByTestId('generate-button'));
+      expect(mockGenerateResponsesStream).toHaveBeenCalledWith(
+        'block-1',
+        '',
+        undefined,
+        undefined,
+        [{ ...pdfRef('doc-report.pdf'), filename: 'report.pdf' }]
+      );
+    });
+
+    test('a pasted PDF is attached, also next to text', async () => {
+      render(<Request blockId="block-1" />);
+      const notPrevented = fireEvent.paste(container(), {
+        clipboardData: {
+          items: [
+            { kind: 'string', type: 'text/plain', getAsFile: () => null },
+            fileItem(makePdf('scan.pdf')),
+          ],
+        },
+      });
+      expect(notPrevented).toBe(false);
+      expect(
+        await screen.findByTestId('attachment-pdf-chip')
+      ).toHaveTextContent('scan.pdf');
+      expect(mockUploadAttachment).toHaveBeenCalledTimes(1);
+    });
+
+    test('files dropped on the composer are attached, with a drop highlight meanwhile', async () => {
+      render(<Request blockId="block-1" />);
+      const pdf = makePdf('dropped.pdf');
+      const png = new File(
+        [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1])],
+        'shot.png',
+        { type: 'image/png' }
+      );
+      const dataTransfer = { types: ['Files'], files: [pdf, png] };
+
+      fireEvent.dragEnter(container(), { dataTransfer });
+      expect(screen.getByTestId('attachment-drop-overlay')).toHaveTextContent(
+        'Drop images or PDFs to attach them'
+      );
+      fireEvent.dragOver(container(), { dataTransfer });
+      const notPrevented = fireEvent.drop(container(), { dataTransfer });
+      expect(notPrevented).toBe(false);
+      expect(
+        screen.queryByTestId('attachment-drop-overlay')
+      ).not.toBeInTheDocument();
+
+      expect(
+        await screen.findByTestId('attachment-pdf-chip')
+      ).toHaveTextContent('dropped.pdf');
+      expect(
+        await screen.findByTestId('attachment-thumbnail')
+      ).toBeInTheDocument();
+      expect(mockUploadAttachment).toHaveBeenCalledWith('test-token', pdf);
+      expect(mockUploadAttachment).toHaveBeenCalledWith('test-token', png);
+    });
+
+    test('the drop highlight goes away when the drag leaves, and text drags are left alone', () => {
+      render(<Request blockId="block-1" />);
+      fireEvent.dragEnter(container(), {
+        dataTransfer: { types: ['Files'], files: [] },
+      });
+      expect(screen.getByTestId('attachment-drop-overlay')).toBeInTheDocument();
+      fireEvent.dragLeave(container(), {
+        dataTransfer: { types: ['Files'], files: [] },
+      });
+      expect(
+        screen.queryByTestId('attachment-drop-overlay')
+      ).not.toBeInTheDocument();
+
+      // Moving selected text inside the editor is not an attachment
+      const notPrevented = fireEvent.drop(container(), {
+        dataTransfer: { types: ['text/plain'], files: [] },
+      });
+      expect(notPrevented).toBe(true);
+      expect(mockUploadAttachment).not.toHaveBeenCalled();
+    });
+
+    test('a PDF over 10 MB is turned down with a toast naming the limit', async () => {
+      render(<Request blockId="block-1" />);
+      pickFiles([makePdf('huge.pdf', 11 * MB), makePdf('small.pdf', 2 * MB)]);
+
+      expect(
+        await screen.findByTestId('attachment-pdf-chip')
+      ).toHaveTextContent('small.pdf');
+      expect(screen.getAllByTestId('attachment-pdf-chip')).toHaveLength(1);
+      expect(mockUploadAttachment).toHaveBeenCalledTimes(1);
+      expect(mockShowToast).toHaveBeenCalledWith(
+        'huge.pdf is too large (11 MB). A PDF can be at most 10 MB.'
+      );
+    });
+
+    test('at most 5 PDFs per message, counting the ones already attached', async () => {
+      render(<Request blockId="block-1" />);
+      pickFiles([1, 2, 3].map(i => makePdf(`a${i}.pdf`)));
+      await waitFor(() =>
+        expect(screen.getAllByTestId('attachment-pdf-chip')).toHaveLength(3)
+      );
+
+      pickFiles([4, 5, 6].map(i => makePdf(`b${i}.pdf`)));
+      await waitFor(() =>
+        expect(screen.getAllByTestId('attachment-pdf-chip')).toHaveLength(5)
+      );
+      expect(mockUploadAttachment).toHaveBeenCalledTimes(5);
+      expect(mockShowToast).toHaveBeenCalledWith(
+        'You can attach at most 5 PDFs per message'
+      );
+    });
+
+    test('unsupported files get a toast that mentions PDFs', async () => {
+      render(<Request blockId="block-1" />);
+      pickFiles([new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' })]);
+      await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(1));
+      expect(mockShowToast.mock.calls[0][0]).toMatch(
+        /^logo\.svg can't be attached\. You can attach PDF files and images in these formats: JPEG, PNG/
+      );
+      expect(mockUploadAttachment).not.toHaveBeenCalled();
+    });
+
+    test('the mobile picker accepts PDFs too', async () => {
+      render(<Request blockId="block-1" />);
+      setViewportWidth(500);
+      expect(screen.getByTestId('attachment-button')).toHaveAttribute(
+        'aria-label',
+        'Attach images or PDFs'
+      );
+      expect(
+        screen.getByTestId('attachment-file-input').getAttribute('accept')
+      ).toContain('application/pdf');
+      pickFiles([makePdf('phone.pdf')]);
+      expect(
+        await screen.findByTestId('attachment-pdf-chip')
+      ).toHaveTextContent('phone.pdf');
+    });
+
+    describe('capability hint', () => {
+      test('names the selected models that cannot read PDFs while a PDF is attached', async () => {
+        mockCapabilities = {
+          pdfAttachments: true,
+          modelsWithoutPdfInput: ['deepseek-chat'],
+        };
+        render(<Request blockId="block-1" />);
+        expect(screen.queryByTestId('pdf-input-hint')).not.toBeInTheDocument();
+
+        pickFiles([makePdf()]);
+        expect(await screen.findByTestId('pdf-input-hint')).toHaveTextContent(
+          "deepseek-chat can't read PDFs directly. It only gets the text extracted from them"
+        );
+
+        fireEvent.click(screen.getByTestId('attachment-remove-button'));
+        expect(screen.queryByTestId('pdf-input-hint')).not.toBeInTheDocument();
+      });
+
+      test('uses the plural for several models', async () => {
+        mockCapabilities = {
+          pdfAttachments: true,
+          modelsWithoutPdfInput: ['deepseek-chat', 'llama-3.3-70b'],
+        };
+        render(<Request blockId="block-1" />);
+        pickFiles([makePdf()]);
+        expect(await screen.findByTestId('pdf-input-hint')).toHaveTextContent(
+          "deepseek-chat, llama-3.3-70b can't read PDFs directly. They only get"
+        );
+      });
+
+      test('no hint when every selected model reads PDFs (e.g. Claude)', async () => {
+        mockCapabilities = { pdfAttachments: true, modelsWithoutPdfInput: [] };
+        render(<Request blockId="block-1" />);
+        pickFiles([makePdf()]);
+        await screen.findByTestId('attachment-pdf-chip');
+        expect(screen.queryByTestId('pdf-input-hint')).not.toBeInTheDocument();
+      });
+
+      test('no hint for images alone', async () => {
+        mockCapabilities = {
+          pdfAttachments: true,
+          modelsWithoutPdfInput: ['deepseek-chat'],
+        };
+        render(<Request blockId="block-1" />);
+        pickFiles([
+          new File(
+            [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
+            'shot.png',
+            { type: 'image/png' }
+          ),
+        ]);
+        await screen.findByTestId('attachment-thumbnail');
+        expect(screen.queryByTestId('pdf-input-hint')).not.toBeInTheDocument();
+      });
     });
   });
 });
