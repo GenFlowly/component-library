@@ -154,6 +154,31 @@ export interface NodeTypeInfo {
   configFields?: NodeConfigField[];
 }
 
+/** Page sizes the generate_pdf tool renders. */
+export const PDF_PAGE_SIZES = ['A4', 'Letter', 'Legal'] as const;
+export type PdfPageSize = (typeof PDF_PAGE_SIZES)[number];
+
+/**
+ * Tenant branding the generate_pdf tool applies to every PDF an agent
+ * creates: a TOOL_EXECUTOR node's config `tool_settings.generate_pdf`
+ * (snake_case wire shape; the retrieval server passes it to the tool as
+ * runtime['pdf_settings']). Every key is optional; absent keys keep the
+ * tool's defaults.
+ */
+export interface PdfBrandingSettings {
+  /**
+   * Attachment id of the logo image (PNG or JPEG), uploaded by the graph's
+   * owner; the backend refuses ids of other customers.
+   */
+  logo_attachment_id?: string;
+  company_name?: string;
+  /** "#RRGGBB" */
+  accent_color?: string;
+  footer_text?: string;
+  /** Absent: the tool picks one from the user's locale. */
+  default_page_size?: PdfPageSize;
+}
+
 export interface InstructionOption {
   instructionId: string;
   name: string;
@@ -267,6 +292,12 @@ export interface GraphEditorProps {
    * surfaces): called with the selected node's current type/name/config.
    */
   onSaveAsPreset?: (node: AgentGraphNode) => void;
+  /**
+   * Uploads an image (the PDF letterhead logo of a TOOL_EXECUTOR node's
+   * branding settings) and resolves its attachment id. Without it the logo
+   * can only be removed, or set through the raw config JSON.
+   */
+  onUploadImage?: (file: File) => Promise<string>;
   /** Override any of the default English strings (e.g. with i18n values). */
   labels?: Partial<GraphEditorLabels>;
   'data-testid'?: string;

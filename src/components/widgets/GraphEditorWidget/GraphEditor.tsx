@@ -154,6 +154,7 @@ function GraphEditorInner({
   onNodeSelect,
   onRequestCreateInstruction,
   onSaveAsPreset,
+  onUploadImage,
   labels: labelsProp,
   'data-testid': testId = 'graph-editor',
 }: GraphEditorProps) {
@@ -861,6 +862,7 @@ function GraphEditorInner({
                   deleteElements({ nodes: [{ id: selectedNode.id }] })
                 }
                 onRequestCreateInstruction={onRequestCreateInstruction}
+                onUploadImage={onUploadImage}
               />
             </div>
           </ResizableSidebar>

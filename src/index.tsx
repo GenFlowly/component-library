@@ -83,6 +83,7 @@ export {
   END_NODE_ID,
   REFLECTION_NODE_TYPE,
   DEFAULT_ROUTE_LABEL,
+  PDF_PAGE_SIZES,
 } from './components/widgets/GraphEditorWidget/types';
 export {
   DEFAULT_NODE_TYPE_INFOS,
@@ -100,6 +101,8 @@ export type {
   GraphEditorProps,
   GraphEditorLabels,
   ValidationIssue,
+  PdfBrandingSettings,
+  PdfPageSize,
 } from './components/widgets/GraphEditorWidget/types';
 export { validateAgentGraph } from './components/widgets/GraphEditorWidget/validation';
 

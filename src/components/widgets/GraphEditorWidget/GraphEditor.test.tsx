@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import GraphEditor from './GraphEditor';
 
@@ -664,6 +664,66 @@ describe('GraphEditor palette node types', () => {
     const saved = onSave.mock.calls[0][0];
     const memoryNode = saved.nodes.find((n: any) => n.nodeId === 'n-memory');
     expect(JSON.parse(memoryNode.config)).toEqual({ max_memories: 5 });
+  });
+
+  test('a TOOL_EXECUTOR node edits its PDF branding, logo upload included', async () => {
+    // The upload resolves asynchronously, so React Flow's animation-frame
+    // measuring runs too; it needs DOMMatrixReadOnly, which jsdom lacks
+    const win = window as unknown as { DOMMatrixReadOnly?: unknown };
+    const originalMatrix = win.DOMMatrixReadOnly;
+    win.DOMMatrixReadOnly = class {
+      m22 = 1;
+    };
+    const graph = buildGraph();
+    graph.nodes.push({
+      nodeId: 'n-tools',
+      nodeType: 'TOOL_EXECUTOR',
+      name: 'Tools',
+      config: JSON.stringify({ tools: ['web_search', 'generate_pdf'] }),
+    });
+    const edges = JSON.parse(graph.edges);
+    edges.edges.push({ from: 'n-tools', to: 'n-analyzer' });
+    graph.edges = JSON.stringify(edges);
+    graph.entryPoint = 'n-tools';
+    const onSave = jest.fn();
+    const onUploadImage = jest.fn().mockResolvedValue('att-logo-1');
+    render(
+      <GraphEditor
+        {...defaultProps}
+        graph={graph}
+        onSave={onSave}
+        onUploadImage={onUploadImage}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('graph-editor-node-n-tools'));
+    fireEvent.change(screen.getByTestId('graph-editor-config-pdf-company'), {
+      target: { value: 'Acme GmbH' },
+    });
+    const logo = new File(['png'], 'logo.png', { type: 'image/png' });
+    fireEvent.change(screen.getByTestId('graph-editor-config-pdf-logo-input'), {
+      target: { files: [logo] },
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('graph-editor-config-pdf-logo')
+      ).toHaveTextContent('logo.png')
+    );
+    expect(onUploadImage).toHaveBeenCalledWith(logo);
+
+    fireEvent.click(screen.getByTestId('graph-editor-save'));
+    const saved = onSave.mock.calls[0][0];
+    const toolsNode = saved.nodes.find((n: any) => n.nodeId === 'n-tools');
+    expect(JSON.parse(toolsNode.config)).toEqual({
+      tools: ['web_search', 'generate_pdf'],
+      tool_settings: {
+        generate_pdf: {
+          company_name: 'Acme GmbH',
+          logo_attachment_id: 'att-logo-1',
+        },
+      },
+    });
+    win.DOMMatrixReadOnly = originalMatrix;
   });
 
   test('preset items show their own contract or inherit the primitive contract', () => {

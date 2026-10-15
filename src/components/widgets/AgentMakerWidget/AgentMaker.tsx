@@ -12,8 +12,14 @@ import {
   NodeCatalogEntry,
   NodeConditional,
   NodeConfigField,
+  TOOL_EXECUTOR_NODE_TYPE,
   TOOL_ROUTE_LABELS,
 } from '../GraphEditorWidget/types';
+import PdfBrandingFields, {
+  DEFAULT_PDF_BRANDING_STRINGS,
+  PdfBrandingStrings,
+  isPlainObject,
+} from './PdfBrandingFields';
 
 /** Form values for a prompt-template agent (an instruction wrapped with generation settings). */
 export interface AgentMakerValues {
@@ -81,7 +87,7 @@ export interface AgentMakerNode {
   isEntry: boolean;
 }
 
-export interface AgentMakerStrings {
+export interface AgentMakerStrings extends PdfBrandingStrings {
   titleCreate: string;
   titleEdit: (agentId: string) => string;
   nameHint: string;
@@ -215,6 +221,7 @@ const DEFAULT_STRINGS: AgentMakerStrings = {
   includeDefaultRoute: 'Include default route',
   saveAsPreset: 'Save as preset',
   deleteNode: 'Delete node',
+  ...DEFAULT_PDF_BRANDING_STRINGS,
 };
 
 export interface AgentMakerProps {
@@ -272,6 +279,11 @@ export interface AgentMakerProps {
   onDeleteNode?: () => void;
   onRequestCreateInstruction?: () => void;
   onSaveAsPreset?: () => void;
+  /**
+   * Uploads an image and resolves its attachment id: enables the logo
+   * upload in a TOOL_EXECUTOR node's PDF branding fields.
+   */
+  onUploadImage?: (file: File) => Promise<string>;
 
   // ── Shared ──────────────────────────────────────────────────────────────
   /**
@@ -449,9 +461,16 @@ function defaultRoutesFor(type: ConditionType): string[] {
   return ['true', 'false'];
 }
 
+/**
+ * The parsed config, and the part the raw-JSON editor shows: everything not
+ * edited by a dedicated field. With `pdfBranding`, tool_settings.generate_pdf
+ * is a dedicated field too (the PDF branding form) while other
+ * tool_settings stay raw.
+ */
 function splitConfig(
   config: string,
-  fieldKeys: string[]
+  fieldKeys: string[],
+  pdfBranding = false
 ): { parsed: Record<string, unknown>; rest: Record<string, unknown> } {
   const parsed = parseNodeConfig(config);
   const rest: Record<string, unknown> = {};
@@ -460,6 +479,19 @@ function splitConfig(
       rest[key] = parsed[key];
     }
   });
+  const toolSettings = rest.tool_settings;
+  if (
+    pdfBranding &&
+    isPlainObject(toolSettings) &&
+    'generate_pdf' in toolSettings
+  ) {
+    const { generate_pdf: _branding, ...otherSettings } = toolSettings;
+    if (Object.keys(otherSettings).length > 0) {
+      rest.tool_settings = otherSettings;
+    } else {
+      delete rest.tool_settings;
+    }
+  }
   return { parsed, rest };
 }
 
@@ -483,6 +515,7 @@ interface NodeFlavorProps {
   onDeleteNode?: () => void;
   onRequestCreateInstruction?: () => void;
   onSaveAsPreset?: () => void;
+  onUploadImage?: (file: File) => Promise<string>;
 }
 
 function NodeFlavor({
@@ -502,14 +535,18 @@ function NodeFlavor({
   onDeleteNode,
   onRequestCreateInstruction,
   onSaveAsPreset,
+  onUploadImage,
 }: NodeFlavorProps) {
+  // TOOL_EXECUTOR nodes carry the generate_pdf letterhead settings
+  const pdfBranding = node.nodeType === TOOL_EXECUTOR_NODE_TYPE;
   const { parsed, rest } = useMemo(
     () =>
       splitConfig(
         node.config,
-        configFields.map(f => f.key)
+        configFields.map(f => f.key),
+        pdfBranding
       ),
-    [node.config, configFields]
+    [node.config, configFields, pdfBranding]
   );
 
   const [rawDraft, setRawDraft] = useState(() => JSON.stringify(rest, null, 2));
@@ -625,9 +662,26 @@ function NodeFlavor({
     [...KNOWN_CONFIG_KEYS, ...configFields.map(f => f.key)].forEach(key => {
       if (key in parsed) known[key] = parsed[key];
     });
-    onConfigChange?.(
-      JSON.stringify({ ...known, ...(parsedRaw as Record<string, unknown>) })
-    );
+    const next: Record<string, unknown> = {
+      ...known,
+      ...(parsedRaw as Record<string, unknown>),
+    };
+    // The PDF branding form owns tool_settings.generate_pdf: keep it next to
+    // whatever other tool_settings the raw JSON holds
+    const branding = isPlainObject(parsed.tool_settings)
+      ? parsed.tool_settings.generate_pdf
+      : undefined;
+    if (
+      pdfBranding &&
+      isPlainObject(branding) &&
+      Object.keys(branding).length > 0
+    ) {
+      next.tool_settings = {
+        ...(isPlainObject(next.tool_settings) ? next.tool_settings : {}),
+        generate_pdf: branding,
+      };
+    }
+    onConfigChange?.(JSON.stringify(next));
   };
 
   const conditional = node.conditional;
@@ -954,6 +1008,18 @@ function NodeFlavor({
           </label>
         );
       })}
+
+      {pdfBranding && (
+        <PdfBrandingFields
+          config={parsed}
+          onToolSettingsChange={toolSettings =>
+            updateConfig({ tool_settings: toolSettings })
+          }
+          onUploadImage={onUploadImage}
+          strings={strings}
+          testId={testId}
+        />
+      )}
 
       <details className={styles.expando}>
         <summary>{strings.rawConfigToggle}</summary>
@@ -1341,7 +1407,8 @@ function AgentFlavor({
  *   The visible fields adapt to the node's type (`catalogEntry.hasPrompt`,
  *   `configFields`): name, entry point, instruction with version pinning and
  *   preview, input template, model override, output key, type-declared
- *   fields, raw-JSON config, conditional routing, save-as-preset and delete.
+ *   fields, PDF branding (TOOL_EXECUTOR nodes), raw-JSON config,
+ *   conditional routing, save-as-preset and delete.
  *   Changes apply immediately through the node callbacks.
  *
  * Purely presentational: instruction/model listing and persistence are the
@@ -1366,6 +1433,7 @@ export default function AgentMaker({
   onDeleteNode,
   onRequestCreateInstruction,
   onSaveAsPreset,
+  onUploadImage,
   newTabHref,
   strings: stringOverrides,
   className = '',
@@ -1450,6 +1518,7 @@ export default function AgentMaker({
           onDeleteNode={onDeleteNode}
           onRequestCreateInstruction={onRequestCreateInstruction}
           onSaveAsPreset={onSaveAsPreset}
+          onUploadImage={onUploadImage}
         />
       ) : (
         <AgentFlavor
