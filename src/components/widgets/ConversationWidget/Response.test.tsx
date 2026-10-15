@@ -1183,6 +1183,40 @@ describe('Response Widget Component', () => {
       );
     });
 
+    test('clicking the card resolves the URL within the conversation', async () => {
+      mockSelection = [AIVendor.OPENAI];
+      mockUseConversation.mockReturnValue({
+        ...mockUseConversation(),
+        conversationId: 'conv-9',
+      });
+      mockGetAttachmentViewUrl.mockResolvedValue('https://s3/report.pdf');
+      const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+      render(
+        <Response
+          blockId="block-1"
+          responseMessages={pdfMessage([
+            {
+              attachmentId: 'art-1',
+              s3Key: '',
+              mediaType: 'application/pdf',
+              filename: 'report.pdf',
+            },
+          ])}
+        />
+      );
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('attachment-card'));
+      });
+
+      expect(mockGetAttachmentViewUrl).toHaveBeenCalledWith(
+        'tok',
+        'art-1',
+        'conv-9'
+      );
+      openSpy.mockRestore();
+    });
+
     test('a card without a page count (older records) shows type and size', () => {
       mockSelection = [AIVendor.OPENAI];
       render(

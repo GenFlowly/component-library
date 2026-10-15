@@ -8,7 +8,9 @@ import { useConversationAuth } from './ConversationWidgetContext';
 import '@testing-library/jest-dom';
 
 const mockGetAttachmentViewUrl = jest.fn();
+let mockConversationId = 'conv-1';
 jest.mock('./ConversationWidgetContext', () => ({
+  useConversation: () => ({ conversationId: mockConversationId }),
   useConversationAuth: jest.fn(),
   useConversationServices: () => ({
     getAttachmentViewUrl: mockGetAttachmentViewUrl,
@@ -90,6 +92,7 @@ describe('AttachmentPreviewStrip', () => {
 describe('ResolvedAttachmentThumbnails', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockConversationId = 'conv-1';
     mockUseAuth.mockReturnValue({
       isAuthenticated: true,
       getAccessTokenSilently: jest.fn().mockResolvedValue('token-1'),
@@ -123,6 +126,41 @@ describe('ResolvedAttachmentThumbnails', () => {
     });
     const imgs = screen.getAllByTestId('resolved-attachment-thumbnail');
     expect(imgs[0]).toHaveAttribute('src', 'https://s3/view/att-1');
+  });
+
+  test('resolves URLs within the loaded conversation (shared conversations)', async () => {
+    mockGetAttachmentViewUrl.mockResolvedValue('https://s3/view/x');
+
+    render(<ResolvedAttachmentThumbnails attachments={refs} />);
+
+    await waitFor(() =>
+      expect(mockGetAttachmentViewUrl).toHaveBeenCalledTimes(2)
+    );
+    expect(mockGetAttachmentViewUrl).toHaveBeenCalledWith(
+      'token-1',
+      'att-1',
+      'conv-1'
+    );
+    expect(mockGetAttachmentViewUrl).toHaveBeenCalledWith(
+      'token-1',
+      'att-2',
+      'conv-1'
+    );
+  });
+
+  test('passes no conversation id before the conversation exists', async () => {
+    mockConversationId = '';
+    mockGetAttachmentViewUrl.mockResolvedValue('https://s3/view/x');
+
+    render(<ResolvedAttachmentThumbnails attachments={[refs[0]]} />);
+
+    await waitFor(() =>
+      expect(mockGetAttachmentViewUrl).toHaveBeenCalledWith(
+        'token-1',
+        'att-1',
+        undefined
+      )
+    );
   });
 
   test('skips attachments whose URL fetch fails', async () => {

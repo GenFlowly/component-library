@@ -4,6 +4,7 @@ import { ICONS } from '../../../constants/icons';
 import { Icon } from '../../common/Icon/Icon';
 import { AttachmentRef } from './attachment.models';
 import {
+  useConversation,
   useConversationAuth,
   useConversationServices,
 } from './ConversationWidgetContext';
@@ -126,14 +127,16 @@ interface ResolvedAttachmentThumbnailsProps {
 /**
  * Read-only thumbnails on resolved request cards (and conversations loaded
  * from history). Renders via short-lived presigned S3 GET URLs resolved
- * through the host's injected getAttachmentViewUrl service; without that
- * service nothing renders.
+ * through the host's injected getAttachmentViewUrl service, scoped to the
+ * loaded conversation (so a shared conversation shows every participant's
+ * images); without that service nothing renders.
  */
 export function ResolvedAttachmentThumbnails({
   attachments,
 }: ResolvedAttachmentThumbnailsProps): React.ReactElement | null {
   const { getAccessTokenSilently, isAuthenticated } = useConversationAuth();
   const { getAttachmentViewUrl } = useConversationServices();
+  const { conversationId } = useConversation();
   const [urls, setUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -149,7 +152,8 @@ export function ResolvedAttachmentThumbnails({
             try {
               const url = await getAttachmentViewUrl(
                 token,
-                attachment.attachmentId
+                attachment.attachmentId,
+                conversationId || undefined
               );
               return [attachment.attachmentId, url] as const;
             } catch {
@@ -178,6 +182,7 @@ export function ResolvedAttachmentThumbnails({
     attachments.map(a => a.attachmentId).join(','),
     isAuthenticated,
     getAttachmentViewUrl,
+    conversationId,
   ]);
 
   if (attachments.length === 0) return null;

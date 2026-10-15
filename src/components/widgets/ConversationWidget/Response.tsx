@@ -165,12 +165,17 @@ function SourcesSection({ sources }: { sources: WebSource[] }) {
 /**
  * Download cards for files built-in tools produced during the turn (e.g.
  * generated PDFs). URLs are short-lived presigned GETs, resolved on click
- * through the host's injected getAttachmentViewUrl service.
+ * through the host's injected getAttachmentViewUrl service — scoped to the
+ * conversation, so participants of a shared conversation can open files
+ * generated in each other's turns.
  */
 function GeneratedAttachmentsSection({
   attachments,
+  conversationId,
 }: {
   attachments: AttachmentRef[];
+  /** The loaded conversation ('' before the first response created one). */
+  conversationId: string;
 }) {
   const { getAccessTokenSilently } = useConversationAuth();
   const { getAttachmentViewUrl } = useConversationServices();
@@ -190,7 +195,8 @@ function GeneratedAttachmentsSection({
           getDownloadUrl={async () =>
             getAttachmentViewUrl(
               await getAccessTokenSilently(),
-              attachment.attachmentId
+              attachment.attachmentId,
+              conversationId || undefined
             )
           }
         />
@@ -789,6 +795,7 @@ function Response({
                   {generatedAttachments && generatedAttachments.length > 0 && (
                     <GeneratedAttachmentsSection
                       attachments={generatedAttachments}
+                      conversationId={conversationId}
                     />
                   )}
                   {!isLoading && stopReason && (

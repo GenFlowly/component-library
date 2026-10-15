@@ -82,9 +82,18 @@ export interface ConversationWidgetAuth {
  */
 export interface ConversationWidgetServices {
   uploadAttachment?: (token: string, file: File) => Promise<AttachmentRef>;
+  /**
+   * Short-lived URL for viewing/downloading an attachment. `conversationId`
+   * is passed whenever the attachment is shown inside a loaded conversation
+   * (undefined before the first response created one): the backend then
+   * checks the caller's access to that conversation and presigns the stored
+   * key, so every participant of a shared conversation — including PUBLIC
+   * viewers — can open files another participant uploaded or generated.
+   */
   getAttachmentViewUrl?: (
     token: string,
-    attachmentId: string
+    attachmentId: string,
+    conversationId?: string
   ) => Promise<string>;
   getLearnedFacts?: (
     token: string,
