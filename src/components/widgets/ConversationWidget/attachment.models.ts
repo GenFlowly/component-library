@@ -41,34 +41,85 @@ export const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
 export const MAX_ATTACHMENTS_PER_MESSAGE = 10;
 
 /**
- * Image extensions some browsers/OSes report with a blank MIME type (HEIC/HEIF
- * from iPhones on Chrome/Firefox, AVIF, TIFF, BMP on some platforms).
+ * Image extensions every Android version Chrome supports maps to an image/*
+ * type: HEIC/HEIF, TIFF, BMP, and the camera RAW formats phones and most
+ * cameras write (DNG incl. phone ProRAW, Canon, Nikon, Sony, Fujifilm,
+ * Olympus, Panasonic, Pentax, Samsung, Epson). Browsers/OSes often report
+ * them with a blank or generic MIME type.
  */
-const IMAGE_FILE_EXTENSIONS = [
+const PICKER_IMAGE_EXTENSIONS = [
   '.heic',
   '.heif',
-  '.avif',
   '.tif',
   '.tiff',
   '.bmp',
+  '.dng',
+  '.cr2',
+  '.crw',
+  '.nef',
+  '.nrw',
+  '.arw',
+  '.raf',
+  '.orf',
+  '.rw2',
+  '.pef',
+  '.srw',
+  '.erf',
 ];
 
 /**
- * File-picker filter: every image type the browser recognises plus the
- * extensions above. Only a picker hint — no type or size check is applied to
- * attachments; the backend converts/compresses each image for the vendors.
+ * Further camera RAW extensions (Canon CR3, older Sony, Leica, Sigma,
+ * Hasselblad, Phase One, Minolta, Kodak) that are recognised on paste but
+ * kept out of the picker filter: Chrome on Android turns an extension it
+ * can't map to image/* into application/octet-stream and then shows a
+ * generic all-files chooser instead of the photo picker. Ambiguous ones
+ * (.raw, .dcr, .mos — also audio, Shockwave, ... files) are left out.
+ */
+const OTHER_RAW_EXTENSIONS = [
+  '.cr3',
+  '.srf',
+  '.sr2',
+  '.rwl',
+  '.x3f',
+  '.3fr',
+  '.fff',
+  '.iiq',
+  '.mrw',
+  '.kdc',
+];
+
+const IMAGE_FILE_EXTENSIONS = [
+  ...PICKER_IMAGE_EXTENSIONS,
+  '.avif',
+  ...OTHER_RAW_EXTENSIONS,
+];
+
+/**
+ * File-picker filter: every image type the browser recognises, the
+ * extensions Android maps to image types (so its photo picker stays), and
+ * AVIF and CR3 by MIME type (Android 11 and older have no .avif mapping;
+ * none has .cr3). Chrome passes MIME types through as they are. On stock
+ * Android a local CR3 isn't a media file, so only a provider that types it
+ * image/x-canon-cr3 (e.g. a cloud photo app) offers it; iOS offers every
+ * camera RAW under image/*. Only a picker hint — no type or size check is
+ * applied to attachments; the backend converts/compresses each image (the
+ * camera RAW formats it reads with LibRaw) for the vendors.
  */
 export const ATTACHMENT_FILE_INPUT_ACCEPT = [
   'image/*',
-  ...IMAGE_FILE_EXTENSIONS,
+  ...PICKER_IMAGE_EXTENSIONS,
+  'image/avif',
+  'image/x-canon-cr3',
 ].join(',');
 
 /**
- * Whether a clipboard file is an image: an image/* MIME type, or a blank type
- * with a known image extension. Tells image pastes apart from other files.
+ * Whether a clipboard file is an image: an image/* MIME type, or a blank or
+ * generic (application/octet-stream) type with a known image extension.
+ * Tells image pastes apart from other files.
  */
 export function isImageFile(type: string, fileName: string): boolean {
   if (type.startsWith('image/')) return true;
+  if (type !== '' && type !== 'application/octet-stream') return false;
   const name = fileName.toLowerCase();
-  return type === '' && IMAGE_FILE_EXTENSIONS.some(ext => name.endsWith(ext));
+  return IMAGE_FILE_EXTENSIONS.some(ext => name.endsWith(ext));
 }
