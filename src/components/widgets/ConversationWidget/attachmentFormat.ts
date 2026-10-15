@@ -89,6 +89,24 @@ const UNSUPPORTED_IMAGE_TYPES = [
   'image/vnd.radiance',
   'image/x-eps',
   'image/vnd.adobe.photoshop.large',
+  'image/vnd.ms-photo', // JPEG XR (Windows HDR screenshots)
+  'image/jxr',
+  'image/x-emf',
+  'image/emf',
+  'image/x-wmf',
+  'image/wmf',
+  'image/x-pcx',
+  'image/vnd.zbrush.pcx',
+  'image/sgi',
+  'image/x-sgi',
+  'image/x-xbitmap',
+  'image/x-xpixmap',
+  'image/x-pict',
+  'image/x-portable-arbitrarymap',
+  'image/x-cmu-raster',
+  'image/x-sun-raster',
+  'image/vnd.wap.wbmp',
+  'image/x-jng',
 ];
 
 /** ISO-BMFF brands (bytes 8-11): HEIF/HEIC, AVIF, Canon CR3. */
@@ -102,7 +120,6 @@ const IMAGE_BRANDS = [
   'hevm',
   'hevs',
   'mif1',
-  'mif2',
   'msf1',
   'avif',
   'avis',
@@ -183,8 +200,6 @@ export function sniffImageFormat(
     '%PDF',
     '%!PS', // PostScript / EPS
     [0xc5, 0xd0, 0xd3, 0xc6], // EPS with a preview
-    [0x00, 0x00, 0x01, 0x00], // ICO
-    [0x00, 0x00, 0x02, 0x00], // CUR
     'icns',
     'DDS ',
     'SIMPLE  =', // FITS
@@ -203,6 +218,15 @@ export function sniffImageFormat(
     [0x1f, 0x8b], // gzip
     'Rar!',
     [0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c], // 7z
+    'II\xbc', // JPEG XR
+    [0xd7, 0xcd, 0xc6, 0x9a], // WMF (placeable)
+    [0x01, 0xda], // SGI
+    [0x59, 0xa6, 0x6a, 0x95], // Sun raster
+    '\x8aMNG',
+    '\x8bJNG',
+    'P7\n', // PAM
+    '/* XPM */',
+    '#define', // XBM
   ];
 
   // Text formats (SVG, HTML, XML, ...) may start with a BOM or whitespace.
@@ -213,12 +237,29 @@ export function sniffImageFormat(
     ' \t\r\n'.includes(String.fromCharCode(bytes[text]))
   )
     text++;
-  if (bytes[text] === 0x3c /* < */ || startsWith(bytes, '%PDF', text))
+  // ("<" then a letter, "?" or "!": a binary "<", such as a TGA with a
+  // 60-byte ID field, is not markup)
+  if (
+    (bytes[text] === 0x3c /* < */ &&
+      /[A-Za-z?!]/.test(String.fromCharCode(bytes[text + 1] ?? 0))) ||
+    startsWith(bytes, '%PDF', text)
+  )
     return 'unsupported';
 
   if (supported.some(signature => startsWith(bytes, signature)))
     return 'supported';
   if (unsupported.some(signature => startsWith(bytes, signature)))
+    return 'unsupported';
+  // ICO / CUR: 00 00 01|02 00, then an image count of at least 1 (an
+  // uncompressed TGA without ID field or colour map starts 00 00 02 00 too,
+  // with 00 00 next)
+  if (
+    (startsWith(bytes, [0, 0, 1, 0]) || startsWith(bytes, [0, 0, 2, 0])) &&
+    (bytes[4] | (bytes[5] << 8)) > 0
+  )
+    return 'unsupported';
+  // EMF: a record of type 1, then " EMF" at offset 40
+  if (startsWith(bytes, [1, 0, 0, 0]) && startsWith(bytes, ' EMF', 40))
     return 'unsupported';
   // Canon CRW: byte order, then "HEAPCCDR" at offset 6
   if (
@@ -244,11 +285,11 @@ export function sniffImageFormat(
     bytes[17] === 0
   )
     return 'supported';
-  // Netpbm (P1-P6) followed by whitespace
+  // Netpbm (P1-P6) or grayscale PFM ("Pf"; colour "PF" isn't read),
+  // followed by whitespace
   if (
     bytes[0] === 0x50 &&
-    bytes[1] >= 0x31 &&
-    bytes[1] <= 0x36 &&
+    ((bytes[1] >= 0x31 && bytes[1] <= 0x36) || bytes[1] === 0x66) &&
     ' \t\r\n'.includes(String.fromCharCode(bytes[2] ?? 0))
   )
     return 'supported';

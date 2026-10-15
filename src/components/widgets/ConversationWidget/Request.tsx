@@ -233,12 +233,24 @@ function Request({
     [getAccessTokenSilently, removeAttachment, showToast, t, uploadAttachment]
   );
 
+  // Picker/paste events whose files are still being format-checked: nothing
+  // is in the strip yet, but Generate must wait for them like for uploads
+  const [validatingCount, setValidatingCount] = React.useState(0);
+
   // Several files from one picker/paste event: drop (and toast about) the
   // ones in a format the backend can't use, upload what fits under the
   // per-message limit and tell the user once about the rest.
   const addAttachments = React.useCallback(
     async (files: File[]) => {
-      const supported = await validateAttachments(files);
+      setValidatingCount(n => n + 1);
+      let supported: File[];
+      try {
+        supported = await validateAttachments(files);
+      } finally {
+        // Same tick as the uploads below reserve their slots: no Generate
+        // click can land in between
+        setValidatingCount(n => n - 1);
+      }
       const free =
         MAX_ATTACHMENTS_PER_MESSAGE - pendingAttachmentsRef.current.length;
       if (supported.length > free) {
@@ -378,7 +390,10 @@ function Request({
 
   const handleGenerate = () => {
     if (!hasAnyValidApiKey) return;
-    if (pendingAttachments.some(a => a.status === 'uploading')) {
+    if (
+      validatingCount > 0 ||
+      pendingAttachments.some(a => a.status === 'uploading')
+    ) {
       showToast(t('conversation.request.attachmentsUploading'));
       return;
     }

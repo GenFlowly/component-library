@@ -27,6 +27,9 @@
   opacity: 0;
   transform: translateX(20px);
   max-width: 300px;
+  // Messages can carry user-chosen text such as file names: wrap a long
+  // unbreakable word instead of letting it widen the text past the toast
+  overflow-wrap: anywhere;
 
   // Optional: Success/Error variants if needed later
   // For now, reusing generic tooltip style as requested

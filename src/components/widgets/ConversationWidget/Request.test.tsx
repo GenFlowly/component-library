@@ -643,6 +643,41 @@ describe('Request Widget Component', () => {
         );
       });
 
+      test('Generate waits while a paste is still being checked', async () => {
+        mockUploadAttachment.mockResolvedValue({
+          attachmentId: 'a',
+          s3Key: 'k',
+          mediaType: 'image/png',
+        });
+        render(<Request blockId="block-1" />);
+        // A file whose first bytes are slow to read (e.g. cloud-only)
+        let release: (head: ArrayBuffer) => void = () => undefined;
+        const held = new File(['x'], 'shot.png', { type: 'image/png' });
+        held.slice = () =>
+          ({
+            arrayBuffer: () =>
+              new Promise<ArrayBuffer>(resolve => (release = resolve)),
+          }) as unknown as Blob;
+        pasteItems([fileItem(held)]);
+
+        fireEvent.click(screen.getByTestId('generate-button'));
+        expect(mockGenerateResponsesStream).not.toHaveBeenCalled();
+        expect(mockShowToast).toHaveBeenCalledWith(
+          'Images are still uploading'
+        );
+
+        await act(async () =>
+          release(
+            new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+              .buffer
+          )
+        );
+        expect(
+          await screen.findAllByTestId('attachment-thumbnail')
+        ).toHaveLength(1);
+        expect(mockUploadAttachment).toHaveBeenCalledWith('test-token', held);
+      });
+
       test('next to text, files that are not images are left to the editor', async () => {
         render(<Request blockId="block-1" />);
         const pdf = new File(['%PDF-1.7'], 'scan.pdf', {

@@ -88,6 +88,42 @@ describe('sniffImageFormat', () => {
     }
   });
 
+  test('tells TGA (no signature) apart from ICO/CUR, and PFM from PAM', () => {
+    // Uncompressed true-colour TGA, no ID field or colour map: 00 00 02 00 like CUR
+    const tga = pad(
+      bytes([0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x40, 0, 0x30, 0, 0x18, 0])
+    );
+    expect(sniffImageFormat(tga)).toBeNull(); // goes by its .tga name
+    // A TGA with a 60-byte ID field starts with "<" — not markup
+    expect(sniffImageFormat(pad(bytes([0x3c, 0, 2, 0, 0, 0])))).toBeNull();
+    expect(sniffImageFormat(pad(bytes([0, 0, 2, 0, 1, 0, 0x20, 0x20])))).toBe(
+      'unsupported'
+    ); // CUR, 1 image
+    expect(sniffImageFormat(pad(bytes('Pf\n2 2\n-1.0\n')))).toBe('supported'); // grayscale PFM
+    expect(sniffImageFormat(pad(bytes('PF\n2 2\n-1.0\n')))).toBeNull(); // colour PFM isn't read
+    expect(sniffImageFormat(pad(bytes('P7\nWIDTH 2\n')))).toBe('unsupported'); // PAM
+  });
+
+  test('turns down other formats the backend has no reader for', () => {
+    const emf = pad(bytes([1, 0, 0, 0]));
+    emf.set(bytes(' EMF'), 40);
+    const others: [string, Uint8Array][] = [
+      ['JPEG XR', pad(bytes('II', [0xbc, 0x01]))],
+      ['WMF', pad(bytes([0xd7, 0xcd, 0xc6, 0x9a]))],
+      ['EMF', emf],
+      ['SGI', pad(bytes([0x01, 0xda, 0x01, 0x01]))],
+      ['Sun raster', pad(bytes([0x59, 0xa6, 0x6a, 0x95]))],
+      ['MNG', pad(bytes([0x8a], 'MNG', [0x0d, 0x0a]))],
+      ['JNG', pad(bytes([0x8b], 'JNG', [0x0d, 0x0a]))],
+      ['XPM', pad(bytes('/* XPM */\nstatic char *x[] = {'))],
+      ['XBM', pad(bytes('#define x_width 8\n'))],
+    ];
+    for (const [name, head] of others) {
+      expect([name, sniffImageFormat(head)]).toEqual([name, 'unsupported']);
+    }
+    expect(sniffImageFormat(ftyp('mif2'))).toBeNull(); // no reader accepts this major brand
+  });
+
   test('says nothing about bytes it does not know', () => {
     expect(sniffImageFormat(pad(bytes('hello world')))).toBeNull();
     expect(sniffImageFormat(pad(bytes('BM not a bitmap header')))).toBeNull();
@@ -121,6 +157,12 @@ describe('imageFormatFromTypeAndName', () => {
       'unsupported'
     );
     expect(imageFormatFromTypeAndName('', 'notes.txt')).toBe('unsupported');
+    expect(
+      imageFormatFromTypeAndName('image/vnd.ms-photo', 'capture.jxr')
+    ).toBe('unsupported');
+    expect(imageFormatFromTypeAndName('image/x-emf', 'chart.emf')).toBe(
+      'unsupported'
+    );
   });
 });
 
@@ -144,6 +186,27 @@ describe('checkAttachmentFormat', () => {
         new File([ftyp('heic')], 'IMG_0001.HEIC', { type: '' })
       )
     ).toBe('supported');
+  });
+
+  test('a real uncompressed TGA is supported by its name or type', async () => {
+    const tga = bytes(
+      [0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 24, 0],
+      [0, 0, 255, 0, 0, 255, 0, 0, 255, 0, 0, 255]
+    );
+    expect(
+      await checkAttachmentFormat(new File([tga], 'texture.tga', { type: '' }))
+    ).toBe('supported');
+    expect(
+      await checkAttachmentFormat(
+        new File([tga], 'image', { type: 'image/x-tga' })
+      )
+    ).toBe('supported');
+    const cur = bytes([
+      0, 0, 2, 0, 1, 0, 16, 16, 0, 0, 1, 0, 1, 0, 0x30, 0, 0, 0, 0x16, 0, 0, 0,
+    ]);
+    expect(
+      await checkAttachmentFormat(new File([cur], 'pointer.tga', { type: '' }))
+    ).toBe('unsupported');
   });
 
   test('falls back to the type and name for unknown or unreadable bytes', async () => {
