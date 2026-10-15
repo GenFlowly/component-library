@@ -122,7 +122,11 @@ export interface Message {
   /**
    * Reason the generation failed for this vendor, if it did. Any text
    * streamed before the failure is kept in `text`; the UI renders the
-   * error below it. Only ever set client-side — never persisted.
+   * error below it (a failed response card when there is no text). Set
+   * live from a stream failure (the "err" chunk) and, for conversations
+   * loaded from history, from the stored turn's error (the backend's
+   * GenerateTextResponse.error), so a failed turn still reads as failed
+   * after a reload.
    */
   error?: string | null;
   /**

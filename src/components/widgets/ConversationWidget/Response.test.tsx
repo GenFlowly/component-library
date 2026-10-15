@@ -1204,4 +1204,44 @@ describe('Response Widget Component', () => {
       );
     });
   });
+
+  describe('failed turns', () => {
+    const failed = (text: string) => [
+      {
+        messageId: 'm1',
+        text,
+        aiVendor: AIVendor.OPENAI,
+        isLoading: false,
+        error: 'The response was lost when the server restarted.',
+      },
+    ];
+
+    test('a failed turn without text renders as a failed response card', () => {
+      mockSelection = [AIVendor.OPENAI];
+      render(<Response blockId="block-1" responseMessages={failed('')} />);
+      expect(screen.getAllByTestId('response-message')).toHaveLength(1);
+      expect(screen.getByTestId('response-error')).toHaveTextContent(
+        'Generation failed: The response was lost when the server restarted.'
+      );
+      // Regenerate stays available; nothing to follow up on
+      expect(screen.getByTestId('regenerate-button')).toBeInTheDocument();
+      expect(screen.queryByTestId('follow-up-button')).not.toBeInTheDocument();
+    });
+
+    test('a failed turn keeps its partial text and says it was interrupted', () => {
+      mockSelection = [AIVendor.OPENAI];
+      render(
+        <Response
+          blockId="block-1"
+          responseMessages={failed('The first half of the answer')}
+        />
+      );
+      expect(screen.getByTestId('tc-content')).toHaveTextContent(
+        'The first half of the answer'
+      );
+      expect(screen.getByTestId('response-error')).toHaveTextContent(
+        'Response interrupted: The response was lost when the server restarted.'
+      );
+    });
+  });
 });
