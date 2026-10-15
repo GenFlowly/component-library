@@ -208,6 +208,9 @@
       "noApiKeysSet": "No API keys set",
       "attachmentLimitReached": "You can attach at most {{max}} images per message",
       "attachmentUploadFailed": "Image upload failed. Please try again",
+      "attachmentFormatUnsupported": "{{name}} isn't a supported image format. Supported formats: {{formats}}",
+      "attachmentFormatsUnsupported": "{{count}} files aren't in a supported image format ({{names}}). Supported formats: {{formats}}",
+      "pastedFile": "The pasted file",
       "attachmentsUploading": "Images are still uploading",
       "removeAttachment": "Remove image",
       "addImageAttachment": "Add image attachment"

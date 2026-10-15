@@ -519,7 +519,7 @@ describe('Request Widget Component', () => {
       expect(mockShowToast).not.toHaveBeenCalled();
     });
 
-    test('pastes blank-type files only when the name is an image', async () => {
+    test('pastes blank-type files only when they are images', async () => {
       mockUploadAttachment.mockResolvedValue({
         attachmentId: 'att-1',
         s3Key: 'k',
@@ -534,6 +534,10 @@ describe('Request Widget Component', () => {
 
       render(<Request blockId="block-1" />);
       pasteFile(new File(['x'], 'notes.pdf', { type: '' }));
+      await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(1));
+      expect(mockShowToast.mock.calls[0][0]).toMatch(
+        /^notes\.pdf isn't a supported image format/
+      );
       expect(mockUploadAttachment).not.toHaveBeenCalled();
 
       const heic = new File(['x'], 'IMG_0001.HEIC', { type: '' });
@@ -545,6 +549,114 @@ describe('Request Widget Component', () => {
       );
       expect(mockUploadAttachment).toHaveBeenCalledWith('test-token', heic);
       expect(mockUploadAttachment).toHaveBeenCalledWith('test-token', raw);
+    });
+
+    describe('unsupported formats', () => {
+      const pasteItems = (items: object[]) =>
+        fireEvent.paste(screen.getByTestId('request-widget-container'), {
+          clipboardData: { items },
+        });
+      const fileItem = (file: File) => ({
+        kind: 'file',
+        type: file.type,
+        getAsFile: () => file,
+      });
+      const png = () =>
+        new File(
+          [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1])],
+          'shot.png',
+          { type: 'image/png' }
+        );
+
+      test('are turned down with a toast listing the supported formats', async () => {
+        render(<Request blockId="block-1" />);
+        const svg = new File(
+          ['<svg xmlns="http://www.w3.org/2000/svg"/>'],
+          'logo.svg',
+          {
+            type: 'image/svg+xml',
+          }
+        );
+        expect(pasteItems([fileItem(svg)])).toBe(false); // the paste is taken
+
+        await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(1));
+        const [message, duration] = mockShowToast.mock.calls[0];
+        expect(message).toMatch(
+          /^logo\.svg isn't a supported image format\. Supported formats: JPEG, PNG/
+        );
+        expect(message).toContain('HEIC/HEIF');
+        expect(message).toContain('camera RAW (DNG');
+        expect(duration).toBeGreaterThanOrEqual(5000); // long enough to read the list
+        expect(mockUploadAttachment).not.toHaveBeenCalled();
+        expect(
+          screen.queryByTestId('attachment-thumbnail')
+        ).not.toBeInTheDocument();
+      });
+
+      test('are named in one toast while the supported files upload', async () => {
+        mockUploadAttachment.mockResolvedValue({
+          attachmentId: 'a',
+          s3Key: 'k',
+          mediaType: 'image/png',
+        });
+        render(<Request blockId="block-1" />);
+        const image = png();
+        pasteItems([
+          fileItem(image),
+          fileItem(
+            new File(['%PDF-1.7'], 'scan.pdf', { type: 'application/pdf' })
+          ),
+          fileItem(new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' })),
+        ]);
+
+        expect(
+          await screen.findAllByTestId('attachment-thumbnail')
+        ).toHaveLength(1);
+        expect(mockUploadAttachment).toHaveBeenCalledTimes(1);
+        expect(mockUploadAttachment).toHaveBeenCalledWith('test-token', image);
+        expect(mockShowToast).toHaveBeenCalledTimes(1);
+        expect(mockShowToast.mock.calls[0][0]).toMatch(
+          /^2 files aren't in a supported image format \(scan\.pdf, logo\.svg\)\. Supported formats: /
+        );
+      });
+
+      test('go by the file contents, not the name', async () => {
+        mockUploadAttachment.mockResolvedValue({
+          attachmentId: 'a',
+          s3Key: 'k',
+          mediaType: 'image/png',
+        });
+        render(<Request blockId="block-1" />);
+        // An SVG named .png is turned down; a PNG with no type or extension isn't
+        pasteItems([
+          fileItem(new File(['<svg/>'], 'fake.png', { type: 'image/png' })),
+        ]);
+        await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(1));
+        const nameless = new File([png()], 'image', { type: '' });
+        pasteItems([fileItem(nameless)]);
+        expect(
+          await screen.findAllByTestId('attachment-thumbnail')
+        ).toHaveLength(1);
+        expect(mockUploadAttachment).toHaveBeenCalledWith(
+          'test-token',
+          nameless
+        );
+      });
+
+      test('next to text, files that are not images are left to the editor', async () => {
+        render(<Request blockId="block-1" />);
+        const pdf = new File(['%PDF-1.7'], 'scan.pdf', {
+          type: 'application/pdf',
+        });
+        const notPrevented = pasteItems([
+          { kind: 'string', type: 'text/plain', getAsFile: () => null },
+          fileItem(pdf),
+        ]);
+        expect(notPrevented).toBe(true);
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(mockShowToast).not.toHaveBeenCalled();
+        expect(mockUploadAttachment).not.toHaveBeenCalled();
+      });
     });
 
     test('remove button discards the attachment before send', async () => {
@@ -745,6 +857,25 @@ describe('Request Widget Component', () => {
           '.raf',
         ])
       );
+    });
+
+    test('a picked file in an unsupported format gets a toast, not an upload', async () => {
+      render(<Request blockId="block-1" />);
+      setViewportWidth(500);
+
+      fireEvent.change(screen.getByTestId('attachment-file-input'), {
+        target: {
+          files: [
+            new File(['%PDF-1.4'], 'scan.pdf', { type: 'application/pdf' }),
+          ],
+        },
+      });
+
+      await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(1));
+      expect(mockShowToast.mock.calls[0][0]).toMatch(
+        /^scan\.pdf isn't a supported image format\. Supported formats: /
+      );
+      expect(mockUploadAttachment).not.toHaveBeenCalled();
     });
 
     test('uploads a picked file the browser reports with a blank type', async () => {

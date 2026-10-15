@@ -108,7 +108,8 @@ export interface ConversationWidgetContextValue {
   services?: ConversationWidgetServices;
   /** Sidebar state; both-collapsed enables the side-by-side response layout. */
   layout?: ConversationWidgetLayout;
-  showToast?: (message: string) => void;
+  /** Shows a toast; `duration` (ms) is optional, for longer messages. */
+  showToast?: (message: string, duration?: number) => void;
 }
 
 const ConversationWidgetContext =
@@ -167,7 +168,9 @@ export function useConversationLayout(): ConversationWidgetLayout {
 
 const NOOP_TOAST = () => undefined;
 
-export function useToast(): { showToast: (message: string) => void } {
+export function useToast(): {
+  showToast: (message: string, duration?: number) => void;
+} {
   const { showToast } = useWidgetContext();
   return { showToast: showToast ?? NOOP_TOAST };
 }

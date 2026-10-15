@@ -22,8 +22,9 @@ export interface GetAttachmentUrlResponse {
 }
 
 /**
- * @deprecated No longer enforced: the composer accepts any image type, and the
- * backend converts each image to a format every LLM vendor supports.
+ * @deprecated Not used: the composer accepts every format the backend can
+ * convert for the LLM vendors (see SUPPORTED_IMAGE_FORMATS and
+ * checkAttachmentFormat in attachmentFormat.ts).
  */
 export const ALLOWED_ATTACHMENT_MEDIA_TYPES = [
   'image/png',
@@ -101,9 +102,10 @@ const IMAGE_FILE_EXTENSIONS = [
  * none has .cr3). Chrome passes MIME types through as they are. On stock
  * Android a local CR3 isn't a media file, so only a provider that types it
  * image/x-canon-cr3 (e.g. a cloud photo app) offers it; iOS offers every
- * camera RAW under image/*. Only a picker hint — no type or size check is
- * applied to attachments; the backend converts/compresses each image (the
- * camera RAW formats it reads with LibRaw) for the vendors.
+ * camera RAW under image/*. Only a picker hint: picked files are checked
+ * with useAttachmentValidation (formats, by their bytes); there is no size
+ * check, and the backend converts/compresses each image (the camera RAW
+ * formats it reads with LibRaw) for the vendors.
  */
 export const ATTACHMENT_FILE_INPUT_ACCEPT = [
   'image/*',
