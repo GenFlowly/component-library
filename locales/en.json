@@ -246,7 +246,13 @@
       "deleteFact": "Delete fact from memory: {{fact}}",
       "conversationCostUsd": "Total {{vendor}} cost for this conversation so far (USD)",
       "thinkingPrompt": "Prompt",
-      "thinkingResponse": "Response"
+      "thinkingResponse": "Response",
+      "writingPdf_one": "Writing PDF... {{chars}} character",
+      "writingPdf_other": "Writing PDF... {{chars}} characters",
+      "writingFile_one": "Writing file... {{chars}} character",
+      "writingFile_other": "Writing file... {{chars}} characters",
+      "writingOther_one": "Writing... {{chars}} character",
+      "writingOther_other": "Writing... {{chars}} characters"
     }
   },
   "dbSettings": {

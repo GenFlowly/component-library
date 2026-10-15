@@ -163,6 +163,7 @@ export type {
   LearnedFact,
   ThinkingStep,
   ThinkingStepKind,
+  ToolProgress,
   IConversationContext,
   IConversationUIContext,
 } from './components/widgets/ConversationWidget/conversation.models';

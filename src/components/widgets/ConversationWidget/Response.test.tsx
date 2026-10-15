@@ -1278,4 +1278,77 @@ describe('Response Widget Component', () => {
       );
     });
   });
+
+  describe('writing progress', () => {
+    const writing = (progress: any, isLoading = true, text = '') => [
+      {
+        messageId: 'm1',
+        text,
+        aiVendor: AIVendor.OPENAI,
+        isLoading,
+        progress,
+      },
+    ];
+
+    test('shows "Writing PDF... N characters" while generate_pdf arguments stream', () => {
+      mockSelection = [AIVendor.OPENAI];
+      render(
+        <Response
+          blockId="block-1"
+          responseMessages={writing({ tool: 'generate_pdf', chars: 12345 })}
+        />
+      );
+      const line = screen.getByTestId('writing-progress');
+      expect(line).toHaveTextContent('Writing PDF... 12,345 characters');
+      expect(line).toHaveAttribute('role', 'status');
+    });
+
+    test('revise_pdf also reads as writing a PDF', () => {
+      mockSelection = [AIVendor.OPENAI];
+      render(
+        <Response
+          blockId="block-1"
+          responseMessages={writing(
+            { tool: 'revise_pdf', chars: 800 },
+            true,
+            "I'll update the report."
+          )}
+        />
+      );
+      expect(screen.getByTestId('writing-progress')).toHaveTextContent(
+        'Writing PDF... 800 characters'
+      );
+    });
+
+    test('fs_write reads as writing a file', () => {
+      mockSelection = [AIVendor.OPENAI];
+      render(
+        <Response
+          blockId="block-1"
+          responseMessages={writing({ tool: 'fs_write', chars: 1 })}
+        />
+      );
+      expect(screen.getByTestId('writing-progress')).toHaveTextContent(
+        'Writing file... 1 character'
+      );
+    });
+
+    test('is hidden once the message stopped loading or has no progress', () => {
+      mockSelection = [AIVendor.OPENAI];
+      const { rerender } = render(
+        <Response
+          blockId="block-1"
+          responseMessages={writing(
+            { tool: 'generate_pdf', chars: 50 },
+            false,
+            'Done.'
+          )}
+        />
+      );
+      expect(screen.queryByTestId('writing-progress')).not.toBeInTheDocument();
+
+      rerender(<Response blockId="block-1" responseMessages={writing(null)} />);
+      expect(screen.queryByTestId('writing-progress')).not.toBeInTheDocument();
+    });
+  });
 });

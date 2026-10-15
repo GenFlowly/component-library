@@ -101,6 +101,19 @@ export interface ThinkingStep {
   todos?: TodoItem[];
 }
 
+/**
+ * Live progress of a long tool argument being written — the "pg" chunk,
+ * sent at most every few seconds while the model streams the arguments of
+ * generate_pdf, revise_pdf or fs_write (the document/file text), which
+ * otherwise looks like a silent wait. Never persisted.
+ */
+export interface ToolProgress {
+  /** Tool whose arguments are being written, e.g. "generate_pdf". */
+  tool: string;
+  /** Characters of arguments written so far. */
+  chars: number;
+}
+
 /** One item of the agent's plan (the write_todos harness tool). */
 export interface TodoItem {
   content: string;
@@ -129,6 +142,12 @@ export interface Message {
    * after a reload.
    */
   error?: string | null;
+  /**
+   * Latest "pg" progress while a tool argument is being written. Shown as
+   * "Writing PDF... N characters" while the message is loading; the host
+   * clears it on the next content/"ga"/"err" chunk or when the stream ends.
+   */
+  progress?: ToolProgress | null;
   /**
    * Legacy flat thinking lines streamed via the "k" chunk. Kept for backends
    * that still emit flat strings; rendered as plain steps without an icon.

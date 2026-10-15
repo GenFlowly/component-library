@@ -20,6 +20,7 @@ import {
   LearnedFact,
   Message,
   ThinkingStep,
+  ToolProgress,
   WebSource,
 } from './conversation.models';
 import { AttachmentRef } from './attachment.models';
@@ -131,6 +132,55 @@ function StopReasonNote({ reason }: { reason: string }) {
     >
       Finished · {r}
     </span>
+  );
+}
+
+/** Tools whose argument is a PDF document vs. a scratch file. */
+const PDF_WRITING_TOOLS = new Set(['generate_pdf', 'revise_pdf']);
+const FILE_WRITING_TOOLS = new Set(['fs_write']);
+
+/**
+ * "Writing PDF... 12,345 characters" while the model streams a long tool
+ * argument (the "pg" chunk) — otherwise writing a long document looks like
+ * a silent wait. English defaults keep it readable on hosts whose
+ * translations predate the keys.
+ */
+function WritingProgress({ progress }: { progress: ToolProgress }) {
+  const { t } = useTranslation();
+  const count = Math.max(0, Math.floor(progress.chars));
+  const chars = count.toLocaleString();
+  const plural = count === 1 ? 'character' : 'characters';
+  let label: string;
+  if (PDF_WRITING_TOOLS.has(progress.tool)) {
+    label = t('conversation.response.writingPdf', {
+      count,
+      chars,
+      defaultValue: `Writing PDF... {{chars}} ${plural}`,
+    });
+  } else if (FILE_WRITING_TOOLS.has(progress.tool)) {
+    label = t('conversation.response.writingFile', {
+      count,
+      chars,
+      defaultValue: `Writing file... {{chars}} ${plural}`,
+    });
+  } else {
+    label = t('conversation.response.writingOther', {
+      count,
+      chars,
+      defaultValue: `Writing... {{chars}} ${plural}`,
+    });
+  }
+  return (
+    <div
+      className={styles.writingProgress}
+      role="status"
+      aria-live="polite"
+      data-testid="writing-progress"
+      data-tool={progress.tool}
+    >
+      <span className={styles.pulse} />
+      <span>{label}</span>
+    </div>
   );
 }
 
@@ -690,6 +740,7 @@ function Response({
             costUsd,
             learnedFacts,
             stopReason,
+            progress,
           }) => {
             const isSelected = selectedResponseId === messageId;
             const isThinkingPhase = !!isLoading && text.trim().length === 0;
@@ -774,6 +825,9 @@ function Response({
                     vendor: aiVendor,
                   })}
                 >
+                  {isLoading && progress && (
+                    <WritingProgress progress={progress} />
+                  )}
                   {error && (
                     <div
                       className={styles.errorBanner}

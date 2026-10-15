@@ -280,6 +280,17 @@
 
 // Step rows themselves live in ThinkingSteps.module.scss
 
+// "Writing PDF... N characters" while a long tool argument streams
+.writingProgress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+  color: $color-text-secondary;
+  font-variant-numeric: tabular-nums;
+}
+
 .errorBanner {
   margin: 0.5rem 0;
   padding: 0.5rem 0.75rem;
