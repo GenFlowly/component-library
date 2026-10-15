@@ -41,16 +41,15 @@ export const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
 export const MAX_ATTACHMENTS_PER_MESSAGE = 10;
 
 /**
- * Image extensions Android maps to an image/* type: HEIC/HEIF, AVIF, TIFF,
- * BMP, and the camera RAW formats phones and most cameras write (DNG incl.
- * phone ProRAW, Canon, Nikon, Sony, Fujifilm, Olympus, Panasonic, Pentax,
- * Samsung, Epson). Browsers/OSes often report them with a blank or generic
- * MIME type.
+ * Image extensions every Android version Chrome supports maps to an image/*
+ * type: HEIC/HEIF, TIFF, BMP, and the camera RAW formats phones and most
+ * cameras write (DNG incl. phone ProRAW, Canon, Nikon, Sony, Fujifilm,
+ * Olympus, Panasonic, Pentax, Samsung, Epson). Browsers/OSes often report
+ * them with a blank or generic MIME type.
  */
 const PICKER_IMAGE_EXTENSIONS = [
   '.heic',
   '.heif',
-  '.avif',
   '.tif',
   '.tiff',
   '.bmp',
@@ -91,19 +90,25 @@ const OTHER_RAW_EXTENSIONS = [
 
 const IMAGE_FILE_EXTENSIONS = [
   ...PICKER_IMAGE_EXTENSIONS,
+  '.avif',
   ...OTHER_RAW_EXTENSIONS,
 ];
 
 /**
- * File-picker filter: every image type the browser recognises plus the
- * extensions above that Android maps to image types (so the photo picker
- * stays), and CR3 by MIME type. Only a picker hint — no type or size check is
+ * File-picker filter: every image type the browser recognises, the
+ * extensions Android maps to image types (so its photo picker stays), and
+ * AVIF and CR3 by MIME type (Android 11 and older have no .avif mapping;
+ * none has .cr3). Chrome passes MIME types through as they are. On stock
+ * Android a local CR3 isn't a media file, so only a provider that types it
+ * image/x-canon-cr3 (e.g. a cloud photo app) offers it; iOS offers every
+ * camera RAW under image/*. Only a picker hint — no type or size check is
  * applied to attachments; the backend converts/compresses each image (the
  * camera RAW formats it reads with LibRaw) for the vendors.
  */
 export const ATTACHMENT_FILE_INPUT_ACCEPT = [
   'image/*',
   ...PICKER_IMAGE_EXTENSIONS,
+  'image/avif',
   'image/x-canon-cr3',
 ].join(',');
 

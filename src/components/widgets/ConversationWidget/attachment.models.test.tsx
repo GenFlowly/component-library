@@ -9,6 +9,7 @@ describe('isImageFile', () => {
   test('blank or generic types count when the extension is an image one', () => {
     for (const name of [
       'IMG_0001.HEIC',
+      'photo.avif',
       'photo.DNG',
       'IMG_1234.CR3',
       'DSC_0042.nef',
@@ -44,9 +45,9 @@ describe('ATTACHMENT_FILE_INPUT_ACCEPT', () => {
     expect(accept).toEqual(
       expect.arrayContaining([
         'image/*',
+        'image/avif',
         '.dng',
         '.cr2',
-        'image/x-canon-cr3',
         '.nef',
         '.arw',
         '.raf',
@@ -58,12 +59,12 @@ describe('ATTACHMENT_FILE_INPUT_ACCEPT', () => {
 
   test('only lists entries Android maps to image types', () => {
     // Chrome on Android maps each extension to a MIME type; one it can't
-    // map becomes application/octet-stream and replaces the photo picker
-    // with a generic all-files chooser.
+    // map (on any Android version it supports) becomes
+    // application/octet-stream and replaces the photo picker with a generic
+    // all-files chooser. MIME types pass through as they are.
     const androidImageExtensions = [
       '.heic',
       '.heif',
-      '.avif',
       '.tif',
       '.tiff',
       '.bmp',
