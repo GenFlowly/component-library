@@ -92,6 +92,41 @@ function TodoChecklist({ todos }: { todos: TodoItem[] }) {
   );
 }
 
+/** The MEMORY step's applied memories as labeled groups: what was recalled
+ * specifically for this message leads (it's the per-message news), the
+ * always-applied core memories follow. */
+function MemoryGroups({
+  memories,
+}: {
+  memories: { core: string[]; recalled: string[] };
+}) {
+  const { t } = useTranslation();
+  const groups = [
+    {
+      label: t('conversation.response.memoryRecalledLabel'),
+      texts: memories.recalled,
+    },
+    {
+      label: t('conversation.response.memoryCoreLabel'),
+      texts: memories.core,
+    },
+  ].filter(group => group.texts.length > 0);
+  return (
+    <div data-testid="thinking-step-memories">
+      {groups.map(group => (
+        <div key={group.label} className={styles.memoryGroup}>
+          <span className={styles.blockLabel}>{group.label}</span>
+          <ul className={styles.items}>
+            {group.texts.map((text, j) => (
+              <li key={j}>{text}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** One individual tool call's breakdown: its call signature, then either its
  * error or its own sources — never a merged list across calls. */
 function ToolCallBlock({ call }: { call: ThinkingStepToolCall }) {
@@ -154,6 +189,10 @@ function ThinkingStepRow({
   const hasStructuredCalls = !isRunning && !!step.calls?.length;
   const hasStructuredSources = !isRunning && !!step.sources?.length;
   const hasItems = !isRunning && !!step.items && step.items.length > 0;
+  const hasMemories =
+    !isRunning &&
+    !!step.memories &&
+    step.memories.core.length + step.memories.recalled.length > 0;
   // The response block only earns its place when it says something the row
   // doesn't already: a tool-calling round's response is the preamble shown
   // as narration above, and pipeline nodes' detail line ("Intent: …",
@@ -176,6 +215,7 @@ function ThinkingStepRow({
     (hasStructuredToolCalls ||
       hasStructuredCalls ||
       hasStructuredSources ||
+      hasMemories ||
       hasItems ||
       !!step.prompt ||
       showResponse);
@@ -243,13 +283,17 @@ function ThinkingStepRow({
               ))}
             </div>
           )}
-          {!hasStructuredCalls && !hasStructuredSources && hasItems && (
-            <ul className={styles.items} data-testid="thinking-step-items">
-              {step.items!.map((item, j) => (
-                <li key={j}>{item}</li>
-              ))}
-            </ul>
-          )}
+          {hasMemories && <MemoryGroups memories={step.memories!} />}
+          {!hasStructuredCalls &&
+            !hasStructuredSources &&
+            !hasMemories &&
+            hasItems && (
+              <ul className={styles.items} data-testid="thinking-step-items">
+                {step.items!.map((item, j) => (
+                  <li key={j}>{item}</li>
+                ))}
+              </ul>
+            )}
           {hasStructuredSources && <SourceLinks sources={step.sources!} />}
           {step.prompt && (
             <div

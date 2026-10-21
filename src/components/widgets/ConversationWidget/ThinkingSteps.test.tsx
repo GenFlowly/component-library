@@ -107,6 +107,74 @@ describe('ThinkingSteps', () => {
     expect(screen.getByText('Pricing FAQ')).toBeInTheDocument();
   });
 
+  test('a MEMORY step renders labeled recalled/core groups instead of the flat items', () => {
+    const steps: ThinkingStep[] = [
+      {
+        node: 'memory',
+        name: 'Memory',
+        kind: 'MEMORY',
+        status: 'done',
+        detail: 'Applied 2 core memori(es); recalled 1 related to this message',
+        items: ['Recalled fact.', 'Core fact A.', 'Core fact B.'],
+        memories: {
+          core: ['Core fact A.', 'Core fact B.'],
+          recalled: ['Recalled fact.'],
+        },
+      },
+    ];
+    render(<ThinkingSteps steps={steps} isThinking />);
+
+    expect(screen.getByTestId('thinking-step-memories')).toBeInTheDocument();
+    expect(screen.getByText('Recalled for this message')).toBeInTheDocument();
+    expect(screen.getByText('Core memories')).toBeInTheDocument();
+    expect(screen.getByText('Recalled fact.')).toBeInTheDocument();
+    expect(screen.getByText('Core fact A.')).toBeInTheDocument();
+    expect(screen.getByText('Core fact B.')).toBeInTheDocument();
+    // the flat back-compat list must not render as a duplicate
+    expect(screen.queryByTestId('thinking-step-items')).not.toBeInTheDocument();
+  });
+
+  test('a MEMORY step with no recalled memories renders only the core group', () => {
+    const steps: ThinkingStep[] = [
+      {
+        node: 'memory',
+        name: 'Memory',
+        kind: 'MEMORY',
+        status: 'done',
+        detail: 'Applied 1 core memori(es)',
+        items: ['Core fact A.'],
+        memories: { core: ['Core fact A.'], recalled: [] },
+      },
+    ];
+    render(<ThinkingSteps steps={steps} isThinking />);
+
+    expect(screen.getByText('Core memories')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Recalled for this message')
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Core fact A.')).toBeInTheDocument();
+  });
+
+  test('a MEMORY step without the memories field falls back to the flat items list', () => {
+    const steps: ThinkingStep[] = [
+      {
+        node: 'memory',
+        name: 'Memory',
+        kind: 'MEMORY',
+        status: 'done',
+        detail: 'Applied 1 learned memori(es)',
+        items: ['Core fact A.'],
+      },
+    ];
+    render(<ThinkingSteps steps={steps} isThinking />);
+
+    expect(screen.getByTestId('thinking-step-items')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('thinking-step-memories')
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Core fact A.')).toBeInTheDocument();
+  });
+
   test('a done step with expandable content is collapsed by default, and expands on click', () => {
     const steps: ThinkingStep[] = [
       {
