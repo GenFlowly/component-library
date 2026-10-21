@@ -62,17 +62,24 @@ export interface ThinkingStep {
   label?: string;
   /** Present when done, e.g. "Found 3 relevant document(s)" */
   detail?: string;
-  /** Done: retrieved doc titles / web titles / memory excerpts (≤5) */
+  /** Done: the full list of retrieved doc titles / web titles / memory texts */
   items?: string[];
   /** Done, LLM-backed nodes: rendered prompt sent to the model (truncated) */
   prompt?: string;
   /** Done, LLM-backed nodes: the model's raw response (truncated) */
   response?: string;
   /**
-   * Done, WEB_SEARCH kind: the full (untruncated) result list — `items` above
-   * stays title-only and capped at 5 for older clients.
+   * Done, WEB_SEARCH kind: the full {index, title, url} result list — `items`
+   * above stays title-only for older clients.
    */
   sources?: WebSource[];
+  /**
+   * Done, MEMORY kind: the applied memories split into labeled groups —
+   * `core` is injected on every turn, `recalled` was pulled in because it
+   * looks related to the current message. Render this instead of `items`
+   * when present; the flat `items` list stays for older payloads.
+   */
+  memories?: { core: string[]; recalled: string[] };
   /**
    * Done, TOOL kind: one entry per individual tool call executed this round.
    * The primary fix for "web_search, web_search, web_search" — render this

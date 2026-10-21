@@ -83,6 +83,21 @@ $step-indent: 1.4rem;
   }
 }
 
+// The MEMORY step's labeled groups (recalled vs core). The label hangs at
+// the step indent like .detail; the list keeps its bullet indent relative
+// to the label instead of re-applying the full step indent.
+.memoryGroup {
+  margin-left: $step-indent;
+
+  .items {
+    padding-left: 1.1rem;
+  }
+
+  & + .memoryGroup {
+    margin-top: 0.35rem;
+  }
+}
+
 // Chevron toggle for a row's own expand/collapse — replaces the single
 // whole-section toggle that used to live in Response.module.scss.
 .rowToggle {
