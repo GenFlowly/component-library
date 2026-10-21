@@ -85,6 +85,24 @@ describe('AttachmentPreviewStrip', () => {
     // The attachment itself stays (and stays removable)
     expect(screen.getAllByTestId('attachment-thumbnail')).toHaveLength(2);
   });
+
+  test('renders a PDF as a document chip, not an image thumbnail', () => {
+    const pdf: PendingAttachment[] = [
+      {
+        localId: 'p1',
+        fileName: 'report.pdf',
+        mediaType: 'application/pdf',
+        previewUrl: 'blob:p',
+        status: 'ready',
+      },
+    ];
+    render(<AttachmentPreviewStrip attachments={pdf} onRemove={jest.fn()} />);
+    expect(screen.getByTestId('attachment-doc-chip')).toBeInTheDocument();
+    expect(screen.getByText('report.pdf')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('attachment-thumbnail')
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe('ResolvedAttachmentThumbnails', () => {
@@ -184,5 +202,24 @@ describe('ResolvedAttachmentThumbnails', () => {
       'noopener'
     );
     openSpy.mockRestore();
+  });
+
+  test('renders a PDF attachment as a download card without an eager URL fetch', () => {
+    render(
+      <ResolvedAttachmentThumbnails
+        attachments={[
+          {
+            attachmentId: 'pdf-1',
+            s3Key: 'customers/c/attachments/pdf-1',
+            mediaType: 'application/pdf',
+            filename: 'report.pdf',
+          },
+        ]}
+      />
+    );
+    expect(screen.getByTestId('resolved-attachment-doc')).toBeInTheDocument();
+    expect(screen.getByText('report.pdf')).toBeInTheDocument();
+    // PDFs resolve their URL lazily on click, not eagerly like images.
+    expect(mockGetAttachmentViewUrl).not.toHaveBeenCalled();
   });
 });

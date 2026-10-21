@@ -501,6 +501,60 @@ describe('Request Widget Component', () => {
       );
     });
 
+    const makePdfFile = (size = 1024): File => {
+      const file = new File(['%PDF-1.4'], 'report.pdf', {
+        type: 'application/pdf',
+      });
+      Object.defineProperty(file, 'size', { value: size });
+      return file;
+    };
+
+    test('pasting a PDF uploads it and shows a document chip', async () => {
+      const ref = {
+        attachmentId: 'att-pdf',
+        s3Key: 'customers/cust-123/attachments/att-pdf',
+        mediaType: 'application/pdf',
+      };
+      mockUploadAttachment.mockResolvedValue(ref);
+
+      render(<Request blockId="block-1" />);
+      pasteImage(screen.getByTestId('request-widget-container'), makePdfFile());
+
+      expect(
+        await screen.findByTestId('attachment-doc-chip')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('attachment-thumbnail')
+      ).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('attachment-uploading-spinner')
+        ).not.toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('generate-button'));
+      expect(mockGenerateResponsesStream).toHaveBeenCalledWith(
+        'block-1',
+        '',
+        undefined,
+        undefined,
+        [ref]
+      );
+    });
+
+    test('rejects a PDF over the 10MB limit with a toast', async () => {
+      render(<Request blockId="block-1" />);
+      pasteImage(
+        screen.getByTestId('request-widget-container'),
+        makePdfFile(11 * 1024 * 1024)
+      );
+      await waitFor(() => expect(mockShowToast).toHaveBeenCalled());
+      expect(mockUploadAttachment).not.toHaveBeenCalled();
+      expect(
+        screen.queryByTestId('attachment-doc-chip')
+      ).not.toBeInTheDocument();
+    });
+
     test('uploads any image type and size without a toast', async () => {
       mockUploadAttachment.mockResolvedValue({
         attachmentId: 'att-1',
@@ -533,10 +587,12 @@ describe('Request Widget Component', () => {
         });
 
       render(<Request blockId="block-1" />);
-      pasteFile(new File(['x'], 'notes.pdf', { type: '' }));
+      // A blank-type .txt is neither a supported image nor a PDF → rejected.
+      // (A blank-type .pdf is now treated as a PDF; see the PDF paste tests.)
+      pasteFile(new File(['x'], 'notes.txt', { type: '' }));
       await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(1));
       expect(mockShowToast.mock.calls[0][0]).toMatch(
-        /^notes\.pdf isn't a supported image format/
+        /^notes\.txt isn't a supported image format/
       );
       expect(mockUploadAttachment).not.toHaveBeenCalled();
 
@@ -593,7 +649,7 @@ describe('Request Widget Component', () => {
         ).not.toBeInTheDocument();
       });
 
-      test('are named in one toast while the supported files upload', async () => {
+      test('a PDF uploads as a doc chip; only truly-unsupported files are named', async () => {
         mockUploadAttachment.mockResolvedValue({
           attachmentId: 'a',
           s3Key: 'k',
@@ -609,14 +665,17 @@ describe('Request Widget Component', () => {
           fileItem(new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' })),
         ]);
 
+        // The image shows a thumbnail, the PDF a doc chip; the SVG is rejected.
         expect(
           await screen.findAllByTestId('attachment-thumbnail')
         ).toHaveLength(1);
-        expect(mockUploadAttachment).toHaveBeenCalledTimes(1);
-        expect(mockUploadAttachment).toHaveBeenCalledWith('test-token', image);
+        expect(
+          await screen.findAllByTestId('attachment-doc-chip')
+        ).toHaveLength(1);
+        expect(mockUploadAttachment).toHaveBeenCalledTimes(2);
         expect(mockShowToast).toHaveBeenCalledTimes(1);
         expect(mockShowToast.mock.calls[0][0]).toMatch(
-          /^2 files aren't in a supported image format \(scan\.pdf, logo\.svg\)\. Supported formats: /
+          /^logo\.svg isn't a supported image format\. Supported formats: /
         );
       });
 
@@ -800,9 +859,10 @@ describe('Request Widget Component', () => {
       });
     });
 
-    test('renders on mobile only', () => {
+    test('renders on both desktop and mobile', () => {
       render(<Request blockId="block-1" />);
-      expect(screen.queryByTestId('attachment-button')).not.toBeInTheDocument();
+      // Desktop has an attach button too (the only way to add a PDF there).
+      expect(screen.getByTestId('attachment-button')).toBeInTheDocument();
 
       setViewportWidth(500);
       expect(screen.getByTestId('attachment-button')).toBeInTheDocument();
@@ -898,17 +958,17 @@ describe('Request Widget Component', () => {
       render(<Request blockId="block-1" />);
       setViewportWidth(500);
 
+      // SVG is an unsupported image format (PDFs are now accepted — see the
+      // PDF tests — so they no longer stand in for "unsupported").
       fireEvent.change(screen.getByTestId('attachment-file-input'), {
         target: {
-          files: [
-            new File(['%PDF-1.4'], 'scan.pdf', { type: 'application/pdf' }),
-          ],
+          files: [new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' })],
         },
       });
 
       await waitFor(() => expect(mockShowToast).toHaveBeenCalledTimes(1));
       expect(mockShowToast.mock.calls[0][0]).toMatch(
-        /^scan\.pdf isn't a supported image format\. Supported formats: /
+        /^logo\.svg isn't a supported image format\. Supported formats: /
       );
       expect(mockUploadAttachment).not.toHaveBeenCalled();
     });

@@ -23,7 +23,10 @@ import AttachmentPreviewStrip, {
 import {
   ATTACHMENT_FILE_INPUT_ACCEPT,
   MAX_ATTACHMENTS_PER_MESSAGE,
+  MAX_PDFS_PER_MESSAGE,
+  PDF_MEDIA_TYPE,
   isImageFile,
+  isPdfFile,
 } from './attachment.models';
 import { useAttachmentValidation } from './useAttachmentValidation';
 import { useWindowSize } from './useWindowSize';
@@ -203,11 +206,15 @@ function Request({
         return;
       }
 
+      const isPdf = isPdfFile(file.type, file.name);
       const localId = `attachment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const previewUrl = URL.createObjectURL(file);
       const entry: PendingAttachment = {
         localId,
-        fileName: file.name || 'pasted-image',
+        fileName: file.name || (isPdf ? 'document.pdf' : 'pasted-image'),
+        // Marks the chip as a document (vs. an image thumbnail). PDFs report
+        // application/pdf; images may report '' (HEIC) — treated as an image.
+        mediaType: isPdf ? PDF_MEDIA_TYPE : file.type,
         previewUrl,
         status: 'uploading',
       };
@@ -251,16 +258,42 @@ function Request({
         // click can land in between
         setValidatingCount(n => n - 1);
       }
+      // PDFs have a stricter per-message sub-limit than images (they're far
+      // heavier and some vendors cap total document pages). Drop PDFs beyond
+      // the budget, keeping images, and toast once if any PDF was dropped.
+      let pdfBudget =
+        MAX_PDFS_PER_MESSAGE -
+        pendingAttachmentsRef.current.filter(
+          a => a.mediaType === PDF_MEDIA_TYPE
+        ).length;
+      let droppedPdf = false;
+      const withinPdfLimit = supported.filter(file => {
+        if (!isPdfFile(file.type, file.name)) return true;
+        if (pdfBudget <= 0) {
+          droppedPdf = true;
+          return false;
+        }
+        pdfBudget -= 1;
+        return true;
+      });
+      if (droppedPdf) {
+        showToast(
+          t('conversation.request.attachmentPdfLimitReached', {
+            max: MAX_PDFS_PER_MESSAGE,
+          })
+        );
+      }
+
       const free =
         MAX_ATTACHMENTS_PER_MESSAGE - pendingAttachmentsRef.current.length;
-      if (supported.length > free) {
+      if (withinPdfLimit.length > free) {
         showToast(
           t('conversation.request.attachmentLimitReached', {
             max: MAX_ATTACHMENTS_PER_MESSAGE,
           })
         );
       }
-      supported.slice(0, Math.max(0, free)).forEach(uploadPastedImage);
+      withinPdfLimit.slice(0, Math.max(0, free)).forEach(uploadPastedImage);
     },
     [showToast, t, uploadPastedImage, validateAttachments]
   );
@@ -509,30 +542,32 @@ function Request({
           </button>
         )}
 
+        {uploadAttachment && (
+          // Shared hidden file input, driven by the mobile and desktop
+          // attach buttons. Accepts images and PDFs.
+          <input
+            ref={attachmentInputRef}
+            type="file"
+            accept={ATTACHMENT_FILE_INPUT_ACCEPT}
+            multiple
+            hidden
+            onChange={handleAttachmentInputChange}
+            data-testid="attachment-file-input"
+          />
+        )}
+
         {isMobile && uploadAttachment && (
-          // 📱 Image-attachment picker to the LEFT of the generate
-          // button — mobile has no paste path for images, so this is
-          // the only way to attach them there. Desktop stays
-          // paste-only for now.
-          <>
-            <input
-              ref={attachmentInputRef}
-              type="file"
-              accept={ATTACHMENT_FILE_INPUT_ACCEPT}
-              multiple
-              hidden
-              onChange={handleAttachmentInputChange}
-              data-testid="attachment-file-input"
-            />
-            <button
-              className={styles.mobileAttachmentButton}
-              onClick={() => attachmentInputRef.current?.click()}
-              aria-label={t('conversation.request.addImageAttachment')}
-              data-testid="attachment-button"
-            >
-              <Icon src={ICONS.IMAGE_ATTACHMENT} size={22} />
-            </button>
-          </>
+          // 📱 Attachment picker to the LEFT of the generate button —
+          // mobile has no paste path, so this is the only way to attach a
+          // file (image or PDF) there.
+          <button
+            className={styles.mobileAttachmentButton}
+            onClick={() => attachmentInputRef.current?.click()}
+            aria-label={t('conversation.request.addAttachment')}
+            data-testid="attachment-button"
+          >
+            <Icon src={ICONS.IMAGE_ATTACHMENT} size={22} />
+          </button>
         )}
 
         <AttachmentPreviewStrip
@@ -546,6 +581,19 @@ function Request({
           className={styles.buttonWrapper}
           data-testid="generate-button-wrapper"
         >
+          {uploadAttachment && (
+            // 🖥️ Desktop attach button — the only way to add a PDF on
+            // desktop (PDFs can't be pasted); images can still be pasted.
+            <button
+              className={styles.desktopAttachmentButton}
+              onClick={() => attachmentInputRef.current?.click()}
+              aria-label={t('conversation.request.addAttachment')}
+              title={t('conversation.request.addAttachment')}
+              data-testid="attachment-button"
+            >
+              <Icon src={ICONS.IMAGE_ATTACHMENT} size={20} />
+            </button>
+          )}
           <Tooltip
             content={
               !hasAnyValidApiKey ? t('conversation.request.noApiKeysSet') : ''

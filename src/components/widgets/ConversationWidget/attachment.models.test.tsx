@@ -57,11 +57,16 @@ describe('ATTACHMENT_FILE_INPUT_ACCEPT', () => {
     );
   });
 
-  test('only lists entries Android maps to image types', () => {
+  test('offers PDF documents alongside images', () => {
+    expect(accept).toContain('application/pdf');
+  });
+
+  test('lists only image entries plus application/pdf', () => {
     // Chrome on Android maps each extension to a MIME type; one it can't
     // map (on any Android version it supports) becomes
     // application/octet-stream and replaces the photo picker with a generic
-    // all-files chooser. MIME types pass through as they are.
+    // all-files chooser. MIME types pass through as they are. PDFs are the one
+    // deliberate non-image entry (users attach documents too).
     const androidImageExtensions = [
       '.heic',
       '.heif',
@@ -83,7 +88,9 @@ describe('ATTACHMENT_FILE_INPUT_ACCEPT', () => {
     ];
     for (const entry of accept) {
       expect(
-        entry.startsWith('image/') || androidImageExtensions.includes(entry)
+        entry.startsWith('image/') ||
+          androidImageExtensions.includes(entry) ||
+          entry === 'application/pdf'
       ).toBe(true);
     }
   });

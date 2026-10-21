@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ICONS } from '../../../constants/icons';
 import { Icon } from '../../common/Icon/Icon';
-import { AttachmentRef } from './attachment.models';
+import AttachmentCard from '../../common/AttachmentCard/AttachmentCard';
+import { AttachmentRef, PDF_MEDIA_TYPE } from './attachment.models';
 import {
   useConversationAuth,
   useConversationServices,
@@ -58,11 +59,14 @@ function ThumbImage({
   );
 }
 
-/** An image being attached in the editor: uploads to S3 in the background after paste. */
+/** A file being attached in the editor: uploads to S3 in the background. */
 export interface PendingAttachment {
   localId: string;
   fileName: string;
-  /** Object URL of the pasted file, for instant preview */
+  /** MIME type of the picked/pasted file — PDF_MEDIA_TYPE selects the doc chip
+   *  over an image thumbnail; absent/other is treated as an image. */
+  mediaType?: string;
+  /** Object URL of the pasted file, for instant image preview (unused for PDFs). */
   previewUrl: string;
   status: 'uploading' | 'ready';
   ref?: AttachmentRef;
@@ -82,39 +86,64 @@ export default function AttachmentPreviewStrip({
 
   if (attachments.length === 0) return null;
 
+  const removeButton = (localId: string) => (
+    <button
+      type="button"
+      className={styles.removeButton}
+      onClick={() => onRemove(localId)}
+      aria-label={t('conversation.request.removeAttachment')}
+      title={t('conversation.request.removeAttachment')}
+      data-testid="attachment-remove-button"
+    >
+      ×
+    </button>
+  );
+
   return (
     <div className={styles.strip} data-testid="attachment-preview-strip">
-      {attachments.map(attachment => (
-        <div
-          key={attachment.localId}
-          className={`${styles.thumbWrapper} ${attachment.status === 'uploading' ? styles.uploading : ''}`}
-          data-testid="attachment-thumbnail"
-        >
-          <ThumbImage
-            src={attachment.previewUrl}
-            alt={attachment.fileName}
-            className={styles.thumb}
-          />
-          {attachment.status === 'uploading' && (
-            <div
-              className={styles.spinnerOverlay}
-              data-testid="attachment-uploading-spinner"
-            >
-              <div className={styles.spinner} />
-            </div>
-          )}
-          <button
-            type="button"
-            className={styles.removeButton}
-            onClick={() => onRemove(attachment.localId)}
-            aria-label={t('conversation.request.removeAttachment')}
-            title={t('conversation.request.removeAttachment')}
-            data-testid="attachment-remove-button"
+      {attachments.map(attachment =>
+        attachment.mediaType === PDF_MEDIA_TYPE ? (
+          // PDFs have no image preview — show a document chip instead.
+          <div
+            key={attachment.localId}
+            className={`${styles.docChip} ${attachment.status === 'uploading' ? styles.uploading : ''}`}
+            data-testid="attachment-doc-chip"
           >
-            ×
-          </button>
-        </div>
-      ))}
+            <Icon src={ICONS.DOCUMENT} size={20} className={styles.docIcon} />
+            <span className={styles.docName} title={attachment.fileName}>
+              {attachment.fileName}
+            </span>
+            {attachment.status === 'uploading' && (
+              <div
+                className={styles.spinner}
+                data-testid="attachment-uploading-spinner"
+              />
+            )}
+            {removeButton(attachment.localId)}
+          </div>
+        ) : (
+          <div
+            key={attachment.localId}
+            className={`${styles.thumbWrapper} ${attachment.status === 'uploading' ? styles.uploading : ''}`}
+            data-testid="attachment-thumbnail"
+          >
+            <ThumbImage
+              src={attachment.previewUrl}
+              alt={attachment.fileName}
+              className={styles.thumb}
+            />
+            {attachment.status === 'uploading' && (
+              <div
+                className={styles.spinnerOverlay}
+                data-testid="attachment-uploading-spinner"
+              >
+                <div className={styles.spinner} />
+              </div>
+            )}
+            {removeButton(attachment.localId)}
+          </div>
+        )
+      )}
     </div>
   );
 }
@@ -136,8 +165,19 @@ export function ResolvedAttachmentThumbnails({
   const { getAttachmentViewUrl } = useConversationServices();
   const [urls, setUrls] = useState<Record<string, string>>({});
 
+  const imageAttachments = attachments.filter(
+    a => a.mediaType !== PDF_MEDIA_TYPE
+  );
+  const pdfAttachments = attachments.filter(
+    a => a.mediaType === PDF_MEDIA_TYPE
+  );
+
   useEffect(() => {
-    if (!isAuthenticated || attachments.length === 0 || !getAttachmentViewUrl)
+    if (
+      !isAuthenticated ||
+      imageAttachments.length === 0 ||
+      !getAttachmentViewUrl
+    )
       return;
     let cancelled = false;
 
@@ -145,7 +185,7 @@ export function ResolvedAttachmentThumbnails({
       try {
         const token = await getAccessTokenSilently();
         const entries = await Promise.all(
-          attachments.map(async attachment => {
+          imageAttachments.map(async attachment => {
             try {
               const url = await getAttachmentViewUrl(
                 token,
@@ -175,22 +215,22 @@ export function ResolvedAttachmentThumbnails({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    attachments.map(a => a.attachmentId).join(','),
+    imageAttachments.map(a => a.attachmentId).join(','),
     isAuthenticated,
     getAttachmentViewUrl,
   ]);
 
   if (attachments.length === 0) return null;
 
-  const loaded = attachments.filter(a => urls[a.attachmentId]);
-  if (loaded.length === 0) return null;
+  const loadedImages = imageAttachments.filter(a => urls[a.attachmentId]);
+  if (loadedImages.length === 0 && pdfAttachments.length === 0) return null;
 
   return (
     <div
       className={styles.resolvedStrip}
       data-testid="resolved-attachment-strip"
     >
-      {loaded.map(attachment => (
+      {loadedImages.map(attachment => (
         <ThumbImage
           key={attachment.attachmentId}
           src={urls[attachment.attachmentId]}
@@ -200,6 +240,26 @@ export function ResolvedAttachmentThumbnails({
             window.open(urls[attachment.attachmentId], '_blank', 'noopener')
           }
           data-testid="resolved-attachment-thumbnail"
+        />
+      ))}
+      {pdfAttachments.map(attachment => (
+        // PDFs resolve their presigned URL lazily on click (no eager fetch).
+        <AttachmentCard
+          key={attachment.attachmentId}
+          className={styles.resolvedDoc}
+          filename={attachment.filename || 'document.pdf'}
+          mediaType={attachment.mediaType}
+          sizeBytes={attachment.sizeBytes}
+          getDownloadUrl={
+            getAttachmentViewUrl
+              ? async () =>
+                  getAttachmentViewUrl(
+                    await getAccessTokenSilently(),
+                    attachment.attachmentId
+                  )
+              : undefined
+          }
+          data-testid="resolved-attachment-doc"
         />
       ))}
     </div>

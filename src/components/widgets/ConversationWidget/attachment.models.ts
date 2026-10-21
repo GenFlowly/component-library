@@ -112,6 +112,7 @@ export const ATTACHMENT_FILE_INPUT_ACCEPT = [
   ...PICKER_IMAGE_EXTENSIONS,
   'image/avif',
   'image/x-canon-cr3',
+  'application/pdf',
 ].join(',');
 
 /**
@@ -124,4 +125,24 @@ export function isImageFile(type: string, fileName: string): boolean {
   if (type !== '' && type !== 'application/octet-stream') return false;
   const name = fileName.toLowerCase();
   return IMAGE_FILE_EXTENSIONS.some(ext => name.endsWith(ext));
+}
+
+export const PDF_MEDIA_TYPE = 'application/pdf';
+
+/** 10 MB — matches the proxy's per-PDF cap (MAX_PDF_SIZE_BYTES). */
+export const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024;
+
+/** Matches the proxy's per-message PDF sub-limit (MAX_PDFS_PER_MESSAGE). */
+export const MAX_PDFS_PER_MESSAGE = 5;
+
+/**
+ * Whether a file is a PDF: the application/pdf MIME type, or a blank/generic
+ * type with a .pdf name. Unlike images, PDFs are fed to the model natively
+ * (document block) or as page images / extracted text, chosen server-side by
+ * the model's capabilities.
+ */
+export function isPdfFile(type: string, fileName: string): boolean {
+  if (type === PDF_MEDIA_TYPE) return true;
+  if (type !== '' && type !== 'application/octet-stream') return false;
+  return fileName.toLowerCase().endsWith('.pdf');
 }
