@@ -5,6 +5,8 @@ import styles from './TextEditor.module.scss';
 // Lazy load the heavy Markdown editor component
 const TextEditorCore = lazy(() => import('./TextEditorCore'));
 
+export type { TextEditorHandle } from './TextEditorCore';
+
 interface TextEditorProps {
   id: string;
   value: string;
@@ -20,19 +22,25 @@ interface TextEditorProps {
   fullWidth?: boolean;
 }
 
-export default function TextEditor({
-  id,
-  value,
-  onChange,
-  disableCache = false,
-  height = '50vh',
-  className = '',
-  'data-testid': testId,
-  readOnly = false,
-  maxLength,
-  variant = 'default',
-  fullWidth = false,
-}: TextEditorProps): React.ReactElement {
+const TextEditor = React.forwardRef<
+  import('./TextEditorCore').TextEditorHandle,
+  TextEditorProps
+>(function TextEditor(
+  {
+    id,
+    value,
+    onChange,
+    disableCache = false,
+    height = '50vh',
+    className = '',
+    'data-testid': testId,
+    readOnly = false,
+    maxLength,
+    variant = 'default',
+    fullWidth = false,
+  }: TextEditorProps,
+  ref
+): React.ReactElement {
   const { t } = useTranslation();
 
   return (
@@ -68,6 +76,7 @@ export default function TextEditor({
       }
     >
       <TextEditorCore
+        ref={ref}
         id={id}
         value={value}
         onChange={onChange}
@@ -82,4 +91,6 @@ export default function TextEditor({
       />
     </Suspense>
   );
-}
+});
+
+export default TextEditor;

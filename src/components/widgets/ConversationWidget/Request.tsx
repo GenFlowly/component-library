@@ -1,7 +1,10 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ICONS } from '../../../constants/icons';
-import TextEditor from '../TextEditorWidget/TextEditor';
+import TextEditor, {
+  type TextEditorHandle,
+} from '../TextEditorWidget/TextEditor';
+import { useAskSelection } from './AskSelectionContext';
 import RectangleButton from '../../common/RectangleButton/RectangleButton';
 import Tooltip from '../../common/Tooltip/Tooltip';
 import { Icon } from '../../common/Icon/Icon';
@@ -77,6 +80,12 @@ function Request({
   // block only occupies the editor's height on mobile, not a full screen
   const isFollowUpBlock =
     conversationBlockList.findIndex(b => b.conversationBlockId === blockId) > 0;
+  // Selection-asks always land in the trailing draft block — the follow-up
+  // flow reuses or creates it before the ask is queued
+  const isLastBlock =
+    conversationBlockList.length > 0 &&
+    conversationBlockList[conversationBlockList.length - 1]
+      .conversationBlockId === blockId;
 
   const editorWrapperRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -413,13 +422,55 @@ function Request({
     [blockId, setActiveBlockId, setEditorPrompt, STORAGE_KEY]
   );
 
+  // ---- Selection-asks (quote selected response text into this draft) ----
+  const { pendingAsks, acknowledgeAsks, resetAskSession } = useAskSelection();
+  const editorHandleRef = React.useRef<TextEditorHandle>(null);
+  const consumedAskIdsRef = React.useRef<Set<number>>(new Set());
+  const focusEndTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
   // Cleanup timers
   useEffect(() => {
     return () => {
       if (storageTimerRef.current) clearTimeout(storageTimerRef.current);
       if (contextTimerRef.current) clearTimeout(contextTimerRef.current);
+      if (focusEndTimerRef.current) clearTimeout(focusEndTimerRef.current);
     };
   }, []);
+
+  // Append each queued ask to the end of the draft as a blockquote — AFTER
+  // whatever is already typed, so several ask → type → ask rounds keep their
+  // order in the final prompt. Only the trailing draft block consumes the
+  // queue; the consumed-ids set makes re-runs (e.g. dev strict mode) no-ops.
+  useEffect(() => {
+    if (!isEditorView || !isLastBlock || pendingAsks.length === 0) return;
+    const fresh = pendingAsks.filter(
+      ask => !consumedAskIdsRef.current.has(ask.id)
+    );
+    if (fresh.length === 0) return;
+    fresh.forEach(ask => consumedAskIdsRef.current.add(ask.id));
+    const quotes = fresh.map(ask => ask.quotedText).join('\n\n');
+    const base = draftPrompt.replace(/\s+$/, '');
+    // Trailing blank line so typing continues below the quote
+    handleEditorChange(base ? `${base}\n\n${quotes}\n\n` : `${quotes}\n\n`);
+    acknowledgeAsks(fresh.map(ask => ask.id));
+    // Caret to the end once the editor has absorbed the new value — after
+    // the follow-up flow's own focus timers (100/300ms), which would
+    // otherwise leave the caret at the start
+    if (focusEndTimerRef.current) clearTimeout(focusEndTimerRef.current);
+    focusEndTimerRef.current = setTimeout(
+      () => editorHandleRef.current?.focusEnd(),
+      400
+    );
+  }, [
+    pendingAsks,
+    isEditorView,
+    isLastBlock,
+    draftPrompt,
+    handleEditorChange,
+    acknowledgeAsks,
+  ]);
 
   const handleGenerate = () => {
     if (!hasAnyValidApiKey) return;
@@ -444,6 +495,9 @@ function Request({
     // The block now owns the refs; drop the local previews
     pendingAttachments.forEach(a => URL.revokeObjectURL(a.previewUrl));
     setPendingAttachments([]);
+    // The sent prompt took the quotes with it — next draft starts a fresh
+    // ask session (possibly from another response)
+    resetAskSession();
   };
 
   if (!conversationBlock) return null;
@@ -520,6 +574,7 @@ function Request({
     >
       <div className={styles.editorWrapper} ref={editorWrapperRef}>
         <TextEditor
+          ref={editorHandleRef}
           id={blockId}
           value={draftPrompt}
           onChange={handleEditorChange}

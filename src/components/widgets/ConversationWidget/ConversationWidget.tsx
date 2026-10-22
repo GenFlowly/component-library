@@ -4,6 +4,7 @@ import {
   useConversationUI,
 } from './ConversationWidgetContext';
 import ConversationBlock from './ConversationBlock';
+import { AskSelectionProvider } from './AskSelectionContext';
 
 /**
  * The conversation surface: one ConversationBlock (request + responses) per
@@ -54,13 +55,13 @@ export default function ConversationWidget() {
   }, [conversationBlockList, setActiveViewportItem]);
 
   return (
-    <React.Fragment>
+    <AskSelectionProvider>
       {conversationBlockList.map(block => (
         <ConversationBlock
           key={block.conversationBlockId}
           id={block.conversationBlockId}
         />
       ))}
-    </React.Fragment>
+    </AskSelectionProvider>
   );
 }

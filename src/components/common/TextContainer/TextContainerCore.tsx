@@ -8,6 +8,7 @@ import rehypeKatex from 'rehype-katex';
 import 'highlight.js/styles/github.css';
 import 'katex/dist/katex.min.css';
 import CopyToClipboard from '../../common/CopyToClipboard/CopyToClipboard';
+import SelectionAskButton from './SelectionAskButton';
 import styles from './TextContainer.module.scss';
 import { ICONS } from '../../../constants/icons';
 
@@ -368,6 +369,11 @@ export interface TextContainerCoreProps {
   loadingContent?: React.ReactNode;
   /** Rendered between the header and the markdown content (e.g. a thinking summary) */
   subheader?: React.ReactNode;
+  /**
+   * When set, selecting text in the rendered markdown shows a floating "Ask"
+   * button that hands the selected plain text to this callback.
+   */
+  onAskSelection?: (selectedText: string) => void;
 }
 
 export default function TextContainerCore({
@@ -380,8 +386,10 @@ export default function TextContainerCore({
   'data-testid': testId,
   loadingContent,
   subheader,
+  onAskSelection,
 }: TextContainerCoreProps) {
   const { t } = useTranslation();
+  const selectionScopeRef = React.useRef<HTMLDivElement>(null);
 
   const headerContent = typeof title === 'string' ? <h2>{title}</h2> : title;
 
@@ -417,7 +425,19 @@ export default function TextContainerCore({
 
       {subheader}
 
-      {isLoading ? loadingContent : <MarkdownContent content={content} />}
+      {isLoading ? (
+        loadingContent
+      ) : (
+        <div className={styles.selectionScope} ref={selectionScopeRef}>
+          <MarkdownContent content={content} />
+          {onAskSelection && (
+            <SelectionAskButton
+              scopeRef={selectionScopeRef}
+              onAsk={onAskSelection}
+            />
+          )}
+        </div>
+      )}
       {children}
     </article>
   );

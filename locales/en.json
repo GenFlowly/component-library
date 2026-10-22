@@ -169,6 +169,7 @@
       "view": "View"
     },
     "textContainer": {
+      "askSelection": "Ask",
       "copyCode": "Copy Code",
       "copyResponse": "Copy Response",
       "loadingContentRenderer": "Loading content renderer..."
@@ -216,6 +217,7 @@
       "addImageAttachment": "Add image attachment"
     },
     "response": {
+      "askSourceSwitched": "Asking from {{vendor}}'s response now — the follow-up will continue from it",
       "followUp": "Follow up",
       "fork": "Fork",
       "forkHint": "Fork the conversation from this response into a new one",

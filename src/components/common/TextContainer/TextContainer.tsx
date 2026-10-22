@@ -16,6 +16,11 @@ export interface TextContainerProps {
   loadingContent?: React.ReactNode;
   /** Rendered between the header and the markdown content (e.g. a thinking summary) */
   subheader?: React.ReactNode;
+  /**
+   * When set, selecting text in the rendered markdown shows a floating "Ask"
+   * button that hands the selected plain text to this callback.
+   */
+  onAskSelection?: (selectedText: string) => void;
 }
 
 export default function TextContainer({
@@ -28,6 +33,7 @@ export default function TextContainer({
   'data-testid': testId,
   loadingContent,
   subheader,
+  onAskSelection,
 }: TextContainerProps) {
   const { t } = useTranslation();
 
@@ -63,6 +69,7 @@ export default function TextContainer({
         data-testid={testId}
         loadingContent={loadingContent}
         subheader={subheader}
+        onAskSelection={onAskSelection}
       />
     </Suspense>
   );

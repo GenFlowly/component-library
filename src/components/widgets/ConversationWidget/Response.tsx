@@ -13,7 +13,9 @@ import {
   useConversationAuth,
   useConversationLayout,
   useConversationServices,
+  useToast,
 } from './ConversationWidgetContext';
+import { useAskSelection } from './AskSelectionContext';
 import TextContainer from '../../common/TextContainer/TextContainer';
 import { Icon } from '../../common/Icon/Icon';
 import {
@@ -427,6 +429,8 @@ function Response({
     conversationId = '',
   } = useConversation();
   const { getLearnedFacts } = useConversationServices();
+  const { queueAsk, enabled: asksEnabled } = useAskSelection();
+  const { showToast } = useToast();
 
   // Running per-vendor totals (tokens + exact cost) up to and including each
   // response, keyed by messageId. The badge shows these conversation-so-far
@@ -628,6 +632,27 @@ function Response({
     onFollowUp?.(messageId);
   };
 
+  // Selected text in a response card → queue it as a quote for the follow-up
+  // draft, through the follow-up flow itself, so the quoted response is also
+  // the one the next turn chains from. Quoting a DIFFERENT response than the
+  // draft's earlier asks switches that chain — tell the user.
+  const handleAskSelection = (
+    messageId: string,
+    vendor: string,
+    selectedText: string
+  ) => {
+    if (disabled) return;
+    const { switched } = queueAsk(selectedText, messageId);
+    handleFollowUp(messageId);
+    if (switched) {
+      showToast(
+        t('conversation.response.askSourceSwitched', {
+          vendor: vendorDisplayName(vendor),
+        })
+      );
+    }
+  };
+
   const handleRegenerate = async (vendor: AIVendor) => {
     if (disabled) return;
     await generateResponsesStream(blockId, undefined, undefined, vendor);
@@ -731,6 +756,16 @@ function Response({
             const showLearnedFacts =
               learnedFacts !== undefined || !!getLearnedFacts;
 
+            // Ask-from-selection mirrors the Follow up button's gating: only
+            // where a follow-up could start from this response right now
+            const canAsk =
+              asksEnabled &&
+              !!onFollowUp &&
+              isLastResponseBlock &&
+              !disabled &&
+              !isLoading &&
+              text.trim().length > 0;
+
             let HeaderComponent: React.ReactNode = null;
             if (aiVendor) {
               const brand: React.ReactNode = (
@@ -768,6 +803,16 @@ function Response({
                   }
                   isLoading={isThinkingPhase}
                   loadingContent={null}
+                  onAskSelection={
+                    canAsk
+                      ? selectedText =>
+                          handleAskSelection(
+                            messageId,
+                            aiVendor ?? '',
+                            selectedText
+                          )
+                      : undefined
+                  }
                   data-testid="response-message"
                   aria-label={t('conversation.response.responseFrom', {
                     vendor: aiVendor,

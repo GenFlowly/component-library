@@ -23,6 +23,7 @@ jest.mock('./ConversationWidgetContext', () => ({
     deleteMemoryFact: mockDeleteMemoryFact,
     getAttachmentViewUrl: jest.fn(),
   }),
+  useToast: () => ({ showToast: jest.fn() }),
 }));
 const { useConversationLayout } = require('./ConversationWidgetContext');
 
