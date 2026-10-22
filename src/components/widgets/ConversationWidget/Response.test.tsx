@@ -1022,6 +1022,94 @@ describe('Response Widget Component', () => {
     });
   });
 
+  describe('fork button', () => {
+    const mockForkConversation = jest.fn();
+    const withForkContext = () => {
+      mockUseConversation.mockReturnValue({
+        setSelectedResponseForBlock: mockSetSelectedResponseForBlock,
+        getSelectedResponseForBlock: mockGetSelectedResponseForBlock,
+        getVendorSelectionForBlock: () => mockSelection,
+        setVendorSelectionForBlock: mockSetVendorSelectionForBlock,
+        generateResponsesStream: jest.fn(),
+        stopGenerating: jest.fn(),
+        conversationId: 'conv-1',
+        forkConversation: mockForkConversation,
+      });
+    };
+
+    test('shows a fork button per response and forks at that message', () => {
+      withForkContext();
+      render(<Response blockId="block-1" responseMessages={mockMessages} />);
+
+      const forkBtns = screen.getAllByTestId('fork-button');
+      expect(forkBtns).toHaveLength(2);
+      fireEvent.click(forkBtns[1]);
+
+      expect(mockForkConversation).toHaveBeenCalledWith('msg-2');
+    });
+
+    test('shows fork — but not regenerate/follow-up — on non-last blocks', () => {
+      withForkContext();
+      render(
+        <Response
+          blockId="block-1"
+          responseMessages={mockMessages}
+          onFollowUp={jest.fn()}
+          isLastResponseBlock={false}
+        />
+      );
+
+      expect(screen.getAllByTestId('fork-button')).toHaveLength(2);
+      expect(screen.queryByTestId('regenerate-button')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('follow-up-button')).not.toBeInTheDocument();
+    });
+
+    test('no fork button when the host does not inject forkConversation', () => {
+      render(<Response blockId="block-1" responseMessages={mockMessages} />);
+      expect(screen.queryByTestId('fork-button')).not.toBeInTheDocument();
+    });
+
+    test('no fork button for placeholder or errored messages', () => {
+      withForkContext();
+      const msgs = [
+        {
+          messageId: 'resp-123-0',
+          text: 'aborted mid-stream',
+          aiVendor: AIVendor.OPENAI,
+          isLoading: false,
+          timestamp: 0,
+        },
+        {
+          messageId: 'msg-err',
+          text: 'failed',
+          aiVendor: AIVendor.CLAUDE,
+          isLoading: false,
+          error: 'boom',
+          timestamp: 0,
+        },
+      ];
+      render(<Response blockId="block-1" responseMessages={msgs} />);
+
+      expect(screen.queryByTestId('fork-button')).not.toBeInTheDocument();
+    });
+
+    test('fork stays enabled when generation is disabled (no API keys)', () => {
+      withForkContext();
+      render(
+        <Response
+          blockId="block-1"
+          responseMessages={mockMessages}
+          disabled={true}
+        />
+      );
+
+      const forkBtns = screen.getAllByTestId('fork-button');
+      expect(forkBtns[0]).not.toBeDisabled();
+      fireEvent.click(forkBtns[0]);
+      expect(mockForkConversation).toHaveBeenCalledWith('msg-1');
+    });
+  });
+
   describe('web-search citations', () => {
     const webSources = [
       { index: 1, title: 'Fed holds rates', url: 'https://example.com/fed' },

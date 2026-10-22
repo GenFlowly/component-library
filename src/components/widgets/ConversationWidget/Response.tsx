@@ -27,6 +27,7 @@ import AttachmentCard from '../../common/AttachmentCard/AttachmentCard';
 import ThinkingSteps from './ThinkingSteps';
 import { useLearnedFacts } from './useLearnedFacts';
 import RectangleButton from '../../common/RectangleButton/RectangleButton';
+import PillButton from '../../common/PillButton/PillButton';
 import Tooltip from '../../common/Tooltip/Tooltip';
 import { VendorBrandName } from './BrandName';
 import { useVendorDisplayNames } from './useVendorDisplayNames';
@@ -421,6 +422,7 @@ function Response({
     getVendorSelectionForBlock,
     setVendorSelectionForBlock,
     stopGenerating,
+    forkConversation,
     conversationBlockList = [],
     conversationId = '',
   } = useConversation();
@@ -629,6 +631,10 @@ function Response({
   const handleRegenerate = async (vendor: AIVendor) => {
     if (disabled) return;
     await generateResponsesStream(blockId, undefined, undefined, vendor);
+  };
+
+  const handleFork = (messageId: string) => {
+    void forkConversation?.(messageId);
   };
 
   return (
@@ -847,75 +853,123 @@ function Response({
                       )}
                     </div>
                   )}
-                  {(isLoading || isLastResponseBlock) && (
-                    <div className={styles.responseActionButtonsWrapper}>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        {isLoading ? (
-                          <RectangleButton
-                            label={t('conversation.response.stop')}
-                            onClick={() =>
-                              stopGenerating(blockId, aiVendor as AIVendor)
-                            }
-                            data-testid="stop-button"
-                          />
-                        ) : (
-                          <>
-                            <Tooltip
-                              content={
-                                disabled
-                                  ? t('conversation.response.noApiKeysSet')
-                                  : ''
+                  {(() => {
+                    // Fork needs a real persisted response (never a client
+                    // placeholder or an errored stream) — the backend copies
+                    // the conversation up to this exact message. Unlike
+                    // regenerate, it shows on EVERY response block, so any
+                    // point of the conversation can branch off.
+                    const canFork =
+                      !!forkConversation &&
+                      !!conversationId &&
+                      !!messageId &&
+                      !error &&
+                      !PLACEHOLDER_MESSAGE_ID.test(messageId);
+                    if (!isLoading && !isLastResponseBlock && !canFork) {
+                      return null;
+                    }
+                    return (
+                      <div className={styles.responseActionButtonsWrapper}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {isLoading ? (
+                            <RectangleButton
+                              label={t('conversation.response.stop')}
+                              onClick={() =>
+                                stopGenerating(blockId, aiVendor as AIVendor)
                               }
-                            >
-                              <div
-                                style={
-                                  disabled ? { cursor: 'not-allowed' } : {}
-                                }
-                              >
-                                <RectangleButton
-                                  label={t('conversation.response.regenerate')}
-                                  onClick={() =>
-                                    handleRegenerate(aiVendor as AIVendor)
-                                  }
-                                  disabled={disabled}
-                                  icon={ICONS.REFRESH_ICON}
-                                  data-testid="regenerate-button"
-                                />
-                              </div>
-                            </Tooltip>
-
-                            {onFollowUp && text.trim().length > 0 && (
-                              <Tooltip
-                                content={
-                                  disabled
-                                    ? t('conversation.response.noApiKeysSet')
-                                    : ''
-                                }
-                              >
-                                <div
-                                  style={
-                                    disabled ? { cursor: 'not-allowed' } : {}
+                              data-testid="stop-button"
+                            />
+                          ) : (
+                            <>
+                              {isLastResponseBlock && (
+                                <Tooltip
+                                  content={
+                                    disabled
+                                      ? t('conversation.response.noApiKeysSet')
+                                      : ''
                                   }
                                 >
-                                  <RectangleButton
-                                    label={
-                                      isSelected
-                                        ? t('conversation.response.selected')
-                                        : t('conversation.response.followUp')
+                                  <div
+                                    style={
+                                      disabled ? { cursor: 'not-allowed' } : {}
                                     }
-                                    onClick={() => handleFollowUp(messageId)}
-                                    disabled={isSelected || disabled}
-                                    icon={isSelected ? undefined : ICONS.SEND}
-                                    data-testid="follow-up-button"
+                                  >
+                                    <RectangleButton
+                                      label={t(
+                                        'conversation.response.regenerate'
+                                      )}
+                                      onClick={() =>
+                                        handleRegenerate(aiVendor as AIVendor)
+                                      }
+                                      disabled={disabled}
+                                      icon={ICONS.REFRESH_ICON}
+                                      data-testid="regenerate-button"
+                                    />
+                                  </div>
+                                </Tooltip>
+                              )}
+
+                              {isLastResponseBlock &&
+                                onFollowUp &&
+                                text.trim().length > 0 && (
+                                  <Tooltip
+                                    content={
+                                      disabled
+                                        ? t(
+                                            'conversation.response.noApiKeysSet'
+                                          )
+                                        : ''
+                                    }
+                                  >
+                                    <div
+                                      style={
+                                        disabled
+                                          ? { cursor: 'not-allowed' }
+                                          : {}
+                                      }
+                                    >
+                                      <RectangleButton
+                                        label={
+                                          isSelected
+                                            ? t(
+                                                'conversation.response.selected'
+                                              )
+                                            : t(
+                                                'conversation.response.followUp'
+                                              )
+                                        }
+                                        onClick={() =>
+                                          handleFollowUp(messageId)
+                                        }
+                                        disabled={isSelected || disabled}
+                                        icon={
+                                          isSelected ? undefined : ICONS.SEND
+                                        }
+                                        data-testid="follow-up-button"
+                                      />
+                                    </div>
+                                  </Tooltip>
+                                )}
+
+                              {canFork && (
+                                <Tooltip
+                                  content={t('conversation.response.forkHint')}
+                                >
+                                  <PillButton
+                                    label={t('conversation.response.fork')}
+                                    icon={ICONS.GIT_FORK}
+                                    variant="secondary"
+                                    onClick={() => handleFork(messageId)}
+                                    data-testid="fork-button"
                                   />
-                                </div>
-                              </Tooltip>
-                            )}
-                          </>
-                        )}
+                                </Tooltip>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </TextContainer>
               </div>
             );

@@ -340,10 +340,27 @@
   }
 }
 
+.itemLi {
+  display: block;
+}
+
 .itemRow {
   position: relative;
   display: flex;
   align-items: center;
+}
+
+// Child items (forked conversations) nest under their parent row with the
+// same indent + tree guide scheme as .groupChildren — the border is the
+// visual line connecting a fork to the conversation it branched from
+.itemChildren {
+  list-style: none;
+  margin: 1px 0 0 0.55rem;
+  padding: 0 0 0 0.35rem;
+  border-left: 1px solid $color-border-light;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
 // One shared right offset for every trailing action (item rows, collapsible

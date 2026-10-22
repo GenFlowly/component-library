@@ -30,6 +30,9 @@ export interface SidebarListItem {
   action?: SidebarListItemAction;
   // Trailing buttons shown at the row's right edge, in order
   actions?: SidebarListItemAction[];
+  // Child items (e.g. conversations forked off this one), rendered indented
+  // under the row behind a connecting tree guide; recursive
+  children?: SidebarListItem[];
   testId?: string;
 }
 
@@ -103,41 +106,55 @@ export function SidebarListLoadMore({
 
 function ItemRow({ item }: { item: SidebarListItem }) {
   const itemActions = item.actions ?? (item.action ? [item.action] : []);
+  const children = item.children ?? [];
   return (
-    <li
-      className={`${styles.itemRow} ${itemActions.length > 1 ? styles.multiAction : ''}`}
-    >
-      <button
-        className={`${styles.item} ${item.isActive ? styles.active : ''}`}
-        onClick={item.onSelect}
-        title={typeof item.label === 'string' ? item.label : undefined}
-        aria-current={item.isActive ? (item.ariaCurrent ?? 'true') : undefined}
-        data-testid={item.testId}
+    // The row itself is a div inside the li so hover-reveal and the action
+    // overlay stay scoped to this row, not the nested children below it
+    <li className={styles.itemLi}>
+      <div
+        className={`${styles.itemRow} ${itemActions.length > 1 ? styles.multiAction : ''}`}
       >
-        <div className={styles.itemContent}>
-          <div className={styles.itemHeader}>
-            <span className={styles.itemLabel}>{item.label}</span>
+        <button
+          className={`${styles.item} ${item.isActive ? styles.active : ''}`}
+          onClick={item.onSelect}
+          title={typeof item.label === 'string' ? item.label : undefined}
+          aria-current={
+            item.isActive ? (item.ariaCurrent ?? 'true') : undefined
+          }
+          data-testid={item.testId}
+        >
+          <div className={styles.itemContent}>
+            <div className={styles.itemHeader}>
+              <span className={styles.itemLabel}>{item.label}</span>
+            </div>
+            {item.details != null && (
+              <div className={styles.itemDetails}>{item.details}</div>
+            )}
           </div>
-          {item.details != null && (
-            <div className={styles.itemDetails}>{item.details}</div>
-          )}
-        </div>
-      </button>
-      {itemActions.length > 0 && (
-        <div className={styles.actionsWrap}>
-          {itemActions.map((action, index) => (
-            <button
-              key={index}
-              className={`${styles.actionBtn} ${action.revealOnHover ? styles.hoverReveal : ''}`}
-              onClick={action.onClick}
-              title={action.label}
-              aria-label={action.label}
-              data-testid={action.testId}
-            >
-              {action.icon}
-            </button>
+        </button>
+        {itemActions.length > 0 && (
+          <div className={styles.actionsWrap}>
+            {itemActions.map((action, index) => (
+              <button
+                key={index}
+                className={`${styles.actionBtn} ${action.revealOnHover ? styles.hoverReveal : ''}`}
+                onClick={action.onClick}
+                title={action.label}
+                aria-label={action.label}
+                data-testid={action.testId}
+              >
+                {action.icon}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {children.length > 0 && (
+        <ul className={styles.itemChildren}>
+          {children.map(child => (
+            <ItemRow key={child.id} item={child} />
           ))}
-        </div>
+        </ul>
       )}
     </li>
   );

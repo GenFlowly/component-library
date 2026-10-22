@@ -345,3 +345,86 @@ describe('SidebarListPanel nested groups', () => {
     expect(screen.queryByText('Today')).not.toBeInTheDocument();
   });
 });
+
+describe('SidebarListPanel nested item children', () => {
+  test('renders child items nested under their parent, recursively, and fires their handlers', async () => {
+    const onSelectChild = jest.fn();
+    const groups: SidebarListGroup[] = [
+      {
+        id: 'recent',
+        label: 'Recents',
+        items: [
+          {
+            id: 'parent',
+            label: 'Parent conversation',
+            onSelect: jest.fn(),
+            testId: 'row-parent',
+            children: [
+              {
+                id: 'fork',
+                label: 'Forked Parent conversation',
+                onSelect: onSelectChild,
+                testId: 'row-fork',
+                children: [
+                  {
+                    id: 'fork2',
+                    label: 'Forked Forked Parent conversation',
+                    onSelect: jest.fn(),
+                    testId: 'row-fork2',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    render(<SidebarListPanel {...baseProps} groups={groups} />);
+
+    // Child renders inside the parent's list item; grandchild inside the child's
+    const fork = screen.getByTestId('row-fork');
+    const parentLi = screen.getByTestId('row-parent').closest('li')!;
+    expect(parentLi.contains(fork)).toBe(true);
+    const forkLi = fork.closest('li')!;
+    expect(forkLi.contains(screen.getByTestId('row-fork2'))).toBe(true);
+
+    await userEvent.click(fork);
+    expect(onSelectChild).toHaveBeenCalled();
+  });
+
+  test('child rows keep their own trailing actions', async () => {
+    const onArchive = jest.fn();
+    const groups: SidebarListGroup[] = [
+      {
+        id: 'recent',
+        label: 'Recents',
+        items: [
+          {
+            id: 'parent',
+            label: 'Parent',
+            onSelect: jest.fn(),
+            children: [
+              {
+                id: 'fork',
+                label: 'Forked Parent',
+                onSelect: jest.fn(),
+                actions: [
+                  {
+                    icon: <span>a</span>,
+                    label: 'Archive',
+                    onClick: onArchive,
+                    testId: 'fork-archive',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    render(<SidebarListPanel {...baseProps} groups={groups} />);
+
+    await userEvent.click(screen.getByTestId('fork-archive'));
+    expect(onArchive).toHaveBeenCalled();
+  });
+});

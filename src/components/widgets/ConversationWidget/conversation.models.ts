@@ -265,6 +265,12 @@ export interface IConversationContext {
     attachments?: AttachmentRef[]
   ) => void;
   stopGenerating: (blockId?: string, vendor?: string) => void;
+  /**
+   * Fork the loaded conversation at the given response message: creates a new
+   * conversation containing everything up to and including that message and
+   * navigates to it. Optional — hosts without forking don't show the button.
+   */
+  forkConversation?: (messageId: string) => void | Promise<void>;
 
   /** Per-block selected response management */
   selectedResponseByBlock: Record<string, string | null>;

@@ -217,6 +217,8 @@
     },
     "response": {
       "followUp": "Follow up",
+      "fork": "Fork",
+      "forkHint": "Fork the conversation from this response into a new one",
       "generationFailed": "Generation failed: {{reason}}",
       "noApiKeysSet": "No API keys set",
       "noResponsesGenerated": "No responses were generated",

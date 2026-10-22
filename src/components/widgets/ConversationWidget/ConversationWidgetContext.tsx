@@ -38,6 +38,12 @@ export interface ConversationWidgetApi {
     attachments?: AttachmentRef[]
   ) => void;
   stopGenerating: (blockId?: string, vendor?: string) => void;
+  /**
+   * Fork the loaded conversation at the given response message: the host
+   * creates a new conversation containing everything up to and including that
+   * message. Optional — hosts without forking simply don't get the button.
+   */
+  forkConversation?: (messageId: string) => void | Promise<void>;
   setSelectedResponseForBlock: (blockId: string, responseId: string) => void;
   getSelectedResponseForBlock: (blockId: string) => string | null;
   getVendorSelectionForBlock: (blockId: string) => string[];
