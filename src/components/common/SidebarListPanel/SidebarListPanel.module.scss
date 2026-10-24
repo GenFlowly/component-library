@@ -162,6 +162,13 @@
   transform: rotate(90deg);
 }
 
+// Chevron-sized placeholder on headers with nothing to expand, so their icon
+// and label line up with expandable siblings
+.chevronSpacer {
+  width: 12px;
+  flex-shrink: 0;
+}
+
 // Wrapper letting a collapsible header carry trailing icon buttons: the
 // actions overlay the row's right edge (same scheme as .itemRow), so
 // clicking one never toggles expansion

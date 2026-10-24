@@ -224,6 +224,24 @@ describe('SidebarListPanel nested groups', () => {
     expect(onToggle).toHaveBeenLastCalledWith(false);
   });
 
+  test('collapsible group with no content renders no chevron and does not toggle', async () => {
+    const onToggle = jest.fn();
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        groups={projectGroups({ groups: [], onToggle })}
+      />
+    );
+
+    const row = screen.getByTestId('project-row');
+    expect(row.querySelector('svg')).toBeNull();
+    expect(row).not.toHaveAttribute('aria-expanded');
+
+    await userEvent.click(row);
+    expect(onToggle).not.toHaveBeenCalled();
+    expect(row).not.toHaveAttribute('aria-expanded');
+  });
+
   test('collapsible row actions render as siblings and do not toggle expansion', async () => {
     const onNewConversation = jest.fn();
     render(

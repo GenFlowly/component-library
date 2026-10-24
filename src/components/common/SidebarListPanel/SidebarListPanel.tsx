@@ -186,6 +186,10 @@ function GroupSection({ group }: { group: SidebarListGroup }) {
   const [expanded, setExpanded] = useState(group.defaultExpanded ?? false);
 
   const items = group.items ?? [];
+  // A collapsible row with no items and no subsections (e.g. a project with
+  // no conversations yet) has nothing to expand: it keeps its icon, label and
+  // actions but drops the chevron and toggle behavior
+  const hasChildren = items.length > 0 || (group.groups?.length ?? 0) > 0;
   const content = (
     <>
       {items.length > 0 && (
@@ -244,13 +248,19 @@ function GroupSection({ group }: { group: SidebarListGroup }) {
       >
         <button
           className={styles.collapsibleHeader}
-          onClick={handleToggle}
-          aria-expanded={expanded}
-          aria-controls={expanded ? contentId : undefined}
+          onClick={hasChildren ? handleToggle : undefined}
+          aria-expanded={hasChildren ? expanded : undefined}
+          aria-controls={hasChildren && expanded ? contentId : undefined}
           title={group.label}
           data-testid={group.testId}
         >
-          <Chevron expanded={expanded} />
+          {hasChildren ? (
+            <Chevron expanded={expanded} />
+          ) : (
+            // Same footprint as the chevron so the row's icon and label stay
+            // aligned with expandable siblings
+            <span className={styles.chevronSpacer} aria-hidden="true" />
+          )}
           {group.icon != null && (
             <span className={styles.groupIcon}>{group.icon}</span>
           )}
@@ -273,7 +283,7 @@ function GroupSection({ group }: { group: SidebarListGroup }) {
           </div>
         )}
       </div>
-      {expanded && (
+      {hasChildren && expanded && (
         <div id={contentId} className={styles.groupChildren}>
           {content}
         </div>
