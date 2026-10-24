@@ -452,3 +452,15 @@
 .selectionAskBelow {
   transform: translate(-50%, 0);
 }
+
+// Touch devices: the OS selection callout (Copy/Look Up…) draws over the page
+// wherever the selection sits, so the pill docks at the viewport bottom
+// instead of anchoring to the selection (rendered via portal to <body>)
+.selectionAskDocked {
+  position: fixed;
+  top: auto;
+  left: 50%;
+  bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 9999;
+}

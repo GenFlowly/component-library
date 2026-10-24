@@ -79,4 +79,45 @@ describe('SelectionAskButton', () => {
       screen.queryByTestId('selection-ask-button')
     ).not.toBeInTheDocument();
   });
+
+  describe('coarse-pointer (touch) devices', () => {
+    const originalMatchMedia = window.matchMedia;
+
+    beforeEach(() => {
+      window.matchMedia = (query: string) => ({
+        ...originalMatchMedia(query),
+        matches: query === '(pointer: coarse)',
+      });
+    });
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    test('pill docks instead of anchoring to the selection', () => {
+      render(<Harness onAsk={jest.fn()} />);
+      selectNodeContents(screen.getByTestId('inside'));
+
+      const button = screen.getByTestId('selection-ask-button');
+      expect(button).toHaveClass('selectionAskDocked');
+      // Docked position comes from CSS alone — no per-selection coordinates
+      expect(button.style.top).toBe('');
+      expect(button.style.left).toBe('');
+      // Portaled past the response card so paint containment can't clip it
+      expect(button.parentElement).toBe(document.body);
+    });
+
+    test('a tap (touchend, no click) hands over the text and clears the selection', () => {
+      const onAsk = jest.fn();
+      render(<Harness onAsk={onAsk} />);
+      selectNodeContents(screen.getByTestId('inside'));
+
+      fireEvent.touchEnd(screen.getByTestId('selection-ask-button'));
+      expect(onAsk).toHaveBeenCalledWith('Hello selectable world');
+      expect(document.getSelection()?.isCollapsed ?? true).toBe(true);
+      expect(
+        screen.queryByTestId('selection-ask-button')
+      ).not.toBeInTheDocument();
+    });
+  });
 });
