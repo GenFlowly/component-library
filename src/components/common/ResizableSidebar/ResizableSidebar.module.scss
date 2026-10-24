@@ -1,25 +1,14 @@
 @import '../../../styles/variables.scss';
 @import '../../../styles/mixins.scss';
+@import '../../../styles/sidebar-card.scss';
 
 .sidebar {
   @include sidebar-base(right);
   width: 10rem; // Default; drag-resizing overrides via inline style
 
-  // macOS-style sidebar material: translucent, blurred, hairline-edged.
-  // Component-local custom props so dark mode only swaps the values.
-  --sidebar-material: rgba(243, 243, 246, 0.78);
-  --sidebar-hairline: rgba(0, 0, 0, 0.08);
-  --sidebar-hover-fill: rgba(0, 0, 0, 0.05);
-  --sidebar-scrollbar-thumb: rgba(0, 0, 0, 0.22);
-
-  background-color: var(--sidebar-material);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
+  @include sidebar-card-props;
+  @include sidebar-card-chrome;
   z-index: 15;
-  border: 1px solid var(--sidebar-hairline);
-  border-radius: $widget-radius;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-  overflow: hidden; // Clip inner content to the rounded corners
   transition: none; // Width is user-driven (drag); animating it would lag the pointer
 
   @include respond-to-mobile {
@@ -32,36 +21,28 @@
   }
 }
 
-// Thin macOS-style scrollbars for anything that scrolls inside the panel.
-// Zero-specificity default (:where) so components that manage their own
-// scrollbar visibility (e.g. SidebarListPanel's show-while-scrolling) win.
-:where(.sidebar) :where(*) {
-  scrollbar-width: thin;
-  scrollbar-color: var(--sidebar-scrollbar-thumb) transparent;
-}
-
-:where(.sidebar *)::-webkit-scrollbar {
-  width: 8px;
-}
-
-:where(.sidebar *)::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-:where(.sidebar *)::-webkit-scrollbar-thumb {
-  background-color: var(--sidebar-scrollbar-thumb);
-  border-radius: 4px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
+@include sidebar-card-scrollbars('.sidebar');
 
 :global([data-theme='dark']) .sidebar {
-  --sidebar-material: rgba(38, 38, 42, 0.72);
-  --sidebar-hairline: rgba(255, 255, 255, 0.09);
-  --sidebar-hover-fill: rgba(255, 255, 255, 0.07);
-  --sidebar-scrollbar-thumb: rgba(255, 255, 255, 0.25);
+  @include sidebar-card-props-dark;
+  @include sidebar-card-chrome-dark;
+}
 
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+// Plain variant: the column still owns the width, drag handle and collapse
+// behavior, but draws no card of its own — for children that render their own
+// sidebar cards (e.g. a VerticalSplit of stacked panes)
+.plain {
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+:global([data-theme='dark']) .plain {
+  box-shadow: none;
 }
 
 // Drag handle on the panel's right edge; sibling sections reflow

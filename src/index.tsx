@@ -43,6 +43,8 @@ export type {
 } from './components/common/SidebarListPanel/SidebarListPanel';
 export { default as ResizableSidebar } from './components/common/ResizableSidebar/ResizableSidebar';
 export type { ResizableSidebarProps } from './components/common/ResizableSidebar/ResizableSidebar';
+export { default as VerticalSplit } from './components/common/VerticalSplit/VerticalSplit';
+export type { VerticalSplitProps } from './components/common/VerticalSplit/VerticalSplit';
 export { Toast, ToastContainer } from './components/common/Toast/Toast';
 export type { ToastMessage } from './components/common/Toast/Toast';
 export { default as MobileFullPageModal } from './components/common/MobileFullPageModal/MobileFullPageModal';

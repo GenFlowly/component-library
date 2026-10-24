@@ -1,0 +1,69 @@
+@import '../../../styles/variables.scss';
+@import '../../../styles/sidebar-card.scss';
+
+.split {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+// Each pane is its own floating sidebar card, matching ResizableSidebar's
+// material so a stacked split reads as two sibling sidebars
+.pane {
+  @include sidebar-card-props;
+  @include sidebar-card-chrome;
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto; // Top pane: height driven by the inline flex-basis fraction
+  min-height: 0;
+}
+
+@include sidebar-card-scrollbars('.pane');
+
+:global([data-theme='dark']) .pane {
+  @include sidebar-card-props-dark;
+  @include sidebar-card-chrome-dark;
+}
+
+.paneFill {
+  flex: 1 1 0;
+}
+
+// The gap between the cards doubles as the drag handle; the grip bar surfaces
+// on hover/drag/keyboard focus
+.divider {
+  position: relative;
+  flex: 0 0 auto;
+  height: 0.5rem;
+  cursor: row-resize;
+  touch-action: none; // Keep pointer events during drag instead of scrolling
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:focus-visible {
+    outline: none;
+
+    .dividerGrip {
+      opacity: 1;
+      background: $color-primary;
+    }
+  }
+
+  &:hover .dividerGrip,
+  &:active .dividerGrip {
+    opacity: 1;
+  }
+}
+
+.dividerGrip {
+  width: 2.5rem;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}

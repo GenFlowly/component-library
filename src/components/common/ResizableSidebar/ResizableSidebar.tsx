@@ -25,6 +25,13 @@ export interface ResizableSidebarProps {
    */
   side?: 'left' | 'right';
   /**
+   * 'card' draws the floating sidebar material; 'plain' keeps only the
+   * width/drag/collapse behavior, for children that render their own cards
+   * (e.g. a VerticalSplit of stacked panes).
+   * @default 'card'
+   */
+  variant?: 'card' | 'plain';
+  /**
    * Adds a full-width footer toggle (chat-sidebar style) that collapses the
    * panel to a slim strip hiding the content. @default false
    */
@@ -59,6 +66,7 @@ export default function ResizableSidebar({
   maxWidth = DEFAULT_MAX_WIDTH,
   defaultWidth,
   side = 'left',
+  variant = 'card',
   collapsible = false,
   collapsed: collapsedProp,
   onCollapsedChange,
@@ -146,7 +154,7 @@ export default function ResizableSidebar({
 
   return (
     <div
-      className={`${styles.sidebar} ${collapsible ? styles.withFooter : ''} ${isCollapsed ? styles.collapsedStrip : ''}`}
+      className={`${styles.sidebar} ${variant === 'plain' ? styles.plain : ''} ${collapsible ? styles.withFooter : ''} ${isCollapsed ? styles.collapsedStrip : ''}`}
       ref={panelRef}
       style={{ width: isCollapsed ? collapsedWidth : width }}
       data-testid={testId}
