@@ -19,6 +19,12 @@ export type { BreadcrumbItem } from './components/common/Breadcrumbs/Breadcrumbs
 
 export { default as ScrollArea } from './components/common/ScrollArea/ScrollArea';
 export type { ScrollAreaProps } from './components/common/ScrollArea/ScrollArea';
+export { Grid, GridCol } from './components/common/Grid/Grid';
+export type {
+  GridProps,
+  GridColProps,
+  GridSpan,
+} from './components/common/Grid/Grid';
 
 // Overlays and self-contained UI
 export { default as Modal } from './components/common/Modal/Modal';

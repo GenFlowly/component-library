@@ -1,0 +1,50 @@
+// 12-column grid whose breakpoints follow the grid's own width (container
+// queries), so a page sidebar shrinking the content area reflows the columns
+// the same way a narrow viewport would.
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.gapSm {
+  gap: 0.75rem;
+}
+
+.gapMd {
+  gap: 1.5rem;
+}
+
+.gapLg {
+  gap: 2rem;
+}
+
+.col {
+  min-width: 0;
+}
+
+// Mobile-first spans: col-N applies everywhere, col-md-N from 640px
+// containers, col-lg-N from 1024px containers.
+@for $i from 1 through 12 {
+  .col-#{$i} {
+    grid-column: span #{$i};
+  }
+}
+
+@container (min-width: 640px) {
+  @for $i from 1 through 12 {
+    .col-md-#{$i} {
+      grid-column: span #{$i};
+    }
+  }
+}
+
+@container (min-width: 1024px) {
+  @for $i from 1 through 12 {
+    .col-lg-#{$i} {
+      grid-column: span #{$i};
+    }
+  }
+}
