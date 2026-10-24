@@ -11,6 +11,16 @@ describe('PageHeader', () => {
     expect(screen.getByText('My Page')).toHaveAttribute('title', 'My Page');
   });
 
+  test('renders the subtitle under the title when provided', () => {
+    const { rerender } = render(
+      <PageHeader title="My Page" subtitle="What this page is for" />
+    );
+    expect(screen.getByText('What this page is for')).toBeInTheDocument();
+
+    rerender(<PageHeader title="My Page" />);
+    expect(screen.queryByText('What this page is for')).not.toBeInTheDocument();
+  });
+
   test('renders actions when provided', () => {
     render(<PageHeader title="My Page" actions={<button>Do it</button>} />);
 

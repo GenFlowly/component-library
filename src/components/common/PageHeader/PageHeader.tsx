@@ -9,6 +9,8 @@ export { styles as pageHeaderStyles };
 
 interface PageHeaderProps {
   title: string;
+  /** Muted one-liner under the title; hidden on mobile. */
+  subtitle?: string;
   /** Rendered horizontally centered on the header band. */
   center?: React.ReactNode;
   actions?: React.ReactNode;
@@ -18,6 +20,7 @@ interface PageHeaderProps {
 
 export default function PageHeader({
   title,
+  subtitle,
   center,
   actions,
   children,
@@ -25,9 +28,14 @@ export default function PageHeader({
 }: PageHeaderProps): React.ReactElement {
   return (
     <div className={styles.header} data-testid={testId}>
-      <h1 className={styles.title} title={title}>
-        {title}
-      </h1>
+      <div className={styles.titleGroup}>
+        <h1 className={styles.title} title={title}>
+          {title}
+        </h1>
+        {subtitle != null && (
+          <span className={styles.subtitle}>{subtitle}</span>
+        )}
+      </div>
       {center != null && <div className={styles.center}>{center}</div>}
       <div className={styles.actions}>{actions}</div>
       {children}
