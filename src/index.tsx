@@ -27,6 +27,15 @@ export type {
   GridColProps,
   GridSpan,
 } from './components/common/Grid/Grid';
+export {
+  default as DateRangePicker,
+  DEFAULT_DATE_RANGE_PRESETS,
+} from './components/common/DateRangePicker/DateRangePicker';
+export type {
+  DateRange,
+  DateRangePreset,
+  DateRangePickerProps,
+} from './components/common/DateRangePicker/DateRangePicker';
 
 // Overlays and self-contained UI
 export { default as Modal } from './components/common/Modal/Modal';

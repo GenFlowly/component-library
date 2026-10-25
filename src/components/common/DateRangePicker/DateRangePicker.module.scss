@@ -1,0 +1,39 @@
+@import '../../../styles/themes.scss';
+@import '../../../styles/mixins.scss';
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.customRange {
+  display: flex;
+  align-items: flex-end;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.fieldLabel {
+  font-size: 0.8rem;
+  color: $color-text-muted;
+}
+
+.dateInput {
+  @include input-field;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  width: auto;
+  color-scheme: light dark;
+}
+
+.separator {
+  color: $color-text-muted;
+  padding-bottom: 0.6rem;
+}
