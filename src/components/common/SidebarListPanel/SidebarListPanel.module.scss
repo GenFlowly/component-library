@@ -45,12 +45,14 @@
   flex-direction: column;
   gap: 1px;
   padding: 0.25rem 0 0;
+  // Hairline between the fixed block and the scrolling list below it; the
+  // block's trailing group margin provides the spacing above the line
+  border-bottom: 1px solid $color-border-light;
 }
 
-// The fixed block's trailing group margin already separates the sections;
-// the list's own top padding would double it
+// Breathing room under the divider, mirroring the group margin above it
 .fixedSection + .list {
-  padding-top: 0;
+  padding-top: 0.25rem;
 }
 
 // Invisible observer target at the end of the list for onEndReached
