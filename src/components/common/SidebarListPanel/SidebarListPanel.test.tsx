@@ -224,6 +224,55 @@ describe('SidebarListPanel nested groups', () => {
     expect(onToggle).toHaveBeenLastCalledWith(false);
   });
 
+  test('top-level section headings are sticky; nested subsection headings are not', () => {
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        groups={[
+          {
+            id: 'projects',
+            label: 'Projects',
+            testId: 'top-heading',
+            groups: [
+              {
+                id: 'p1',
+                label: 'Project One',
+                collapsible: true,
+                defaultExpanded: true,
+                groups: [
+                  {
+                    id: 'p1-pinned',
+                    label: 'Pinned',
+                    items: [item('a', 'Pinned conv')],
+                    testId: 'nested-heading',
+                  },
+                ],
+              },
+            ],
+          },
+        ]}
+        fixedGroups={[
+          {
+            id: 'fx',
+            label: 'Fixed',
+            items: [item('f', 'Fixed conv')],
+            testId: 'fixed-heading',
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByTestId('top-heading').className).toContain(
+      'stickyHeader'
+    );
+    expect(screen.getByTestId('fixed-heading').className).toContain(
+      'stickyHeader'
+    );
+    expect(screen.getByTestId('nested-heading').className).not.toContain(
+      'stickyHeader'
+    );
+  });
+
   test('fixed groups render outside the scrollable list, before it', () => {
     render(
       <SidebarListPanel

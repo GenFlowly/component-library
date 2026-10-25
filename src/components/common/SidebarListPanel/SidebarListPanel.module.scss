@@ -76,6 +76,16 @@
   }
 }
 
+// Top-level section headings pin to the top of the scroll area while their
+// rows scroll beneath. Painted with the panel surface color (what they
+// already sit on) so rows disappear under them — visually unchanged at rest.
+.stickyHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2; // Above the item rows' absolutely-positioned action overlays
+  background-color: $color-sidebar-background;
+}
+
 .groupHeaderLabel {
   @include ellipsis;
   flex: 1;

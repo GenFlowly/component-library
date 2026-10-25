@@ -186,7 +186,16 @@ function Chevron({ expanded }: { expanded: boolean }) {
   );
 }
 
-function GroupSection({ group }: { group: SidebarListGroup }) {
+function GroupSection({
+  group,
+  // Top-level section headings (Projects, Pinned, Recents) stick to the top
+  // of the scroll area; nested subsection headings stay in flow — a stuck
+  // nested heading would overlap its parent's stuck heading
+  isTopLevel = false,
+}: {
+  group: SidebarListGroup;
+  isTopLevel?: boolean;
+}) {
   const [expanded, setExpanded] = useState(group.defaultExpanded ?? false);
 
   const items = group.items ?? [];
@@ -213,7 +222,10 @@ function GroupSection({ group }: { group: SidebarListGroup }) {
     const headerActions = group.actions ?? [];
     return (
       <div className={styles.group}>
-        <div className={styles.groupHeader} data-testid={group.testId}>
+        <div
+          className={`${styles.groupHeader} ${isTopLevel ? styles.stickyHeader : ''}`}
+          data-testid={group.testId}
+        >
           <span className={styles.groupHeaderLabel}>{group.label}</span>
           {headerActions.length > 0 && (
             <span className={styles.groupHeaderActions}>
@@ -362,7 +374,7 @@ export default function SidebarListPanel({
           {hasContent(fixed) && (
             <div className={styles.fixedSection}>
               {fixed.map(group => (
-                <GroupSection key={group.id} group={group} />
+                <GroupSection key={group.id} group={group} isTopLevel />
               ))}
             </div>
           )}
@@ -372,7 +384,7 @@ export default function SidebarListPanel({
             data-testid={testIds?.list}
           >
             {groups.map(group => (
-              <GroupSection key={group.id} group={group} />
+              <GroupSection key={group.id} group={group} isTopLevel />
             ))}
           </ScrollArea>
         </>
