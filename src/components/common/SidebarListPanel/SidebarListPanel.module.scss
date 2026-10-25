@@ -53,6 +53,12 @@
   padding-top: 0;
 }
 
+// Invisible observer target at the end of the list for onEndReached
+.endSentinel {
+  flex-shrink: 0;
+  height: 1px;
+}
+
 .group {
   display: flex;
   flex-direction: column;

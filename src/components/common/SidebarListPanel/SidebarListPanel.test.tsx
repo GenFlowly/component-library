@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SidebarListPanel, {
   SidebarListGroup,
@@ -271,6 +271,68 @@ describe('SidebarListPanel nested groups', () => {
     expect(screen.getByTestId('nested-heading').className).not.toContain(
       'stickyHeader'
     );
+  });
+
+  test('onEndReached fires when the end sentinel intersects, and cleans up', () => {
+    const callbacks: IntersectionObserverCallback[] = [];
+    const observe = jest.fn();
+    const disconnect = jest.fn();
+    const RealIO = window.IntersectionObserver;
+    window.IntersectionObserver = class {
+      constructor(cb: IntersectionObserverCallback) {
+        callbacks.push(cb);
+      }
+      observe = observe;
+      disconnect = disconnect;
+      unobserve = jest.fn();
+    } as unknown as typeof IntersectionObserver;
+
+    const onEndReached = jest.fn();
+    try {
+      const { unmount } = render(
+        <SidebarListPanel
+          {...baseProps}
+          groups={[{ id: 'g', label: 'Recents', items: [item('a', 'One')] }]}
+          onEndReached={onEndReached}
+          testIds={{ endSentinel: 'end-sentinel' }}
+        />
+      );
+
+      expect(screen.getByTestId('end-sentinel')).toBeInTheDocument();
+      expect(observe).toHaveBeenCalled();
+
+      act(() => {
+        callbacks[callbacks.length - 1](
+          [{ isIntersecting: true } as IntersectionObserverEntry],
+          {} as IntersectionObserver
+        );
+      });
+      expect(onEndReached).toHaveBeenCalledTimes(1);
+
+      act(() => {
+        callbacks[callbacks.length - 1](
+          [{ isIntersecting: false } as IntersectionObserverEntry],
+          {} as IntersectionObserver
+        );
+      });
+      expect(onEndReached).toHaveBeenCalledTimes(1);
+
+      unmount();
+      expect(disconnect).toHaveBeenCalled();
+    } finally {
+      window.IntersectionObserver = RealIO;
+    }
+  });
+
+  test('without onEndReached no sentinel renders', () => {
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        groups={[{ id: 'g', label: 'Recents', items: [item('a', 'One')] }]}
+        testIds={{ endSentinel: 'end-sentinel' }}
+      />
+    );
+    expect(screen.queryByTestId('end-sentinel')).not.toBeInTheDocument();
   });
 
   test('fixed groups render outside the scrollable list, before it', () => {

@@ -1,4 +1,4 @@
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode, useEffect, useRef, useState } from 'react';
 import ScrollArea from '../ScrollArea/ScrollArea';
 import styles from './SidebarListPanel.module.scss';
 
@@ -73,6 +73,11 @@ export interface SidebarListPanelProps {
   errorText: string;
   emptyText: string;
   listAriaLabel?: string;
+  // Infinite scroll: called when the end of the scrolling list comes within
+  // ~120px of view — including right after a load that still doesn't fill
+  // the viewport. Pass it only while another page can actually be fetched
+  // (gate on your hasMore/isLoading/error); the panel does not debounce.
+  onEndReached?: () => void;
   // Rendered below the list (e.g. a "Load more" pagination button)
   footer?: ReactNode;
   'data-testid'?: string;
@@ -81,6 +86,7 @@ export interface SidebarListPanelProps {
     loading?: string;
     error?: string;
     empty?: string;
+    endSentinel?: string;
   };
 }
 
@@ -338,12 +344,35 @@ export default function SidebarListPanel({
   errorText,
   emptyText,
   listAriaLabel,
+  onEndReached,
   footer,
   'data-testid': testId,
   testIds,
 }: SidebarListPanelProps) {
   const fixed = fixedGroups ?? [];
   const isEmpty = !hasContent(groups) && !hasContent(fixed);
+
+  const listRef = useRef<HTMLElement | null>(null);
+  const endSentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!onEndReached || isEmpty) return;
+    if (typeof IntersectionObserver === 'undefined') return;
+    const rootEl = listRef.current;
+    const target = endSentinelRef.current;
+    if (!rootEl || !target) return;
+    // Recreated whenever groups change: observe() always reports the initial
+    // intersection, so a list that still doesn't fill the viewport after a
+    // load immediately requests the next page
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries.some(entry => entry.isIntersecting)) onEndReached();
+      },
+      { root: rootEl, rootMargin: '120px 0px' }
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [onEndReached, isEmpty, groups]);
 
   return (
     <div className={styles.container} data-testid={testId}>
@@ -379,6 +408,7 @@ export default function SidebarListPanel({
             </div>
           )}
           <ScrollArea
+            ref={listRef}
             className={styles.list}
             aria-label={listAriaLabel}
             data-testid={testIds?.list}
@@ -386,6 +416,14 @@ export default function SidebarListPanel({
             {groups.map(group => (
               <GroupSection key={group.id} group={group} isTopLevel />
             ))}
+            {onEndReached != null && (
+              <div
+                ref={endSentinelRef}
+                className={styles.endSentinel}
+                aria-hidden="true"
+                data-testid={testIds?.endSentinel}
+              />
+            )}
           </ScrollArea>
         </>
       )}
