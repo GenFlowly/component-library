@@ -71,7 +71,7 @@
   gap: 0.35rem;
   padding: 0.25rem 0.75rem;
   font-size: 0.65rem;
-  font-weight: 600;
+  font-weight: 700;
   color: $color-text-muted;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -90,6 +90,10 @@
   top: 0;
   z-index: 2; // Above the item rows' absolutely-positioned action overlays
   background-color: $color-sidebar-background;
+  // The scroller's top padding and the heading's own top margin sit above
+  // the stuck heading, so rows peeked through that strip; a zero-blur shadow
+  // in the surface color paints it over without affecting layout
+  box-shadow: 0 -0.75rem 0 $color-sidebar-background;
 }
 
 .groupHeaderLabel {
