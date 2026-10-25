@@ -71,7 +71,10 @@
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.25rem 0.75rem;
+  // Left edge matches .item's left padding so the heading text lines up
+  // with the row labels below it; right stays 0.75rem so a header action
+  // button (e.g. "new project") lines up with the row actions column
+  padding: 0.25rem 0.75rem 0.25rem 0.35rem;
   font-size: 0.65rem;
   font-weight: 700;
   color: $color-text-muted;
@@ -497,7 +500,8 @@
 
   .groupHeader {
     font-size: 0.75rem;
-    padding: 0.4rem 0.9rem;
+    // Left edge matches .item's left padding (0.5rem) on mobile
+    padding: 0.4rem 0.9rem 0.4rem 0.5rem;
   }
 
   .item {
