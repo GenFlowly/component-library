@@ -17,6 +17,7 @@ import {
 } from './ConversationWidgetContext';
 import { useAskSelection } from './AskSelectionContext';
 import TextContainer from '../../common/TextContainer/TextContainer';
+import { ErrorBoundary } from '../../common/ErrorBoundary/ErrorBoundary';
 import { Icon } from '../../common/Icon/Icon';
 import {
   LearnedFact,
@@ -788,175 +789,151 @@ function Response({
             }
 
             return (
-              <div key={messageId} className={styles.responseWrapper}>
-                <TextContainer
-                  title={HeaderComponent}
-                  content={linkifyCitations(text, webSources)}
-                  subheader={
-                    <ThinkingSection
-                      steps={thinkingSteps ?? []}
-                      stepList={thinkingStepList}
-                      isThinking={isThinkingPhase}
-                      durationMs={thinkingDurationMs}
-                      text={text}
-                    />
-                  }
-                  isLoading={isThinkingPhase}
-                  loadingContent={null}
-                  onAskSelection={
-                    canAsk
-                      ? selectedText =>
-                          handleAskSelection(
-                            messageId,
-                            aiVendor ?? '',
-                            selectedText
-                          )
-                      : undefined
-                  }
-                  data-testid="response-message"
-                  aria-label={t('conversation.response.responseFrom', {
-                    vendor: aiVendor,
-                  })}
-                >
-                  {error && (
-                    <div
-                      className={styles.errorBanner}
-                      role="alert"
-                      data-testid="response-error"
-                    >
-                      {text.trim().length > 0
-                        ? t('conversation.response.streamInterrupted', {
-                            reason: error,
-                          })
-                        : t('conversation.response.generationFailed', {
-                            reason: error,
-                          })}
-                    </div>
-                  )}
-                  {!isLoading && webSources && webSources.length > 0 && (
-                    <SourcesSection sources={webSources} />
-                  )}
-                  {generatedAttachments && generatedAttachments.length > 0 && (
-                    <GeneratedAttachmentsSection
-                      attachments={generatedAttachments}
-                    />
-                  )}
-                  {!isLoading && stopReason && (
-                    <StopReasonNote reason={stopReason} />
-                  )}
-                  {!isLoading && usageTotals && (
-                    <div className={styles.tokenBadge}>
-                      <Tooltip
-                        content={t('conversation.response.totalInputTokens')}
+              <ErrorBoundary key={messageId}>
+                <div className={styles.responseWrapper}>
+                  <TextContainer
+                    title={HeaderComponent}
+                    content={linkifyCitations(text, webSources)}
+                    subheader={
+                      <ThinkingSection
+                        steps={thinkingSteps ?? []}
+                        stepList={thinkingStepList}
+                        isThinking={isThinkingPhase}
+                        durationMs={thinkingDurationMs}
+                        text={text}
+                      />
+                    }
+                    isLoading={isThinkingPhase}
+                    loadingContent={null}
+                    onAskSelection={
+                      canAsk
+                        ? selectedText =>
+                            handleAskSelection(
+                              messageId,
+                              aiVendor ?? '',
+                              selectedText
+                            )
+                        : undefined
+                    }
+                    data-testid="response-message"
+                    aria-label={t('conversation.response.responseFrom', {
+                      vendor: aiVendor,
+                    })}
+                  >
+                    {error && (
+                      <div
+                        className={styles.errorBanner}
+                        role="alert"
+                        data-testid="response-error"
                       >
-                        <span className={styles.tokenItem}>
-                          <Icon src={ICONS.INPUT_TOKENS} size={12} />
-                          {usageTotals.inputTokens.toLocaleString()}
-                        </span>
-                      </Tooltip>
-                      <Tooltip
-                        content={t('conversation.response.totalOutputTokens')}
-                      >
-                        <span className={styles.tokenItem}>
-                          <Icon src={ICONS.OUTPUT_TOKENS} size={12} />
-                          {usageTotals.outputTokens.toLocaleString()}
-                        </span>
-                      </Tooltip>
-                      <Tooltip
-                        content={t('conversation.response.tokensReadFromCache')}
-                      >
-                        <span className={styles.tokenItem}>
-                          <Icon src={ICONS.CACHE_TOKENS} size={12} />
-                          {usageTotals.tokensReadFromCache.toLocaleString()}
-                        </span>
-                      </Tooltip>
-                      <Tooltip content={t('conversation.response.totalTokens')}>
-                        <span className={styles.tokenItem}>
-                          <Icon src={ICONS.TOTAL_TOKENS} size={12} />
-                          {usageTotals.totalTokens.toLocaleString()}
-                        </span>
-                      </Tooltip>
-                      {usageTotals.costUsd != null && (
+                        {text.trim().length > 0
+                          ? t('conversation.response.streamInterrupted', {
+                              reason: error,
+                            })
+                          : t('conversation.response.generationFailed', {
+                              reason: error,
+                            })}
+                      </div>
+                    )}
+                    {!isLoading && webSources && webSources.length > 0 && (
+                      <SourcesSection sources={webSources} />
+                    )}
+                    {generatedAttachments &&
+                      generatedAttachments.length > 0 && (
+                        <GeneratedAttachmentsSection
+                          attachments={generatedAttachments}
+                        />
+                      )}
+                    {!isLoading && stopReason && (
+                      <StopReasonNote reason={stopReason} />
+                    )}
+                    {!isLoading && usageTotals && (
+                      <div className={styles.tokenBadge}>
+                        <Tooltip
+                          content={t('conversation.response.totalInputTokens')}
+                        >
+                          <span className={styles.tokenItem}>
+                            <Icon src={ICONS.INPUT_TOKENS} size={12} />
+                            {usageTotals.inputTokens.toLocaleString()}
+                          </span>
+                        </Tooltip>
+                        <Tooltip
+                          content={t('conversation.response.totalOutputTokens')}
+                        >
+                          <span className={styles.tokenItem}>
+                            <Icon src={ICONS.OUTPUT_TOKENS} size={12} />
+                            {usageTotals.outputTokens.toLocaleString()}
+                          </span>
+                        </Tooltip>
                         <Tooltip
                           content={t(
-                            'conversation.response.conversationCostUsd',
-                            { vendor: aiVendor }
+                            'conversation.response.tokensReadFromCache'
                           )}
                         >
                           <span className={styles.tokenItem}>
-                            {formatUsd(usageTotals.costUsd)}
+                            <Icon src={ICONS.CACHE_TOKENS} size={12} />
+                            {usageTotals.tokensReadFromCache.toLocaleString()}
                           </span>
                         </Tooltip>
-                      )}
-                      {showLearnedFacts && (
-                        <LearnedFactsStat
-                          conversationId={conversationId}
-                          messageId={messageId}
-                          initialFacts={learnedFacts}
-                          isFreshResponse={isFreshResponse}
-                        />
-                      )}
-                    </div>
-                  )}
-                  {(() => {
-                    // Fork needs a real persisted response (never a client
-                    // placeholder or an errored stream) — the backend copies
-                    // the conversation up to this exact message. Unlike
-                    // regenerate, it shows on EVERY response block, so any
-                    // point of the conversation can branch off.
-                    const canFork =
-                      !!forkConversation &&
-                      !!conversationId &&
-                      !!messageId &&
-                      !error &&
-                      !PLACEHOLDER_MESSAGE_ID.test(messageId);
-                    if (!isLoading && !isLastResponseBlock && !canFork) {
-                      return null;
-                    }
-                    return (
-                      <div className={styles.responseActionButtonsWrapper}>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          {isLoading ? (
-                            <RectangleButton
-                              label={t('conversation.response.stop')}
-                              onClick={() =>
-                                stopGenerating(blockId, aiVendor as AIVendor)
-                              }
-                              data-testid="stop-button"
-                            />
-                          ) : (
-                            <>
-                              {isLastResponseBlock && (
-                                <Tooltip
-                                  content={
-                                    disabled
-                                      ? t('conversation.response.noApiKeysSet')
-                                      : ''
-                                  }
-                                >
-                                  <div
-                                    style={
-                                      disabled ? { cursor: 'not-allowed' } : {}
-                                    }
-                                  >
-                                    <RectangleButton
-                                      label={t(
-                                        'conversation.response.regenerate'
-                                      )}
-                                      onClick={() =>
-                                        handleRegenerate(aiVendor as AIVendor)
-                                      }
-                                      disabled={disabled}
-                                      icon={ICONS.REFRESH_ICON}
-                                      data-testid="regenerate-button"
-                                    />
-                                  </div>
-                                </Tooltip>
-                              )}
-
-                              {isLastResponseBlock &&
-                                onFollowUp &&
-                                text.trim().length > 0 && (
+                        <Tooltip
+                          content={t('conversation.response.totalTokens')}
+                        >
+                          <span className={styles.tokenItem}>
+                            <Icon src={ICONS.TOTAL_TOKENS} size={12} />
+                            {usageTotals.totalTokens.toLocaleString()}
+                          </span>
+                        </Tooltip>
+                        {usageTotals.costUsd != null && (
+                          <Tooltip
+                            content={t(
+                              'conversation.response.conversationCostUsd',
+                              { vendor: aiVendor }
+                            )}
+                          >
+                            <span className={styles.tokenItem}>
+                              {formatUsd(usageTotals.costUsd)}
+                            </span>
+                          </Tooltip>
+                        )}
+                        {showLearnedFacts && (
+                          <LearnedFactsStat
+                            conversationId={conversationId}
+                            messageId={messageId}
+                            initialFacts={learnedFacts}
+                            isFreshResponse={isFreshResponse}
+                          />
+                        )}
+                      </div>
+                    )}
+                    {(() => {
+                      // Fork needs a real persisted response (never a client
+                      // placeholder or an errored stream) — the backend copies
+                      // the conversation up to this exact message. Unlike
+                      // regenerate, it shows on EVERY response block, so any
+                      // point of the conversation can branch off.
+                      const canFork =
+                        !!forkConversation &&
+                        !!conversationId &&
+                        !!messageId &&
+                        !error &&
+                        !PLACEHOLDER_MESSAGE_ID.test(messageId);
+                      if (!isLoading && !isLastResponseBlock && !canFork) {
+                        return null;
+                      }
+                      return (
+                        <div className={styles.responseActionButtonsWrapper}>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            {isLoading ? (
+                              <RectangleButton
+                                label={t('conversation.response.stop')}
+                                onClick={() =>
+                                  stopGenerating(blockId, aiVendor as AIVendor)
+                                }
+                                data-testid="stop-button"
+                              />
+                            ) : (
+                              <>
+                                {isLastResponseBlock && (
                                   <Tooltip
                                     content={
                                       disabled
@@ -974,49 +951,86 @@ function Response({
                                       }
                                     >
                                       <RectangleButton
-                                        label={
-                                          isSelected
-                                            ? t(
-                                                'conversation.response.selected'
-                                              )
-                                            : t(
-                                                'conversation.response.followUp'
-                                              )
-                                        }
+                                        label={t(
+                                          'conversation.response.regenerate'
+                                        )}
                                         onClick={() =>
-                                          handleFollowUp(messageId)
+                                          handleRegenerate(aiVendor as AIVendor)
                                         }
-                                        disabled={isSelected || disabled}
-                                        icon={
-                                          isSelected ? undefined : ICONS.SEND
-                                        }
-                                        data-testid="follow-up-button"
+                                        disabled={disabled}
+                                        icon={ICONS.REFRESH_ICON}
+                                        data-testid="regenerate-button"
                                       />
                                     </div>
                                   </Tooltip>
                                 )}
 
-                              {canFork && (
-                                <Tooltip
-                                  content={t('conversation.response.forkHint')}
-                                >
-                                  <PillButton
-                                    label={t('conversation.response.fork')}
-                                    icon={ICONS.GIT_FORK}
-                                    variant="secondary"
-                                    onClick={() => handleFork(messageId)}
-                                    data-testid="fork-button"
-                                  />
-                                </Tooltip>
-                              )}
-                            </>
-                          )}
+                                {isLastResponseBlock &&
+                                  onFollowUp &&
+                                  text.trim().length > 0 && (
+                                    <Tooltip
+                                      content={
+                                        disabled
+                                          ? t(
+                                              'conversation.response.noApiKeysSet'
+                                            )
+                                          : ''
+                                      }
+                                    >
+                                      <div
+                                        style={
+                                          disabled
+                                            ? { cursor: 'not-allowed' }
+                                            : {}
+                                        }
+                                      >
+                                        <RectangleButton
+                                          label={
+                                            isSelected
+                                              ? t(
+                                                  'conversation.response.selected'
+                                                )
+                                              : t(
+                                                  'conversation.response.followUp'
+                                                )
+                                          }
+                                          onClick={() =>
+                                            handleFollowUp(messageId)
+                                          }
+                                          disabled={isSelected || disabled}
+                                          icon={
+                                            isSelected ? undefined : ICONS.SEND
+                                          }
+                                          data-testid="follow-up-button"
+                                        />
+                                      </div>
+                                    </Tooltip>
+                                  )}
+
+                                {canFork && (
+                                  <Tooltip
+                                    content={t(
+                                      'conversation.response.forkHint'
+                                    )}
+                                  >
+                                    <PillButton
+                                      label={t('conversation.response.fork')}
+                                      icon={ICONS.GIT_FORK}
+                                      variant="secondary"
+                                      onClick={() => handleFork(messageId)}
+                                      data-testid="fork-button"
+                                    />
+                                  </Tooltip>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })()}
-                </TextContainer>
-              </div>
+                      );
+                    })()}
+                  </TextContainer>
+                </div>
+              </ErrorBoundary>
             );
           }
         )}
