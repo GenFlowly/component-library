@@ -33,6 +33,26 @@
   padding: 0.25rem 0;
 }
 
+// Non-scrolling block above the list (fixedGroups): hugs its content with no
+// height cap, so the scrolling list below gets what remains. overflow-y is a
+// safety valve for the degenerate case where this block alone exceeds the
+// panel — a scrollbar only appears then.
+.fixedSection {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0.25rem 0 0;
+}
+
+// The fixed block's trailing group margin already separates the sections;
+// the list's own top padding would double it
+.fixedSection + .list {
+  padding-top: 0;
+}
+
 .group {
   display: flex;
   flex-direction: column;

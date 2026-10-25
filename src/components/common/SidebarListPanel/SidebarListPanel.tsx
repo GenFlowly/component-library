@@ -64,6 +64,10 @@ export interface SidebarListPanelProps {
   // Panel header above the list; omit when the groups' own headers are enough
   title?: string;
   groups: SidebarListGroup[];
+  // Groups rendered in a non-scrolling block above the list (e.g. a Pinned
+  // section that stays put while the list scrolls). The block hugs its
+  // content with no height cap, so the scrolling list gets what remains.
+  fixedGroups?: SidebarListGroup[];
   isLoading: boolean;
   hasError: boolean;
   errorText: string;
@@ -316,6 +320,7 @@ function hasContent(groups: SidebarListGroup[]): boolean {
 export default function SidebarListPanel({
   title,
   groups,
+  fixedGroups,
   isLoading,
   hasError,
   errorText,
@@ -325,7 +330,8 @@ export default function SidebarListPanel({
   'data-testid': testId,
   testIds,
 }: SidebarListPanelProps) {
-  const isEmpty = !hasContent(groups);
+  const fixed = fixedGroups ?? [];
+  const isEmpty = !hasContent(groups) && !hasContent(fixed);
 
   return (
     <div className={styles.container} data-testid={testId}>
@@ -352,15 +358,24 @@ export default function SidebarListPanel({
           {emptyText}
         </div>
       ) : (
-        <ScrollArea
-          className={styles.list}
-          aria-label={listAriaLabel}
-          data-testid={testIds?.list}
-        >
-          {groups.map(group => (
-            <GroupSection key={group.id} group={group} />
-          ))}
-        </ScrollArea>
+        <>
+          {hasContent(fixed) && (
+            <div className={styles.fixedSection}>
+              {fixed.map(group => (
+                <GroupSection key={group.id} group={group} />
+              ))}
+            </div>
+          )}
+          <ScrollArea
+            className={styles.list}
+            aria-label={listAriaLabel}
+            data-testid={testIds?.list}
+          >
+            {groups.map(group => (
+              <GroupSection key={group.id} group={group} />
+            ))}
+          </ScrollArea>
+        </>
       )}
 
       {footer}

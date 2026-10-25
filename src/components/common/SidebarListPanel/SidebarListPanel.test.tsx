@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SidebarListPanel, {
   SidebarListGroup,
@@ -222,6 +222,45 @@ describe('SidebarListPanel nested groups', () => {
     expect(row).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByText('Pinned conv')).not.toBeInTheDocument();
     expect(onToggle).toHaveBeenLastCalledWith(false);
+  });
+
+  test('fixed groups render outside the scrollable list, before it', () => {
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        fixedGroups={[
+          { id: 'pinned', label: 'Pinned', items: [item('p1', 'Pinned conv')] },
+        ]}
+        groups={[
+          { id: 'recent', label: 'Recent', items: [item('r1', 'Recent conv')] },
+        ]}
+        testIds={{ list: 'scroll-list' }}
+      />
+    );
+
+    const list = screen.getByTestId('scroll-list');
+    expect(within(list).queryByText('Pinned conv')).not.toBeInTheDocument();
+    expect(within(list).getByText('Recent conv')).toBeInTheDocument();
+    const pinned = screen.getByText('Pinned conv');
+    expect(
+      pinned.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  test('fixed groups alone count as content, not the empty state', () => {
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        groups={[]}
+        fixedGroups={[
+          { id: 'pinned', label: 'Pinned', items: [item('p1', 'Pinned conv')] },
+        ]}
+        testIds={{ empty: 'empty-state' }}
+      />
+    );
+
+    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
+    expect(screen.getByText('Pinned conv')).toBeInTheDocument();
   });
 
   test('collapsible group with no content renders no chevron and does not toggle', async () => {

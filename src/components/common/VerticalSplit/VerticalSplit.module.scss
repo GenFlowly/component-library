@@ -31,18 +31,26 @@
   flex: 1 1 0;
 }
 
-// The gap between the cards doubles as the drag handle; the grip bar surfaces
-// on hover/drag/keyboard focus
+// The gap between the cards doubles as the drag handle. Visually it is the
+// same 1px seam the page puts between widget panels (--widget-gap); an
+// invisible ::before strip widens the pointer target, and the grip bar floats
+// over the seam on hover/drag/keyboard focus
 .divider {
   position: relative;
   flex: 0 0 auto;
-  height: 0.5rem;
+  height: var(--widget-gap, 0.0625rem);
   cursor: row-resize;
   touch-action: none; // Keep pointer events during drag instead of scrolling
+  z-index: 1; // Hit area and grip paint above the sibling cards
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -4px;
+    bottom: -4px;
+  }
 
   &:focus-visible {
     outline: none;
@@ -60,6 +68,10 @@
 }
 
 .dividerGrip {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   width: 2.5rem;
   height: 3px;
   border-radius: 2px;
