@@ -1,4 +1,5 @@
 @import '../../../styles/variables.scss';
+@import '../../../styles/mixins.scss';
 @import '../../../styles/sidebar-card.scss';
 
 .split {
@@ -42,6 +43,13 @@
   cursor: row-resize;
   touch-action: none; // Keep pointer events during drag instead of scrolling
   z-index: 1; // Hit area and grip paint above the sibling cards
+
+  // 📱 Mobile has no 1px panel-seam convention (pages run full screen with
+  // gap 0), so the hairline read as the cards touching; give the stacked
+  // cards a real visible gap, which doubles as a finger-sized drag target
+  @include respond-to-mobile {
+    height: 0.625rem;
+  }
 
   &::before {
     content: '';
