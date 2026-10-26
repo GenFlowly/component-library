@@ -1,6 +1,6 @@
 {
   "name": "@genflowly/component-library",
-  "version": "0.1.98",
+  "version": "0.1.99",
   "type": "commonjs",
   "files": [
     "dist"
