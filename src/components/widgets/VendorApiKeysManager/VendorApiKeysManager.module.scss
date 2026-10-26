@@ -29,9 +29,11 @@
 }
 
 .modelSelect {
-  flex: 2 1 220px;
+  flex: 2 1 300px;
+  min-width: 300px;
 }
 
 .prioritySelect {
-  flex: 1 1 120px;
+  flex: 1 1 200px;
+  min-width: 200px;
 }
