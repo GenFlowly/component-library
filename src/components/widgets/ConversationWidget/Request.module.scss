@@ -153,7 +153,12 @@
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 0;
+    // Standalone PWA mode draws edge-to-edge with no browser chrome to clear
+    // the home indicator / gesture bar — lift the docked editor clear of it
+    // instead of resting flush against it (env() resolves to 0px without
+    // viewport-fit=cover, so this is a no-op everywhere else). Additive with
+    // the keyboard-riding transform below, not a replacement for it.
+    bottom: env(safe-area-inset-bottom, 0px);
     height: var(--editor-height);
     min-height: 0;
     // Ride the keyboard with a transform (compositor-animated, no layout

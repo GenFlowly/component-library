@@ -27,7 +27,13 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  // Standalone PWA mode draws edge-to-edge with no browser chrome to clear
+  // a device notch/Dynamic Island/punch-hole — grow past the base padding
+  // to stay clear of it instead of sitting underneath (env() resolves to
+  // 0px without viewport-fit=cover, so this is a no-op everywhere else).
+  padding: max(0.5rem, env(safe-area-inset-top, 0px))
+    max(0.75rem, env(safe-area-inset-right, 0px)) 0.5rem
+    max(0.75rem, env(safe-area-inset-left, 0px));
   background: transparent;
   pointer-events: none;
 

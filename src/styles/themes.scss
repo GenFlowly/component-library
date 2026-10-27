@@ -101,8 +101,14 @@
   // request widget's text container)
   --mobile-content-inset: 0.5rem;
   --mobile-content-width: calc(100vw - (2 * var(--mobile-content-inset)));
-  // Fixed mobile header the conversation layout offsets itself against
-  --mobile-header-height: 3.5rem;
+  // Fixed mobile header the conversation layout offsets itself against.
+  // 3.5rem = 0.5rem top padding + 2.5rem (40px) circle buttons + 0.5rem
+  // bottom padding (see MobileHeader.module.scss); the top padding grows to
+  // clear a device notch/Dynamic Island in standalone PWA mode, so this
+  // mirrors that with the same max(0.5rem, env(...)) floor.
+  --mobile-header-height: calc(
+    3rem + max(0.5rem, env(safe-area-inset-top, 0px))
+  );
 
   // Vertical padding for request/response widgets — identical top & bottom,
   // desktop & mobile
