@@ -446,6 +446,76 @@ describe('SidebarListPanel nested groups', () => {
     expect(screen.getByText('Empty project')).toBeInTheDocument();
   });
 
+  test('collapsible top-level section keeps the uppercase sticky-header look and toggles on click', async () => {
+    const onToggle = jest.fn();
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        groups={[
+          {
+            id: 'recent',
+            label: 'Recents',
+            collapsible: true,
+            defaultExpanded: true,
+            onToggle,
+            testId: 'recents-heading',
+            items: [item('r1', 'Recent conv')],
+          },
+        ]}
+      />
+    );
+
+    const header = screen.getByTestId('recents-heading');
+    // Sticky positioning lives on the wrapping row (so an overlaid action
+    // button stays pinned alongside the label), not the header button itself
+    expect(header.parentElement?.className).toContain('stickyHeader');
+    expect(header.className).toContain('groupHeader');
+    expect(header).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('Recent conv')).toBeInTheDocument();
+
+    await userEvent.click(header);
+    expect(onToggle).toHaveBeenLastCalledWith(false);
+    expect(header).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Recent conv')).not.toBeInTheDocument();
+
+    await userEvent.click(header);
+    expect(onToggle).toHaveBeenLastCalledWith(true);
+    expect(screen.getByText('Recent conv')).toBeInTheDocument();
+  });
+
+  test('collapsible top-level section header actions render as siblings and do not toggle expansion', async () => {
+    const onNew = jest.fn();
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        groups={[
+          {
+            id: 'projects',
+            label: 'Projects',
+            collapsible: true,
+            defaultExpanded: true,
+            testId: 'projects-heading',
+            actions: [
+              {
+                icon: <span>+</span>,
+                label: 'New project',
+                onClick: onNew,
+                testId: 'new-project-btn',
+              },
+            ],
+            items: [item('p1', 'A project')],
+          },
+        ]}
+      />
+    );
+
+    const header = screen.getByTestId('projects-heading');
+    const btn = screen.getByTestId('new-project-btn');
+    await userEvent.click(btn);
+    expect(onNew).toHaveBeenCalledTimes(1);
+    expect(header).toHaveAttribute('aria-expanded', 'true');
+  });
+
   test('static group header renders its action buttons', async () => {
     const onNew = jest.fn();
     render(

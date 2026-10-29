@@ -263,13 +263,23 @@ function GroupSection({
     group.onToggle?.(next);
   };
 
+  // Top-level sections (Projects, Pinned, Recents) keep their uppercase
+  // sticky-header look even once collapsible; nested rows (e.g. a project
+  // entry) keep the item-like row look they've always had
+  const headerClassName = isTopLevel
+    ? `${styles.groupHeader} ${styles.groupHeaderToggle}`
+    : styles.collapsibleHeader;
+  const labelClassName = isTopLevel
+    ? styles.groupHeaderLabel
+    : styles.collapsibleLabel;
+
   return (
     <div className={styles.group}>
       <div
-        className={`${styles.collapsibleHeaderRow} ${headerActions.length > 0 ? styles.hasActions : ''} ${headerActions.length > 1 ? styles.multiAction : ''}`}
+        className={`${styles.collapsibleHeaderRow} ${isTopLevel ? styles.stickyHeader : ''} ${headerActions.length > 0 ? styles.hasActions : ''} ${headerActions.length > 1 ? styles.multiAction : ''}`}
       >
         <button
-          className={styles.collapsibleHeader}
+          className={headerClassName}
           onClick={hasChildren ? handleToggle : undefined}
           aria-expanded={hasChildren ? expanded : undefined}
           aria-controls={hasChildren && expanded ? contentId : undefined}
@@ -286,7 +296,7 @@ function GroupSection({
           {group.icon != null && (
             <span className={styles.groupIcon}>{group.icon}</span>
           )}
-          <span className={styles.collapsibleLabel}>{group.label}</span>
+          <span className={labelClassName}>{group.label}</span>
         </button>
         {headerActions.length > 0 && (
           <div className={styles.actionsWrap}>
@@ -306,7 +316,10 @@ function GroupSection({
         )}
       </div>
       {hasChildren && expanded && (
-        <div id={contentId} className={styles.groupChildren}>
+        <div
+          id={contentId}
+          className={isTopLevel ? undefined : styles.groupChildren}
+        >
           {content}
         </div>
       )}

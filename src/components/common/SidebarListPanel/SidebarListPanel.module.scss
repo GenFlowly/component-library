@@ -224,11 +224,13 @@
 
   // Clear the overlaid button(s) so the label truncates before sliding
   // under them — same clearance scheme as .item / .multiAction
-  &.hasActions .collapsibleHeader {
+  &.hasActions .collapsibleHeader,
+  &.hasActions .groupHeaderToggle {
     padding-right: 2.4rem;
   }
 
-  &.multiAction .collapsibleHeader {
+  &.multiAction .collapsibleHeader,
+  &.multiAction .groupHeaderToggle {
     padding-right: 3.8rem;
   }
 
@@ -236,6 +238,35 @@
   &:focus-within .hoverReveal {
     opacity: 1;
     pointer-events: auto;
+  }
+}
+
+// A collapsible top-level section (Projects, Pinned, Recents): the row
+// itself pins to the scroll area's top instead of the inner header button,
+// so the overlaid action button (position: absolute within this row) stays
+// pinned alongside the label instead of scrolling out from under it
+.collapsibleHeaderRow.stickyHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: $color-sidebar-background;
+  box-shadow: 0 -0.75rem 0 $color-sidebar-background;
+}
+
+// Reset button chrome on a collapsible top-level header so it keeps the
+// static .groupHeader's uppercase label styling while being a real,
+// clickable/tappable toggle
+.groupHeaderToggle {
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: $radius-sm;
+  text-align: left;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: $color-background-hover;
   }
 }
 
@@ -532,11 +563,13 @@
   }
 
   .collapsibleHeaderRow {
-    &.hasActions .collapsibleHeader {
+    &.hasActions .collapsibleHeader,
+    &.hasActions .groupHeaderToggle {
       padding-right: 3rem;
     }
 
-    &.multiAction .collapsibleHeader {
+    &.multiAction .collapsibleHeader,
+    &.multiAction .groupHeaderToggle {
       padding-right: 6rem;
     }
   }
