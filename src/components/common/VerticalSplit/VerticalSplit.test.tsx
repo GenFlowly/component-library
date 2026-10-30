@@ -132,10 +132,11 @@ describe('VerticalSplit', () => {
     );
   });
 
-  test('collapsed drops the top pane fraction, hugs the bottom pane, and makes the separator inert', () => {
-    renderSplit({ collapsed: true });
+  test('both panes collapsed: each hugs its own content and the split itself shrinks', () => {
+    renderSplit({ topCollapsed: true, bottomCollapsed: true });
 
     expect(screen.getByTestId('split-top')).not.toHaveAttribute('style');
+    expect(screen.getByTestId('split-top').className).not.toContain('paneFill');
     expect(screen.getByTestId('split-bottom').className).toContain(
       'paneFillCollapsed'
     );
@@ -150,8 +151,54 @@ describe('VerticalSplit', () => {
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 
-  test('collapsed with no top content still hugs the single bottom pane', () => {
-    renderSplit({ top: null, collapsed: true });
+  test('only the top pane collapsed: it hugs its header while the bottom keeps filling, split stays full height', () => {
+    renderSplit({ topCollapsed: true });
+
+    expect(screen.getByTestId('split-top')).not.toHaveAttribute('style');
+    expect(screen.getByTestId('split-top').className).not.toContain('paneFill');
+    expect(screen.getByTestId('split-bottom').className).toContain('paneFill');
+    expect(screen.getByTestId('split-bottom').className).not.toContain(
+      'paneFillCollapsed'
+    );
+    expect(screen.getByTestId('split').className).not.toContain(
+      'splitCollapsed'
+    );
+    expect(screen.getByRole('separator', { hidden: true })).toHaveAttribute(
+      'aria-hidden',
+      'true'
+    );
+  });
+
+  test('only the bottom pane collapsed: top takes over the freed space instead of keeping its drag fraction', () => {
+    renderSplit({ bottomCollapsed: true });
+
+    // No fixed flexBasis anymore — it switches to fill, same as the bottom
+    // pane normally is, so it absorbs all the space the bottom gave up
+    expect(screen.getByTestId('split-top')).not.toHaveAttribute('style');
+    expect(screen.getByTestId('split-top').className).toContain('paneFill');
+    expect(screen.getByTestId('split-bottom').className).toContain(
+      'paneFillCollapsed'
+    );
+    expect(screen.getByTestId('split').className).not.toContain(
+      'splitCollapsed'
+    );
+    expect(screen.getByRole('separator', { hidden: true })).toHaveAttribute(
+      'aria-hidden',
+      'true'
+    );
+  });
+
+  test('neither collapsed: normal drag-fraction behavior, separator stays active', () => {
+    renderSplit();
+
+    expect(screen.getByTestId('split-top')).toHaveStyle({ flexBasis: '40%' });
+    expect(screen.getByTestId('split-top').className).not.toContain('paneFill');
+    expect(screen.getByRole('separator')).not.toHaveAttribute('aria-hidden');
+    expect(screen.getByRole('separator')).toHaveAttribute('tabIndex', '0');
+  });
+
+  test('bottomCollapsed with no top content still hugs the single bottom pane', () => {
+    renderSplit({ top: null, bottomCollapsed: true });
 
     expect(screen.getByTestId('split').className).toContain('splitCollapsed');
     expect(screen.getByTestId('split-bottom').className).toContain(

@@ -25,15 +25,19 @@ export interface VerticalSplitProps {
   /** Accessible name of the drag separator. */
   separatorLabel?: string;
   /**
-   * When both panes have nothing but their (collapsed) headers to show, the
-   * split normally still reserves its full dragged/fill height, leaving a
-   * dead empty block below the content. Set this once the caller knows every
-   * section is collapsed, and the whole split shrinks to hug its content
-   * instead — the top pane drops its drag-fraction height, the bottom pane
-   * stops filling leftover space, and the divider's drag affordance goes
-   * inert (there is nothing left to divide).
+   * Set once the caller knows the TOP pane has nothing but its (collapsed)
+   * header to show. It drops its drag-fraction height and hugs its header
+   * instead, instead of still reserving a slice of the split and leaving a
+   * dead empty block below the header. If the bottom pane isn't ALSO
+   * collapsed, it takes over the freed space (becomes fill, like it always
+   * is) — there's nothing left to divide, so the separator goes inert.
    */
-  collapsed?: boolean;
+  topCollapsed?: boolean;
+  /**
+   * Same idea for the BOTTOM pane. If the top pane isn't ALSO collapsed, it
+   * takes over the freed space (switches from its drag fraction to fill).
+   */
+  bottomCollapsed?: boolean;
   'data-testid'?: string;
   handleTestId?: string;
   topTestId?: string;
@@ -54,7 +58,8 @@ export default function VerticalSplit({
   minFraction = DEFAULT_MIN_FRACTION,
   maxFraction = DEFAULT_MAX_FRACTION,
   separatorLabel = 'Resize panels',
-  collapsed = false,
+  topCollapsed = false,
+  bottomCollapsed = false,
   'data-testid': testId,
   handleTestId,
   topTestId,
@@ -150,11 +155,11 @@ export default function VerticalSplit({
   if (top == null) {
     return (
       <div
-        className={`${styles.split} ${collapsed ? styles.splitCollapsed : ''}`}
+        className={`${styles.split} ${bottomCollapsed ? styles.splitCollapsed : ''}`}
         data-testid={testId}
       >
         <div
-          className={`${styles.pane} ${styles.paneFill} ${collapsed ? styles.paneFillCollapsed : ''}`}
+          className={`${styles.pane} ${styles.paneFill} ${bottomCollapsed ? styles.paneFillCollapsed : ''}`}
           data-testid={bottomTestId}
         >
           {bottom}
@@ -163,15 +168,25 @@ export default function VerticalSplit({
     );
   }
 
+  // The divide only makes sense once both panes have real content to trade
+  // off against each other; the instant either collapses there's nothing
+  // left to drag for, and the split only shrinks as a whole once NEITHER
+  // pane wants the freed space (both collapsed) — if only one has collapsed
+  // the other pane's existing fill/fraction sizing already absorbs the rest
+  const eitherCollapsed = topCollapsed || bottomCollapsed;
+  const bothCollapsed = topCollapsed && bottomCollapsed;
+
   return (
     <div
-      className={`${styles.split} ${collapsed ? styles.splitCollapsed : ''}`}
+      className={`${styles.split} ${bothCollapsed ? styles.splitCollapsed : ''}`}
       ref={containerRef}
       data-testid={testId}
     >
       <div
-        className={styles.pane}
-        style={collapsed ? undefined : { flexBasis: `${fraction * 100}%` }}
+        className={`${styles.pane} ${!topCollapsed && bottomCollapsed ? styles.paneFill : ''}`}
+        style={
+          eitherCollapsed ? undefined : { flexBasis: `${fraction * 100}%` }
+        }
         data-testid={topTestId}
       >
         {top}
@@ -183,18 +198,17 @@ export default function VerticalSplit({
         aria-valuenow={Math.round(fraction * 100)}
         aria-valuemin={Math.round(minFraction * 100)}
         aria-valuemax={Math.round(maxFraction * 100)}
-        // Nothing left to divide once both panes hug their own content
-        tabIndex={collapsed ? -1 : 0}
-        aria-hidden={collapsed || undefined}
+        tabIndex={eitherCollapsed ? -1 : 0}
+        aria-hidden={eitherCollapsed || undefined}
         className={styles.divider}
-        onPointerDown={collapsed ? undefined : handleDragStart}
-        onKeyDown={collapsed ? undefined : handleKeyDown}
+        onPointerDown={eitherCollapsed ? undefined : handleDragStart}
+        onKeyDown={eitherCollapsed ? undefined : handleKeyDown}
         data-testid={handleTestId}
       >
         <span className={styles.dividerGrip} aria-hidden="true" />
       </div>
       <div
-        className={`${styles.pane} ${styles.paneFill} ${collapsed ? styles.paneFillCollapsed : ''}`}
+        className={`${styles.pane} ${styles.paneFill} ${bottomCollapsed ? styles.paneFillCollapsed : ''}`}
         data-testid={bottomTestId}
       >
         {bottom}
