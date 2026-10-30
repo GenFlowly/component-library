@@ -132,6 +132,33 @@ describe('VerticalSplit', () => {
     );
   });
 
+  test('collapsed drops the top pane fraction, hugs the bottom pane, and makes the separator inert', () => {
+    renderSplit({ collapsed: true });
+
+    expect(screen.getByTestId('split-top')).not.toHaveAttribute('style');
+    expect(screen.getByTestId('split-bottom').className).toContain(
+      'paneFillCollapsed'
+    );
+    expect(screen.getByTestId('split').className).toContain('splitCollapsed');
+
+    const handle = screen.getByRole('separator', { hidden: true });
+    expect(handle).toHaveAttribute('tabIndex', '-1');
+    expect(handle).toHaveAttribute('aria-hidden', 'true');
+
+    fireEvent.keyDown(handle, { key: 'ArrowDown' });
+    expect(handle).toHaveAttribute('aria-valuenow', '40');
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  test('collapsed with no top content still hugs the single bottom pane', () => {
+    renderSplit({ top: null, collapsed: true });
+
+    expect(screen.getByTestId('split').className).toContain('splitCollapsed');
+    expect(screen.getByTestId('split-bottom').className).toContain(
+      'paneFillCollapsed'
+    );
+  });
+
   test('drag positions are clamped to the fraction bounds', () => {
     renderSplit();
     jest

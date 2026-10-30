@@ -10,6 +10,13 @@
   min-height: 0;
 }
 
+// Both panes hug their own (collapsed) content instead of reserving the
+// full dragged/fill height — otherwise the leftover space shows as a dead
+// block below the content, worst on mobile where this fills the screen
+.splitCollapsed {
+  height: auto;
+}
+
 // Each pane is its own floating sidebar card, matching ResizableSidebar's
 // material so a stacked split reads as two sibling sidebars
 .pane {
@@ -30,6 +37,10 @@
 
 .paneFill {
   flex: 1 1 0;
+}
+
+.paneFillCollapsed {
+  flex: 0 1 auto;
 }
 
 // The gap between the cards doubles as the drag handle. Visually it is the

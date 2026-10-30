@@ -24,6 +24,16 @@ export interface VerticalSplitProps {
   maxFraction?: number;
   /** Accessible name of the drag separator. */
   separatorLabel?: string;
+  /**
+   * When both panes have nothing but their (collapsed) headers to show, the
+   * split normally still reserves its full dragged/fill height, leaving a
+   * dead empty block below the content. Set this once the caller knows every
+   * section is collapsed, and the whole split shrinks to hug its content
+   * instead — the top pane drops its drag-fraction height, the bottom pane
+   * stops filling leftover space, and the divider's drag affordance goes
+   * inert (there is nothing left to divide).
+   */
+  collapsed?: boolean;
   'data-testid'?: string;
   handleTestId?: string;
   topTestId?: string;
@@ -44,6 +54,7 @@ export default function VerticalSplit({
   minFraction = DEFAULT_MIN_FRACTION,
   maxFraction = DEFAULT_MAX_FRACTION,
   separatorLabel = 'Resize panels',
+  collapsed = false,
   'data-testid': testId,
   handleTestId,
   topTestId,
@@ -138,9 +149,12 @@ export default function VerticalSplit({
 
   if (top == null) {
     return (
-      <div className={styles.split} data-testid={testId}>
+      <div
+        className={`${styles.split} ${collapsed ? styles.splitCollapsed : ''}`}
+        data-testid={testId}
+      >
         <div
-          className={`${styles.pane} ${styles.paneFill}`}
+          className={`${styles.pane} ${styles.paneFill} ${collapsed ? styles.paneFillCollapsed : ''}`}
           data-testid={bottomTestId}
         >
           {bottom}
@@ -150,10 +164,14 @@ export default function VerticalSplit({
   }
 
   return (
-    <div className={styles.split} ref={containerRef} data-testid={testId}>
+    <div
+      className={`${styles.split} ${collapsed ? styles.splitCollapsed : ''}`}
+      ref={containerRef}
+      data-testid={testId}
+    >
       <div
         className={styles.pane}
-        style={{ flexBasis: `${fraction * 100}%` }}
+        style={collapsed ? undefined : { flexBasis: `${fraction * 100}%` }}
         data-testid={topTestId}
       >
         {top}
@@ -165,16 +183,18 @@ export default function VerticalSplit({
         aria-valuenow={Math.round(fraction * 100)}
         aria-valuemin={Math.round(minFraction * 100)}
         aria-valuemax={Math.round(maxFraction * 100)}
-        tabIndex={0}
+        // Nothing left to divide once both panes hug their own content
+        tabIndex={collapsed ? -1 : 0}
+        aria-hidden={collapsed || undefined}
         className={styles.divider}
-        onPointerDown={handleDragStart}
-        onKeyDown={handleKeyDown}
+        onPointerDown={collapsed ? undefined : handleDragStart}
+        onKeyDown={collapsed ? undefined : handleKeyDown}
         data-testid={handleTestId}
       >
         <span className={styles.dividerGrip} aria-hidden="true" />
       </div>
       <div
-        className={`${styles.pane} ${styles.paneFill}`}
+        className={`${styles.pane} ${styles.paneFill} ${collapsed ? styles.paneFillCollapsed : ''}`}
         data-testid={bottomTestId}
       >
         {bottom}
