@@ -168,6 +168,12 @@
   cursor: pointer;
   text-align: left;
   transition: background-color $transition-fast;
+  // Reserves room for an ancestor top-level section's sticky header (e.g.
+  // "Projects") when this row's scrollIntoView runs on expand — without it,
+  // a nested header that scrolls to the literal top lands directly behind
+  // the sticky header instead of visible just under it. Comfortably covers
+  // both the desktop and mobile sticky-header heights with margin to spare.
+  scroll-margin-top: 2.75rem;
 
   &:hover {
     background-color: $color-background-hover;

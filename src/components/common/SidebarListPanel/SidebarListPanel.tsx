@@ -203,6 +203,22 @@ function GroupSection({
   isTopLevel?: boolean;
 }) {
   const [expanded, setExpanded] = useState(group.defaultExpanded ?? false);
+  const headerRef = useRef<HTMLButtonElement>(null);
+  // Tracks the PREVIOUS render's expanded value so the scroll-into-view
+  // effect below can tell "just expanded by the user" apart from "mounted
+  // already expanded" (defaultExpanded) — only the former should scroll
+  const wasExpandedRef = useRef(expanded);
+
+  useEffect(() => {
+    if (expanded && !wasExpandedRef.current) {
+      // A freshly expanded group (e.g. a project folder) can land anywhere
+      // in the scroll area — including entirely below the fold, with none
+      // of its newly revealed content visible. Scrolling its header to the
+      // top guarantees the content right under it is what's in view.
+      headerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    wasExpandedRef.current = expanded;
+  }, [expanded]);
 
   const items = group.items ?? [];
   // A collapsible row with no items and no subsections (e.g. a project with
@@ -279,6 +295,7 @@ function GroupSection({
         className={`${styles.collapsibleHeaderRow} ${isTopLevel ? styles.stickyHeader : ''} ${headerActions.length > 0 ? styles.hasActions : ''} ${headerActions.length > 1 ? styles.multiAction : ''}`}
       >
         <button
+          ref={headerRef}
           className={headerClassName}
           onClick={hasChildren ? handleToggle : undefined}
           aria-expanded={hasChildren ? expanded : undefined}

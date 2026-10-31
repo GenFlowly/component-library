@@ -224,6 +224,38 @@ describe('SidebarListPanel nested groups', () => {
     expect(onToggle).toHaveBeenLastCalledWith(false);
   });
 
+  test('expanding a collapsible group scrolls its header into view; re-collapsing does not', async () => {
+    render(<SidebarListPanel {...baseProps} groups={projectGroups()} />);
+
+    const row = screen.getByTestId('project-row');
+    const scrollIntoView = row.scrollIntoView as jest.Mock;
+    expect(scrollIntoView).not.toHaveBeenCalled();
+
+    await userEvent.click(row);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'start',
+    });
+
+    await userEvent.click(row);
+    // Collapsing doesn't need the scroll-to-top treatment — there's nothing
+    // newly revealed below the header to bring into view
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+  });
+
+  test('a group that mounts already expanded (defaultExpanded) does not scroll on mount', () => {
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        groups={projectGroups({ defaultExpanded: true })}
+      />
+    );
+
+    const row = screen.getByTestId('project-row');
+    expect(row.scrollIntoView).not.toHaveBeenCalled();
+  });
+
   test('top-level section headings are sticky; nested subsection headings are not', () => {
     render(
       <SidebarListPanel
