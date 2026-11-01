@@ -30,15 +30,27 @@ function ConversationBlock({
     b => b.conversationBlockId === id
   );
   const responseRef = useRef<HTMLDivElement | null>(null);
+  // Gates the one-time jump-to-start below. Never reset back to false, so a
+  // regenerate/vendor-switch on an already-visible last response can't
+  // re-trigger that jump (it would yank the viewport back up to the prompt
+  // above it — most visible on short/mobile viewports).
   const hasScrolledRef = useRef(false);
   const isAutoScrollPausedRef = useRef(false);
+  // Gates the sticky-bottom-follow below. Unlike hasScrolledRef, this DOES
+  // reset every generation, but only arms after a short delay — otherwise a
+  // regenerate's immediate collapse to a short "thinking" placeholder would
+  // itself snap the viewport up to the placeholder's much-higher end point.
+  const isFollowArmedRef = useRef(false);
 
-  // Reset scroll ref when loading starts (new generation)
   useEffect(() => {
-    if (conversationBlock?.isLoading) {
-      hasScrolledRef.current = false;
-      isAutoScrollPausedRef.current = false;
-    }
+    if (!conversationBlock?.isLoading) return undefined;
+
+    isAutoScrollPausedRef.current = false;
+    isFollowArmedRef.current = false;
+    const armTimer = setTimeout(() => {
+      isFollowArmedRef.current = true;
+    }, 100);
+    return () => clearTimeout(armTimer);
   }, [conversationBlock?.isLoading]);
 
   // Scroll to response when it appears and we haven't scrolled yet (Initial "Jump" to start)
@@ -64,7 +76,7 @@ function ConversationBlock({
     if (
       conversationBlock?.isLoading &&
       responseRef.current &&
-      hasScrolledRef.current &&
+      isFollowArmedRef.current &&
       !isAutoScrollPausedRef.current
     ) {
       // Use 'auto' behavior for stickiness to avoid fighting with smooth animation lag
