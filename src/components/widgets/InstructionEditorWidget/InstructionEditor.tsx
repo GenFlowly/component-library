@@ -18,6 +18,8 @@ export interface InstructionEditorLabels {
   versionsError: string;
   accessLevel: string;
   latestTooltip: string;
+  collapseVersions: string;
+  expandVersions: string;
 }
 
 const DEFAULT_LABELS: InstructionEditorLabels = {
@@ -32,6 +34,8 @@ const DEFAULT_LABELS: InstructionEditorLabels = {
   versionsError: 'Failed to load versions.',
   accessLevel: 'Access Level',
   latestTooltip: 'latest version',
+  collapseVersions: 'Collapse versions',
+  expandVersions: 'Expand versions',
 };
 
 export interface InstructionVersionItem {
@@ -149,6 +153,9 @@ export default function InstructionEditor({
       <div className={styles.body}>
         <ResizableSidebar
           storageKey={versionsStorageKey}
+          collapsible
+          collapseLabel={text.collapseVersions}
+          expandLabel={text.expandVersions}
           data-testid={testId ? `${testId}-versions-sidebar` : undefined}
         >
           <SidebarListPanel

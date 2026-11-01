@@ -3,6 +3,7 @@
 
 .toggleGroup {
   display: inline-flex;
+  flex-wrap: wrap;
   border-radius: $radius-md;
   // Box shadow for the group if needed, but outline buttons usually rely on their own borders.
   // Bootstrap buttons overlap borders (-1px margin).

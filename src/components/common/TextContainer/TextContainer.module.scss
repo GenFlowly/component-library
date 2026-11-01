@@ -392,7 +392,9 @@
   transform: translateY(-50%);
 }
 
-@include respond-to-tablet {
+// Keyed to the card's own ancestor container (set up by the host, e.g.
+// message-card-base), not the viewport.
+@container (max-width: #{$breakpoint-tablet}) {
   .article {
     // padding is handled by message-card-base or can be adjusted here if specific inner padding needed
     padding: $spacing-md $spacing-lg;

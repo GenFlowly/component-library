@@ -16,13 +16,17 @@
 
   @include text-editor-container;
 
-  @include respond-to-tablet {
+  @container (max-width: #{$breakpoint-tablet}) {
     // Width/Radius handled by mixin
     margin: 0;
     padding-top: 0;
   }
 
-  @include respond-to-mobile {
+  // Below isNarrow (1024px, matches respond-to-tablet): same docked-editor
+  // treatment as true mobile — --kb/--vvh are simply unset (0px) on a
+  // non-touch narrow window, so the keyboard-riding transform is inert
+  // there and only actually moves anything on a touch device.
+  @include respond-to-tablet {
     // Positioning context for the absolutely-placed editor wrapper
     position: relative;
 
@@ -81,7 +85,7 @@
 
     // Re-assert the tablet values from TextContainer's .article rule,
     // which this higher-specificity block would otherwise override
-    @include respond-to-tablet {
+    @container (max-width: #{$breakpoint-tablet}) {
       padding-top: $spacing-md;
       padding-bottom: $spacing-md;
     }
@@ -105,15 +109,15 @@
     }
   }
 
-  @include respond-to-tablet {
+  @container (max-width: #{$breakpoint-tablet}) {
     width: 100% !important;
     max-width: 100% !important;
     border-radius: 0;
     margin: 0;
   }
 
-  @include respond-to-mobile {
-    // Match the prompt editor's mobile geometry
+  @include respond-to-tablet {
+    // Match the prompt editor's geometry below isNarrow
     padding-left: $mobile-content-inset;
     padding-right: $mobile-content-inset;
 
@@ -144,7 +148,7 @@
   flex-direction: column;
   position: relative; // Anchor for .mobileGenerateButton
 
-  @include respond-to-mobile {
+  @include respond-to-tablet {
     // A small (~3-4 line) editor box glued to the bottom of the VISIBLE
     // viewport, chat-app style: resting on the screen bottom when the
     // keyboard is closed, translated up to sit flush on the keyboard's
@@ -189,7 +193,7 @@
 // scrolled to the end when --kb changes, which lands the editor flush on
 // the keyboard with the last response fully visible right above it.
 .container.followUp {
-  @include respond-to-mobile {
+  @include respond-to-tablet {
     height: calc(var(--editor-height) + var(--kb));
     min-height: var(--editor-height);
     overflow: visible;
@@ -210,7 +214,7 @@
     height: 100% !important;
   }
 
-  @include respond-to-mobile {
+  @include respond-to-tablet {
     // Never shrink below two lines of text (2 × 1.6rem line-height) plus
     // the editor's vertical padding and the button strip, however small
     // --vvh gets

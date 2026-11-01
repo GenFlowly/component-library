@@ -270,7 +270,9 @@ $editor-width: 75rem;
   height: 100% !important;
 }
 
-@include respond-to-tablet {
+// Keyed to the editor's own host container (text-editor-container), not the
+// viewport — relaxes when THIS column is squeezed, not just a narrow window.
+@container (max-width: #{$breakpoint-tablet}) {
   .container {
     // $mobile-content-inset is the global source of truth for the editor's
     // side inset — content matching the editor's width derives from it

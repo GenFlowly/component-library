@@ -1,4 +1,10 @@
-import React, { ReactNode, useCallback, useRef, useState } from 'react';
+import React, {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import styles from './ResizableSidebar.module.scss';
 
 // Resize bounds for the panel (px)
@@ -95,6 +101,16 @@ export default function ResizableSidebar({
     return clampWidth(defaultWidth ?? minWidth);
   });
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // A width dragged near maxWidth on a wide monitor must not stay that wide
+  // once the window narrows — re-clamp on every resize, not just at
+  // drag-time/mount.
+  useEffect(() => {
+    const handleResize = () => setWidth(w => clampWidth(w));
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [clampWidth]);
 
   // Collapsed state: controlled via the `collapsed` prop when provided,
   // internal otherwise.

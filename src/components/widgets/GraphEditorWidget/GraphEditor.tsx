@@ -130,7 +130,7 @@ const PALETTE_WIDTH_STORAGE_KEY = 'graph-editor.palette-width';
 // bound — the user may take the whole canvas if they want.
 const CONFIG_MIN_WIDTH = 288;
 const CONFIG_DEFAULT_WIDTH = 352;
-const CONFIG_MAX_WIDTH = Number.POSITIVE_INFINITY;
+const CONFIG_MAX_WIDTH = 640;
 
 /** localStorage key the node-settings width persists under (rem). */
 const CONFIG_WIDTH_STORAGE_KEY = 'graph-editor.config-width';

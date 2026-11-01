@@ -33,6 +33,7 @@ import {
 } from './attachment.models';
 import { useAttachmentValidation } from './useAttachmentValidation';
 import { useWindowSize } from './useWindowSize';
+import { NARROW_BREAKPOINT } from '../../../constants/breakpoints';
 
 interface RequestProps {
   blockId: string;
@@ -66,7 +67,12 @@ function Request({
   const validateAttachments = useAttachmentValidation();
   const hasAnyValidApiKey = aiVendorAPIKeyStatusList.some(s => s.isAPIKeyValid);
   const { width } = useWindowSize();
-  const isMobile = width <= 768;
+  // Matches respond-to-tablet (1024px) in Request.module.scss — the same
+  // split between the docked editor's floating buttons and the desktop
+  // button row. Keep this in lockstep with that CSS breakpoint, or they
+  // produce mismatched markup (desktop button row floating beside an
+  // absolutely-positioned, now-empty editor).
+  const isNarrow = width <= NARROW_BREAKPOINT;
 
   const conversationBlock = conversationBlockList.find(
     b => b.conversationBlockId === blockId
@@ -583,8 +589,8 @@ function Request({
           data-testid="text-editor"
         />
 
-        {isMobile && (
-          // 📱 Compact icon-only generate button floating inside the
+        {isNarrow && (
+          // Compact icon-only generate button floating inside the
           // editor's bottom-right corner
           <button
             className={styles.mobileGenerateButton}
@@ -611,10 +617,10 @@ function Request({
           />
         )}
 
-        {isMobile && uploadAttachment && (
-          // 📱 Attachment picker to the LEFT of the generate button —
-          // mobile has no paste path, so this is the only way to attach a
-          // file (image or PDF) there.
+        {isNarrow && uploadAttachment && (
+          // Attachment picker to the LEFT of the generate button — this
+          // layout has no paste path, so it's the only way to attach a
+          // file (image or PDF) here.
           <button
             className={styles.mobileAttachmentButton}
             onClick={() => attachmentInputRef.current?.click()}
@@ -631,7 +637,7 @@ function Request({
         />
       </div>
 
-      {!isMobile && (
+      {!isNarrow && (
         <div
           className={styles.buttonWrapper}
           data-testid="generate-button-wrapper"

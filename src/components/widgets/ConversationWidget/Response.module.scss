@@ -46,8 +46,8 @@
     background: $color-text-muted;
   }
 
-  @include respond-to-mobile {
-    // Match the request widget / prompt editor mobile geometry
+  @include respond-to-tablet {
+    // Match the request widget / prompt editor geometry below isNarrow
     padding-left: $mobile-content-inset;
     padding-right: $mobile-content-inset;
   }
@@ -94,8 +94,8 @@
     margin-top: 0.125rem;
   }
 
-  @include respond-to-mobile {
-    // One card per row on mobile — the fixed-width article below would
+  @include respond-to-tablet {
+    // One card per row below isNarrow — the fixed-width article below would
     // overflow a half-row column
     flex-basis: 100%;
 
@@ -103,7 +103,7 @@
     border-left: none;
     border-right: none;
 
-    // The TextContainer card — match the request widget's mobile geometry
+    // The TextContainer card — match the request widget's geometry below isNarrow
     article {
       width: $mobile-content-width !important;
       max-width: $mobile-content-width !important;
@@ -133,7 +133,7 @@
   width: calc(100% + 4rem);
   border-radius: 0 0 8px 8px; // Match the card's rounded bottom corners
 
-  @include respond-to-tablet {
+  @container (max-width: #{$breakpoint-tablet}) {
     margin-left: -1rem; // Matches $spacing-lg
     margin-right: -1rem;
     margin-bottom: -0.75rem; // Matches $spacing-md (tablet vertical padding)
