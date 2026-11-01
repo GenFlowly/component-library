@@ -433,21 +433,22 @@
   display: inline-flex;
   align-items: center;
   gap: $spacing-xs;
-  padding: 0.3rem 0.8rem;
-  background: $color-background;
-  color: $color-text-primary;
-  border: 1px solid $color-border;
+  padding: 0.4rem 0.9rem;
+  // Matches PillButton's primary treatment: on dark, $color-background sits
+  // almost on top of the card's own background, so the pill needs a branded
+  // fill (not the card surface) to read as a button rather than a smudge.
+  background: $color-button-primary;
+  color: #ffffff;
+  border: none;
   border-radius: 999px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
-  font-size: 0.85rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-size: 0.9rem;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
   z-index: 30;
-
-  &:hover {
-    background: $color-background-hover;
-  }
+  @include interactive-base;
+  @include interactive-primary-states;
 }
 
 // Selection too close to the card's top edge: pill sits below it instead
