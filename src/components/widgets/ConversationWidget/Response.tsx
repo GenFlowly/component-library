@@ -605,6 +605,26 @@ function Response({
     );
   }, [visibleMessages, effectiveSelectedVendors, byVendorPriority]);
 
+  // Regenerating a response clears its text immediately — before new
+  // content streams back in — which shrinks this container. If the user
+  // was scrolled past where the now-short "thinking" placeholder ends, the
+  // browser has no choice but to clamp scrollTop to the new (smaller) max,
+  // a visible jump up toward whatever now sits above (often the prompt).
+  // Pinning the container's pre-collapse height across that moment keeps
+  // the scroll range stable until real content grows back into it.
+  const pinnedMinHeightRef = useRef<number | null>(null);
+  const anyMessageLoading = filteredResponseList.some(m => m.isLoading);
+  useEffect(() => {
+    if (
+      !anyMessageLoading &&
+      pinnedMinHeightRef.current !== null &&
+      containerEl
+    ) {
+      containerEl.style.minHeight = '';
+      pinnedMinHeightRef.current = null;
+    }
+  }, [anyMessageLoading, containerEl]);
+
   if (!visibleMessages || visibleMessages.length === 0) {
     return (
       <div
@@ -656,6 +676,10 @@ function Response({
 
   const handleRegenerate = async (vendor: AIVendor) => {
     if (disabled) return;
+    if (containerEl) {
+      pinnedMinHeightRef.current = containerEl.offsetHeight;
+      containerEl.style.minHeight = `${pinnedMinHeightRef.current}px`;
+    }
     await generateResponsesStream(blockId, undefined, undefined, vendor);
   };
 
