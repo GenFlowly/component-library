@@ -432,8 +432,8 @@
   transform: translate(-50%, -100%);
   display: inline-flex;
   align-items: center;
-  gap: $spacing-xs;
-  padding: 0.4rem 0.9rem;
+  gap: $spacing-sm;
+  padding: 0.6rem 1.2rem;
   // Matches PillButton's primary treatment: on dark, $color-background sits
   // almost on top of the card's own background, so the pill needs a branded
   // fill (not the card surface) to read as a button rather than a smudge.
@@ -442,7 +442,7 @@
   border: none;
   border-radius: 999px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -458,12 +458,15 @@
 
 // Touch devices: the OS selection callout (Copy/Look Up…) draws over the page
 // wherever the selection sits, so the pill docks at the viewport bottom
-// instead of anchoring to the selection (rendered via portal to <body>)
+// instead of anchoring to the selection (rendered via portal to <body>). The
+// offset clears Response's own sticky action bar (Regenerate/Follow up/Fork —
+// see .responseActionButtonsWrapper: ~38px button + 0.75rem*2 padding, docked
+// at its own bottom: 0) plus a visible gap, so the two never overlap.
 .selectionAskDocked {
   position: fixed;
   top: auto;
   left: 50%;
-  bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  bottom: calc(5.5rem + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 9999;
 }

@@ -142,7 +142,7 @@ export default function SelectionAskButton({
       onClick={activate}
       data-testid="selection-ask-button"
     >
-      <Icon src={ICONS.SEND} size={12} />
+      <Icon src={ICONS.SEND} size={15} />
       {t('common.textContainer.askSelection')}
     </button>
   );
