@@ -184,7 +184,11 @@
   justify-content: center;
   padding: 0.75rem 1rem 0;
 
-  @include respond-to-mobile {
+  // @media (not @container, and not respond-to-mobile) to match every other
+  // breakpoint in this file — all gate the same "is this response card
+  // narrow" decision, and a third, different threshold here was one more
+  // way for this component to disagree with itself about it.
+  @include respond-to-tablet {
     // Swipeable chip row: with many vendors the pills overflow into a
     // horizontal scroll instead of being clipped. Centering comes from the
     // auto margins on the group below (a cross-browser "safe center": auto

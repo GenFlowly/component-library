@@ -24,24 +24,26 @@ export const StaticTag: Story = {
   args: { label: 'claude-fable-5' },
 };
 
+function CtaFilterRowDemo() {
+  const [choice, setChoice] = useState('all');
+  return (
+    <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <Chip
+        label="All agents"
+        onClick={() => setChoice('all')}
+        selected={choice === 'all'}
+      />
+      <Chip
+        label="Created by me"
+        onClick={() => setChoice('mine')}
+        selected={choice === 'mine'}
+      />
+      <Chip label="Disabled" onClick={() => undefined} disabled />
+    </div>
+  );
+}
+
 /** CTA filter row: exactly one chip selected at a time. */
 export const CtaFilterRow: Story = {
-  render: () => {
-    const [choice, setChoice] = useState('all');
-    return (
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <Chip
-          label="All agents"
-          onClick={() => setChoice('all')}
-          selected={choice === 'all'}
-        />
-        <Chip
-          label="Created by me"
-          onClick={() => setChoice('mine')}
-          selected={choice === 'mine'}
-        />
-        <Chip label="Disabled" onClick={() => undefined} disabled />
-      </div>
-    );
-  },
+  render: () => <CtaFilterRowDemo />,
 };
