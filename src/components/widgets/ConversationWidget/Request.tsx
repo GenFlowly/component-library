@@ -586,6 +586,7 @@ function Request({
           onChange={handleEditorChange}
           height="100%"
           className={styles.textEditorFullscreen}
+          compact={isNarrow}
           data-testid="text-editor"
         />
 
