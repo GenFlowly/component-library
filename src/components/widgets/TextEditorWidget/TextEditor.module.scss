@@ -270,15 +270,7 @@ $editor-width: 75rem;
   height: 100% !important;
 }
 
-// Keyed to the editor's own host container (text-editor-container), not the
-// viewport — relaxes when THIS column is squeezed, not just a narrow window.
-@container (max-width: #{$breakpoint-tablet}) {
-  .container {
-    // $mobile-content-inset is the global source of truth for the editor's
-    // side inset — content matching the editor's width derives from it
-    padding: $mobile-content-inset !important;
-  }
-
+@mixin editor-mobile-layout {
   .innerContainer {
     flex-direction: column; // Stack items vertically
     gap: 0.5rem;
@@ -307,6 +299,30 @@ $editor-width: 75rem;
       padding: $spacing-md $spacing-lg !important;
     }
   }
+}
+
+// Keyed to the editor's own host container (text-editor-container), not the
+// viewport — relaxes when THIS column is squeezed, not just a narrow window.
+@container (max-width: #{$breakpoint-tablet}) {
+  .container {
+    // $mobile-content-inset is the global source of truth for the editor's
+    // side inset — content matching the editor's width derives from it
+    padding: $mobile-content-inset !important;
+  }
+
+  @include editor-mobile-layout;
+}
+
+// Explicit override for callers that already compute their own narrow/wide
+// state in JS (e.g. Request.tsx's viewport-docked mobile editor, which can't
+// rely on @container matching reliably there — see the comment on
+// text-editor-container in mixins.scss). Applies the identical layout
+// unconditionally so a single editor instance's "am I mobile" question has
+// exactly one answer instead of two mechanisms that can disagree.
+.container.compact {
+  padding: $mobile-content-inset !important;
+
+  @include editor-mobile-layout;
 }
 
 /* Disable line numbers and enforce word wrap in CodeMirror editor */

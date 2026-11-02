@@ -133,7 +133,12 @@
   width: calc(100% + 4rem);
   border-radius: 0 0 8px 8px; // Match the card's rounded bottom corners
 
-  @container (max-width: #{$breakpoint-tablet}) {
+  // @media (not @container) to match .inner/.responseWrapper above — these
+  // all gate the same card-width breakpoint for one response card, and a
+  // mix of container- and viewport-based queries here previously let this
+  // bar's margins and the card's width disagree about "am I mobile" (see
+  // the same fix on Request.module.scss's docked editor).
+  @include respond-to-tablet {
     margin-left: -1rem; // Matches $spacing-lg
     margin-right: -1rem;
     margin-bottom: -0.75rem; // Matches $spacing-md (tablet vertical padding)

@@ -20,6 +20,10 @@ interface TextEditorProps {
   variant?: 'default' | 'seamless';
   // Fill the parent's width instead of the page-centered 75rem column
   fullWidth?: boolean;
+  // Force the mobile/narrow layout regardless of @container match — for
+  // callers that already have their own JS-driven narrow signal and need it
+  // to be the single source of truth (see TextEditor.module.scss .compact)
+  compact?: boolean;
 }
 
 const TextEditor = React.forwardRef<
@@ -38,6 +42,7 @@ const TextEditor = React.forwardRef<
     maxLength,
     variant = 'default',
     fullWidth = false,
+    compact = false,
   }: TextEditorProps,
   ref
 ): React.ReactElement {
@@ -47,7 +52,7 @@ const TextEditor = React.forwardRef<
     <Suspense
       fallback={
         <div
-          className={`${styles.container} ${variant === 'seamless' ? styles.seamless : ''} ${fullWidth ? styles.fullWidth : ''} ${className}`}
+          className={`${styles.container} ${variant === 'seamless' ? styles.seamless : ''} ${fullWidth ? styles.fullWidth : ''} ${compact ? styles.compact : ''} ${className}`}
           data-testid={testId}
           style={height === '100%' ? { height: '100%' } : {}}
         >
@@ -88,6 +93,7 @@ const TextEditor = React.forwardRef<
         maxLength={maxLength}
         variant={variant}
         fullWidth={fullWidth}
+        compact={compact}
       />
     </Suspense>
   );

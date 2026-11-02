@@ -37,6 +37,7 @@ interface TextEditorCoreProps {
   maxLength?: number;
   variant?: 'default' | 'seamless';
   fullWidth?: boolean;
+  compact?: boolean;
 }
 
 /** Imperative surface the editor exposes to its host (via ref). */
@@ -59,6 +60,7 @@ const TextEditorCore = React.forwardRef<TextEditorHandle, TextEditorCoreProps>(
       maxLength,
       variant = 'default',
       fullWidth = false,
+      compact = false,
     }: TextEditorCoreProps,
     ref
   ): React.ReactElement {
@@ -89,7 +91,7 @@ const TextEditorCore = React.forwardRef<TextEditorHandle, TextEditorCoreProps>(
 
     return (
       <div
-        className={`${styles.container} ${variant === 'seamless' ? styles.seamless : ''} ${fullWidth ? styles.fullWidth : ''} ${className}`}
+        className={`${styles.container} ${variant === 'seamless' ? styles.seamless : ''} ${fullWidth ? styles.fullWidth : ''} ${compact ? styles.compact : ''} ${className}`}
         data-testid={testId}
         style={height === '100%' ? { height: '100%' } : {}}
       >
