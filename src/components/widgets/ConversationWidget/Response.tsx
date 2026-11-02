@@ -551,6 +551,11 @@ function Response({
   // the conversation viewport — a callback ref keeps the measurement alive
   // even when the container switches between the empty and normal branches
   const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
+  // Measures the response cards' true natural height independent of
+  // containerEl's minHeight pin (see handleVendorSelectionChange) — a plain
+  // child's offsetHeight always reflects its own content, never clamped
+  // upward by a min-height set on an ancestor.
+  const innerRef = useRef<HTMLDivElement | null>(null);
   const maxVendors = useMaxVendors(containerEl);
   const vendorDisplayName = useVendorDisplayNames();
 
@@ -690,52 +695,80 @@ function Response({
     void forkConversation?.(messageId);
   };
 
-  // Switching which already-generated vendor is shown swaps the rendered
-  // message synchronously between two FINAL, static heights — unlike
-  // regenerate there's no later streaming growth to pin against, so if the
-  // new response is shorter than wherever the user was scrolled, some
-  // repositioning is unavoidable (there's nothing below the fold to show
-  // in its place). What's avoidable is HOW it happens: left alone, the
-  // browser clamps scrollTop the instant the shorter DOM commits — an
-  // abrupt, unanimated snap that (on a short mobile viewport especially)
-  // reads as jumping all the way up to the prompt. Pin the old height so
-  // that commit is invisible, measure the new content's true height with a
-  // read-mutate-read before any paint (the pin is reapplied in the same
-  // tick, so nothing flashes), smoothly scroll to exactly where that
-  // shrink puts the equivalent position, then release the pin — the user
-  // sees one graceful scroll instead of a teleport.
+  // Switching which already-generated vendor is shown swaps the message
+  // card entirely — it's keyed by messageId (see the ErrorBoundary below),
+  // so React unmounts the old card and mounts a fresh one rather than
+  // updating in place, in BOTH directions. A freshly-mounted markdown card
+  // (react-markdown + rehype-highlight/katex, web fonts, etc.) isn't
+  // guaranteed to report its true settled height on the very next frame —
+  // reading too early can catch a still-shorter in-between height and
+  // overcorrect the scroll upward even when the new response is actually
+  // taller. So don't trust a single measurement: pin containerEl's height
+  // (nothing the user sees can collapse while this runs) and poll innerRef
+  // — a plain, never-pinned child — until ITS natural height stops
+  // changing across a few consecutive frames. Measuring innerRef instead
+  // of containerEl matters: toggling containerEl's own minHeight off to
+  // "measure true height" would itself force the scroller's scrollHeight
+  // through the shorter value for that instant, and a browser's native
+  // scroll clamp triggered during that instant does NOT un-happen once
+  // minHeight is restored — so the pinned element must never be touched
+  // again until the very end. THEN compute the correction and smoothly
+  // scroll to it before releasing the pin. Positions already within the
+  // new content's range don't move; positions past where it ends land at
+  // the minimum necessary scroll, animated rather than snapped.
   const handleVendorSelectionChange = (vendors: string[]) => {
     const scroller = containerEl?.closest<HTMLElement>(
       '[data-testid="center-section-scroll"]'
     );
     const previousScrollTop = scroller?.scrollTop;
-    const previousHeight = containerEl?.offsetHeight;
-    if (containerEl && previousHeight != null) {
-      containerEl.style.minHeight = `${previousHeight}px`;
+    const previousContainerHeight = containerEl?.offsetHeight;
+    const previousInnerHeight = innerRef.current?.offsetHeight;
+    if (containerEl && previousContainerHeight != null) {
+      containerEl.style.minHeight = `${previousContainerHeight}px`;
     }
 
     setVendorSelectionForBlock(blockId, vendors);
 
+    const innerEl = innerRef.current;
     if (
       !containerEl ||
       !scroller ||
+      !innerEl ||
       previousScrollTop == null ||
-      previousHeight == null
+      previousInnerHeight == null
     ) {
       return;
     }
-    requestAnimationFrame(() => {
-      containerEl.style.minHeight = '';
-      const naturalHeight = containerEl.offsetHeight;
-      containerEl.style.minHeight = `${previousHeight}px`;
 
-      const shrink = Math.max(0, previousHeight - naturalHeight);
+    const STABLE_FRAMES_NEEDED = 4;
+    const MAX_FRAMES = 40; // ~650ms safety cap so this can never hang open
+    let lastHeight = -1;
+    let stableFrames = 0;
+    let frame = 0;
+
+    const poll = () => {
+      frame += 1;
+      const naturalHeight = innerEl.offsetHeight; // never touches minHeight
+      if (naturalHeight === lastHeight) {
+        stableFrames += 1;
+      } else {
+        stableFrames = 0;
+        lastHeight = naturalHeight;
+      }
+
+      if (stableFrames < STABLE_FRAMES_NEEDED && frame < MAX_FRAMES) {
+        requestAnimationFrame(poll);
+        return;
+      }
+
+      const shrink = Math.max(0, previousInnerHeight - naturalHeight);
       const target = Math.max(0, previousScrollTop - shrink);
       scroller.scrollTo({ top: target, behavior: 'smooth' });
       setTimeout(() => {
         containerEl.style.minHeight = '';
       }, 400);
-    });
+    };
+    requestAnimationFrame(poll);
   };
 
   return (
@@ -768,6 +801,7 @@ function Response({
       )}
 
       <div
+        ref={innerRef}
         className={`${styles.inner} ${sidebarsHidden ? styles.sideBySide : ''}`}
       >
         {filteredResponseList.map(
