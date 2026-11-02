@@ -556,6 +556,12 @@ function Response({
   // child's offsetHeight always reflects its own content, never clamped
   // upward by a min-height set on an ancestor.
   const innerRef = useRef<HTMLDivElement | null>(null);
+  // Bumped on every vendor-switch tap; lets an in-flight correction (below)
+  // recognize it's been superseded by a newer tap and stand down instead of
+  // acting on a stale snapshot — rapid successive taps otherwise compound
+  // into a runaway scroll (confirmed: 4 taps ~150ms apart drove scrollTop
+  // to 0 without this guard).
+  const vendorSwitchOperationIdRef = useRef(0);
   const maxVendors = useMaxVendors(containerEl);
   const vendorDisplayName = useVendorDisplayNames();
 
@@ -716,7 +722,15 @@ function Response({
   // scroll to it before releasing the pin. Positions already within the
   // new content's range don't move; positions past where it ends land at
   // the minimum necessary scroll, animated rather than snapped.
+  //
+  // Tapping through several vendors quickly starts a new one of these
+  // before the previous one's poll has reached stability — every step
+  // below checks vendorSwitchOperationIdRef before acting, so a superseded
+  // run quietly stands down instead of computing a correction from a
+  // stale snapshot and fighting the newer run (that's what compounded into
+  // scrollTop racing to 0 across a few quick taps before this guard).
   const handleVendorSelectionChange = (vendors: string[]) => {
+    const myOperationId = ++vendorSwitchOperationIdRef.current;
     const scroller = containerEl?.closest<HTMLElement>(
       '[data-testid="center-section-scroll"]'
     );
@@ -747,6 +761,7 @@ function Response({
     let frame = 0;
 
     const poll = () => {
+      if (vendorSwitchOperationIdRef.current !== myOperationId) return; // superseded — stand down
       frame += 1;
       const naturalHeight = innerEl.offsetHeight; // never touches minHeight
       if (naturalHeight === lastHeight) {
@@ -765,7 +780,9 @@ function Response({
       const target = Math.max(0, previousScrollTop - shrink);
       scroller.scrollTo({ top: target, behavior: 'smooth' });
       setTimeout(() => {
-        containerEl.style.minHeight = '';
+        if (vendorSwitchOperationIdRef.current === myOperationId) {
+          containerEl.style.minHeight = '';
+        }
       }, 400);
     };
     requestAnimationFrame(poll);

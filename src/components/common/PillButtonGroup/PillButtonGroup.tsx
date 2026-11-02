@@ -152,6 +152,21 @@ export default function PillButtonGroup({
             key={option.id}
             className={`${styles.toggleButton} ${isActive ? styles.active : ''} ${isDisabled ? styles.disabled : ''}`}
             onClick={() => !isDisabled && handleToggle(option.id)}
+            // Mouse/touch activation shouldn't move focus — on a tall
+            // scrollable page the browser's native "scroll the newly
+            // focused element into view" kicks in whenever this button
+            // isn't fully on screen, which for a toggle sitting above a
+            // long response is most of the time. Left unprevented, that
+            // native scroll fires on every tap and compounds across
+            // quick repeated taps (confirmed: it alone, with no app code
+            // involved, drove scrollTop to 0 after a few taps). Mobile
+            // browsers synthesize a mousedown from touch for
+            // compatibility, so this covers touch too without needing a
+            // touchstart handler (which risks suppressing the click
+            // entirely on some browsers if preventDefault'd). Keyboard
+            // activation (Tab + Enter/Space) is untouched — this only
+            // blocks the mouse/touch default.
+            onMouseDown={e => e.preventDefault()}
             type="button"
             aria-pressed={isActive}
             aria-label={t('common.pillButtonGroup.toggleOption', {
