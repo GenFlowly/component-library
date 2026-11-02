@@ -674,17 +674,68 @@ function Response({
     }
   };
 
+  const pinHeight = () => {
+    if (!containerEl) return;
+    pinnedMinHeightRef.current = containerEl.offsetHeight;
+    containerEl.style.minHeight = `${pinnedMinHeightRef.current}px`;
+  };
+
   const handleRegenerate = async (vendor: AIVendor) => {
     if (disabled) return;
-    if (containerEl) {
-      pinnedMinHeightRef.current = containerEl.offsetHeight;
-      containerEl.style.minHeight = `${pinnedMinHeightRef.current}px`;
-    }
+    pinHeight();
     await generateResponsesStream(blockId, undefined, undefined, vendor);
   };
 
   const handleFork = (messageId: string) => {
     void forkConversation?.(messageId);
+  };
+
+  // Switching which already-generated vendor is shown swaps the rendered
+  // message synchronously between two FINAL, static heights — unlike
+  // regenerate there's no later streaming growth to pin against, so if the
+  // new response is shorter than wherever the user was scrolled, some
+  // repositioning is unavoidable (there's nothing below the fold to show
+  // in its place). What's avoidable is HOW it happens: left alone, the
+  // browser clamps scrollTop the instant the shorter DOM commits — an
+  // abrupt, unanimated snap that (on a short mobile viewport especially)
+  // reads as jumping all the way up to the prompt. Pin the old height so
+  // that commit is invisible, measure the new content's true height with a
+  // read-mutate-read before any paint (the pin is reapplied in the same
+  // tick, so nothing flashes), smoothly scroll to exactly where that
+  // shrink puts the equivalent position, then release the pin — the user
+  // sees one graceful scroll instead of a teleport.
+  const handleVendorSelectionChange = (vendors: string[]) => {
+    const scroller = containerEl?.closest<HTMLElement>(
+      '[data-testid="center-section-scroll"]'
+    );
+    const previousScrollTop = scroller?.scrollTop;
+    const previousHeight = containerEl?.offsetHeight;
+    if (containerEl && previousHeight != null) {
+      containerEl.style.minHeight = `${previousHeight}px`;
+    }
+
+    setVendorSelectionForBlock(blockId, vendors);
+
+    if (
+      !containerEl ||
+      !scroller ||
+      previousScrollTop == null ||
+      previousHeight == null
+    ) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      containerEl.style.minHeight = '';
+      const naturalHeight = containerEl.offsetHeight;
+      containerEl.style.minHeight = `${previousHeight}px`;
+
+      const shrink = Math.max(0, previousHeight - naturalHeight);
+      const target = Math.max(0, previousScrollTop - shrink);
+      scroller.scrollTo({ top: target, behavior: 'smooth' });
+      setTimeout(() => {
+        containerEl.style.minHeight = '';
+      }, 400);
+    });
   };
 
   return (
@@ -707,7 +758,7 @@ function Response({
           <CheckboxButtonGroup
             options={toggleOptions}
             selectedValues={effectiveSelectedVendors}
-            onChange={vendors => setVendorSelectionForBlock(blockId, vendors)}
+            onChange={handleVendorSelectionChange}
             allowEmpty={false}
             maxSelection={maxVendors}
             showCheckbox
