@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import InstructionEditor from './InstructionEditor';
@@ -185,5 +185,82 @@ describe('InstructionEditor', () => {
 
     expect(screen.getByText('Publish')).toBeInTheDocument();
     expect(screen.getByText('History')).toBeInTheDocument();
+  });
+
+  describe('on a phone', () => {
+    const desktopWidth = window.innerWidth;
+    const versions = [
+      { version: 2, details: 'Newest' },
+      { version: 1, details: 'Oldest' },
+    ];
+
+    const setWidth = (width: number) => {
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: width,
+      });
+      act(() => {
+        window.dispatchEvent(new Event('resize'));
+      });
+    };
+
+    beforeEach(() => setWidth(402));
+    afterEach(() => setWidth(desktopWidth));
+
+    const renderPhone = (props: object = {}) =>
+      render(
+        <InstructionEditor
+          {...baseProps}
+          data-testid="editor"
+          versions={versions}
+          selectedVersion={2}
+          {...props}
+        />
+      );
+
+    test('keeps the fields clear: versions stay closed behind a row showing the current one', () => {
+      renderPhone();
+
+      expect(
+        screen.queryByTestId('editor-versions-sidebar')
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Oldest')).not.toBeInTheDocument();
+      const toggle = screen.getByTestId('editor-versions-toggle');
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(toggle).toHaveTextContent('v2');
+    });
+
+    test('picking a version selects it and closes the dropdown', async () => {
+      const onSelectVersion = jest.fn();
+      renderPhone({ onSelectVersion });
+
+      await userEvent.click(screen.getByTestId('editor-versions-toggle'));
+      expect(screen.getByTestId('editor-versions-toggle')).toHaveAttribute(
+        'aria-expanded',
+        'true'
+      );
+      await userEvent.click(screen.getByTestId('editor-version-1'));
+
+      expect(onSelectVersion).toHaveBeenCalledWith(1);
+      expect(screen.queryByText('Oldest')).not.toBeInTheDocument();
+    });
+
+    test('tapping outside closes the dropdown', async () => {
+      renderPhone();
+
+      await userEvent.click(screen.getByTestId('editor-versions-toggle'));
+      expect(screen.getByText('Oldest')).toBeInTheDocument();
+      await userEvent.click(screen.getByTestId('editor-versions-backdrop'));
+
+      expect(screen.queryByText('Oldest')).not.toBeInTheDocument();
+    });
+
+    test('a new instruction has no versions row', () => {
+      renderPhone({ isNew: true, versions: [], selectedVersion: undefined });
+
+      expect(
+        screen.queryByTestId('editor-versions-toggle')
+      ).not.toBeInTheDocument();
+    });
   });
 });

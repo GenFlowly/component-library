@@ -244,28 +244,30 @@ function GroupSection({
     const headerActions = group.actions ?? [];
     return (
       <div className={styles.group}>
-        <div
-          className={`${styles.groupHeader} ${isTopLevel ? styles.stickyHeader : ''}`}
-          data-testid={group.testId}
-        >
-          <span className={styles.groupHeaderLabel}>{group.label}</span>
-          {headerActions.length > 0 && (
-            <span className={styles.groupHeaderActions}>
-              {headerActions.map((action, index) => (
-                <button
-                  key={index}
-                  className={styles.groupHeaderBtn}
-                  onClick={action.onClick}
-                  title={action.label}
-                  aria-label={action.label}
-                  data-testid={action.testId}
-                >
-                  {action.icon}
-                </button>
-              ))}
-            </span>
-          )}
-        </div>
+        {(group.label || headerActions.length > 0) && (
+          <div
+            className={`${styles.groupHeader} ${isTopLevel ? styles.stickyHeader : ''}`}
+            data-testid={group.testId}
+          >
+            <span className={styles.groupHeaderLabel}>{group.label}</span>
+            {headerActions.length > 0 && (
+              <span className={styles.groupHeaderActions}>
+                {headerActions.map((action, index) => (
+                  <button
+                    key={index}
+                    className={styles.groupHeaderBtn}
+                    onClick={action.onClick}
+                    title={action.label}
+                    aria-label={action.label}
+                    data-testid={action.testId}
+                  >
+                    {action.icon}
+                  </button>
+                ))}
+              </span>
+            )}
+          </div>
+        )}
         {content}
       </div>
     );

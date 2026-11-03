@@ -7,3 +7,6 @@
  * the CSS breakpoint and produces mismatched markup.
  */
 export const NARROW_BREAKPOINT = 1024;
+
+/** Phone width: matches the SCSS $breakpoint-mobile value and respond-to-mobile. */
+export const MOBILE_BREAKPOINT = 768;

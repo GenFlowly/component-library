@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from './InstructionEditor.module.scss';
 import PillButton from '../../common/PillButton/PillButton';
 import { InputTextWithHint } from '../../common/InputTextWithHint/InputTextWithHint';
 import TextEditor from '../TextEditorWidget/TextEditor';
 import ResizableSidebar from '../../common/ResizableSidebar/ResizableSidebar';
 import SidebarListPanel from '../../common/SidebarListPanel/SidebarListPanel';
+import { useWindowSize } from '../ConversationWidget/useWindowSize';
+import { MOBILE_BREAKPOINT } from '../../../constants/breakpoints';
 
 export interface InstructionEditorLabels {
   delete: string;
@@ -87,8 +89,9 @@ export interface InstructionEditorProps {
   editorId?: string;
   /**
    * Version history of the loaded instruction, shown in the resizable
-   * sidebar that is always part of the page. Defaults to an empty history
-   * (e.g. while creating a new instruction), which renders the empty state.
+   * sidebar that is always part of the page, or on a phone in a dropdown above
+   * the fields. Defaults to an empty history (e.g. while creating a new
+   * instruction), which renders the sidebar's empty state.
    */
   versions?: InstructionVersionItem[];
   /** Version highlighted as active in the sidebar. */
@@ -141,70 +144,121 @@ export default function InstructionEditor({
   'data-testid': testId,
 }: InstructionEditorProps): React.ReactElement {
   const text: InstructionEditorLabels = { ...DEFAULT_LABELS, ...labels };
+  const { width } = useWindowSize();
+  const isMobile = width <= MOBILE_BREAKPOINT;
+  const [versionsMenuOpen, setVersionsMenuOpen] = useState(false);
   const showDelete = !readOnly && !isNew && canDelete && !!onDelete;
   const hasMeta = !!icon || !!color || !!category || !!tags?.length;
   const versionList = versions ?? [];
   const latestVersion = versionList.length
     ? Math.max(...versionList.map(v => v.version))
     : undefined;
+  const selectedVersionItem = versionList.find(
+    v => v.version === selectedVersion
+  );
+
+  const versionLabel = (v: InstructionVersionItem): React.ReactNode => {
+    const labelText = v.label ?? `v${v.version}`;
+    return v.version === latestVersion ? (
+      <>
+        {labelText}
+        <span className={styles.latestStar} title={text.latestTooltip}>
+          *
+        </span>
+      </>
+    ) : (
+      labelText
+    );
+  };
+
+  const versionsPanel = (
+    <SidebarListPanel
+      title={isMobile ? undefined : text.versionsTitle}
+      isLoading={versionsLoading}
+      hasError={versionsError}
+      errorText={text.versionsError}
+      emptyText={text.versionsEmpty}
+      listAriaLabel={text.versionsTitle}
+      data-testid={testId ? `${testId}-versions` : undefined}
+      groups={[
+        {
+          id: 'versions',
+          label: '',
+          items: versionList.map(v => ({
+            id: `v${v.version}`,
+            label: versionLabel(v),
+            details:
+              v.details != null ? (
+                <span className={styles.versionDetails}>{v.details}</span>
+              ) : undefined,
+            isActive: v.version === selectedVersion,
+            onSelect: () => {
+              onSelectVersion?.(v.version);
+              setVersionsMenuOpen(false);
+            },
+            testId: testId ? `${testId}-version-${v.version}` : undefined,
+          })),
+        },
+      ]}
+    />
+  );
 
   return (
     <div className={styles.instructionEditor} data-testid={testId}>
       <div className={styles.body}>
-        <ResizableSidebar
-          storageKey={versionsStorageKey}
-          collapsible
-          collapseLabel={text.collapseVersions}
-          expandLabel={text.expandVersions}
-          data-testid={testId ? `${testId}-versions-sidebar` : undefined}
-        >
-          <SidebarListPanel
-            title={text.versionsTitle}
-            isLoading={versionsLoading}
-            hasError={versionsError}
-            errorText={text.versionsError}
-            emptyText={text.versionsEmpty}
-            listAriaLabel={text.versionsTitle}
-            data-testid={testId ? `${testId}-versions` : undefined}
-            groups={[
-              {
-                id: 'versions',
-                label: '',
-                items: versionList.map(v => {
-                  const labelText = v.label ?? `v${v.version}`;
-                  return {
-                    id: `v${v.version}`,
-                    label:
-                      v.version === latestVersion ? (
-                        <>
-                          {labelText}
-                          <span
-                            className={styles.latestStar}
-                            title={text.latestTooltip}
-                          >
-                            *
-                          </span>
-                        </>
-                      ) : (
-                        labelText
-                      ),
-                    details:
-                      v.details != null ? (
-                        <span className={styles.versionDetails}>
-                          {v.details}
-                        </span>
-                      ) : undefined,
-                    isActive: v.version === selectedVersion,
-                    onSelect: () => onSelectVersion?.(v.version),
-                    testId: testId
-                      ? `${testId}-version-${v.version}`
-                      : undefined,
-                  };
-                }),
-              },
-            ]}
-          />
-        </ResizableSidebar>
+        {!isMobile ? (
+          <ResizableSidebar
+            storageKey={versionsStorageKey}
+            collapsible
+            collapseLabel={text.collapseVersions}
+            expandLabel={text.expandVersions}
+            data-testid={testId ? `${testId}-versions-sidebar` : undefined}
+          >
+            {versionsPanel}
+          </ResizableSidebar>
+        ) : (
+          !isNew && (
+            <div className={styles.versionsMenu}>
+              <button
+                type="button"
+                className={styles.versionsToggle}
+                onClick={() => setVersionsMenuOpen(open => !open)}
+                aria-expanded={versionsMenuOpen}
+                aria-label={
+                  versionsMenuOpen ? text.collapseVersions : text.expandVersions
+                }
+                data-testid={testId ? `${testId}-versions-toggle` : undefined}
+              >
+                <span className={styles.versionsToggleTitle}>
+                  {text.versionsTitle}
+                </span>
+                {selectedVersionItem && (
+                  <span className={styles.versionsToggleCurrent}>
+                    {versionLabel(selectedVersionItem)}
+                  </span>
+                )}
+                <span
+                  className={`${styles.versionsChevron} ${versionsMenuOpen ? styles.versionsChevronOpen : ''}`}
+                  aria-hidden="true"
+                >
+                  ❯
+                </span>
+              </button>
+              {versionsMenuOpen && (
+                <>
+                  <div
+                    className={styles.versionsBackdrop}
+                    onClick={() => setVersionsMenuOpen(false)}
+                    data-testid={
+                      testId ? `${testId}-versions-backdrop` : undefined
+                    }
+                  />
+                  <div className={styles.versionsDropdown}>{versionsPanel}</div>
+                </>
+              )}
+            </div>
+          )
+        )}
 
         <div className={styles.content}>
           {role && (

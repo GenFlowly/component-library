@@ -15,6 +15,75 @@
   align-items: stretch;
   // Same spacing as the chat page's sidebar <-> conversation panel
   gap: $page-widget-spacing;
+
+  @include respond-to-mobile {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
+// Phone: no room for a side panel beside the fields, so the versions open as a
+// dropdown from a row above them
+.versionsMenu {
+  position: relative;
+  flex-shrink: 0;
+  z-index: 15;
+}
+
+.versionsToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: none;
+  border-bottom: 1px solid $color-border-light;
+  border-radius: 0;
+  background-color: $color-sidebar-background;
+  cursor: pointer;
+}
+
+.versionsToggleTitle {
+  color: $color-text-muted;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.versionsToggleCurrent {
+  color: $color-text-secondary;
+  font-size: 0.85rem;
+}
+
+.versionsChevron {
+  margin-left: auto;
+  color: $color-text-muted;
+  font-size: 0.75rem;
+  line-height: 1;
+  transform: rotate(90deg);
+}
+
+.versionsChevronOpen {
+  transform: rotate(-90deg);
+}
+
+.versionsBackdrop {
+  position: fixed;
+  inset: 0;
+}
+
+.versionsDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 50vh;
+  border-bottom: 1px solid $color-border;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
 }
 
 // Panel styling matches the chat page's conversation widget: rounded panel

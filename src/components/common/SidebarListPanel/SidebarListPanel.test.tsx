@@ -144,6 +144,26 @@ describe('SidebarListPanel actions', () => {
   });
 });
 
+describe('SidebarListPanel group headers', () => {
+  const group = (label: string): SidebarListGroup => ({
+    id: 'g1',
+    label,
+    testId: 'group-header',
+    items: [{ id: 'i1', label: 'Item one', onSelect: jest.fn() }],
+  });
+
+  test('a labeled group has a header row', () => {
+    render(<SidebarListPanel {...baseProps} groups={[group('Today')]} />);
+    expect(screen.getByTestId('group-header')).toHaveTextContent('Today');
+  });
+
+  test('an unlabeled group has no empty header row above its items', () => {
+    render(<SidebarListPanel {...baseProps} groups={[group('')]} />);
+    expect(screen.queryByTestId('group-header')).not.toBeInTheDocument();
+    expect(screen.getByText('Item one')).toBeInTheDocument();
+  });
+});
+
 describe('SidebarListPanel nested groups', () => {
   const item = (id: string, label: string): SidebarListItem => ({
     id,
