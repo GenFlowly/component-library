@@ -313,6 +313,106 @@ describe('TextContainer Internals', () => {
           tr.children.filter((n: any) => n.tagName === 'td')
         );
 
+    describe('numeric columns', () => {
+      const { isNumericColumn } = jest.requireActual('./TextContainerCore');
+      const decorate = (headers: string[], rows: string[][]) => {
+        const tree = el('root', [makeTable(headers, rows)]);
+        rehypeTableMeta()(tree);
+        return tree;
+      };
+      const cells = (tree: any, tag: string): any[] => {
+        const out: any[] = [];
+        const walk = (node: any) => {
+          if (node.tagName === tag) out.push(node);
+          (node.children || []).forEach(walk);
+        };
+        walk(tree);
+        return out;
+      };
+
+      test.each([
+        '12',
+        '1,234',
+        '1,234.50',
+        '$0.12',
+        '-$5',
+        '+3.5',
+        '12%',
+        '−3',
+        '€1.2',
+        '1.5k',
+        '2M',
+        '3.2B',
+        '.5',
+      ])('%s is a number', value => {
+        expect(isNumericColumn([value])).toBe(true);
+      });
+
+      test.each([
+        'abc',
+        '12 apples',
+        'v2',
+        '2026-11-04',
+        '12:30',
+        '1.2.3',
+        '#5',
+        '12 ms',
+        '~3',
+      ])('%s is not a number', value => {
+        expect(isNumericColumn([value])).toBe(false);
+      });
+
+      test('placeholders are ignored, but a column of only placeholders is not numeric', () => {
+        expect(isNumericColumn(['12', '', '-', '—', '–', 'N/A', 'n/a'])).toBe(
+          true
+        );
+        expect(isNumericColumn(['', '-', 'N/A'])).toBe(false);
+        expect(isNumericColumn([])).toBe(false);
+      });
+
+      test('one text value makes the whole column text', () => {
+        expect(isNumericColumn(['12', 'about 40'])).toBe(false);
+      });
+
+      test('marks the header and cells of a numeric column only', () => {
+        const tree = decorate(
+          ['Item', 'Price'],
+          [
+            ['Tea', '$3.00'],
+            ['Coffee', '$4.50'],
+          ]
+        );
+        expect(cells(tree, 'th').map(c => c.properties.dataNumeric)).toEqual([
+          undefined,
+          true,
+        ]);
+        expect(cells(tree, 'td').map(c => c.properties.dataNumeric)).toEqual([
+          undefined,
+          true,
+          undefined,
+          true,
+        ]);
+      });
+
+      test('an alignment set in the markdown wins', () => {
+        const table = makeTable(['Item', 'Price'], [['Tea', '3']]);
+        const mark = (node: any) => {
+          if (
+            (node.tagName === 'th' || node.tagName === 'td') &&
+            node.children[0].value !== 'Item' &&
+            node.children[0].value !== 'Tea'
+          ) {
+            node.properties = { ...node.properties, align: 'center' };
+          }
+          (node.children || []).forEach(mark);
+        };
+        mark(table);
+        const tree = el('root', [table]);
+        rehypeTableMeta()(tree);
+        expect(cells(tree, 'td')[1].properties.dataNumeric).toBeUndefined();
+      });
+    });
+
     test('5+ column tables stack early, cells carry their header label', () => {
       const table = run(
         makeTable(
