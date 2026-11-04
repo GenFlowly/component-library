@@ -7,6 +7,7 @@ import MarkdownEditor, {
 } from '@uiw/react-markdown-editor';
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
+import { completionPopupExtensions } from './completionPopup';
 import styles from './TextEditor.module.scss';
 
 // The editor forwards its ref (that's what MarkdownEditorRef exists for) but
@@ -18,7 +19,10 @@ const MarkdownEditorWithRef =
 
 // Stable extension arrays: an inline array would get a new identity every
 // render, making the editor reconfigure itself on every keystroke.
-const EDITABLE_EXTENSIONS = [EditorView.lineWrapping];
+const EDITABLE_EXTENSIONS = [
+  EditorView.lineWrapping,
+  ...completionPopupExtensions,
+];
 const READONLY_EXTENSIONS = [
   EditorView.lineWrapping,
   EditorView.editable.of(false),
