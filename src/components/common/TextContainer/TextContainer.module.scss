@@ -116,6 +116,13 @@
       }
     }
 
+    // The rule for every table in the product: a column of numbers aligns
+    // right. rehypeTableMeta marks them; stacked cards undo it below.
+    :is(th, td)[data-numeric] {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
     th {
       background: $color-background-tertiary;
       font-weight: 600;
@@ -208,6 +215,7 @@
     // needing an extra wrapper element around the value.
     display: table;
     width: 100%;
+    text-align: left;
     border: none;
     border-bottom: 1px solid $color-border-light;
     // A card is as wide as the container, so a long token in a value must

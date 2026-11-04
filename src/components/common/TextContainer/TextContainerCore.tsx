@@ -103,6 +103,22 @@ const HAS_LETTER = /\p{L}/u;
 const SELF_BREAKING =
   /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]+/u;
 
+// A number, with an optional sign, currency, thousands separators, and % or a
+// k/M/B suffix. Units in words ("12 ms") don't count: they read as text.
+const NUMERIC_CELL =
+  /^[+\-−]?[$€£¥₹]?(?:\d[\d,]*(?:\.\d+)?|\.\d+)(?:%|[kKmMbB])?$/;
+// What a column of numbers can hold where it has no value
+const EMPTY_CELL = /^(?:|-|–|—|n\/a)$/i;
+
+/**
+ * The rule for every table in the product: a column of numbers aligns right.
+ * The iOS app's MarkdownTable.isNumericColumn has to give the same answers.
+ */
+export function isNumericColumn(values: string[]): boolean {
+  const filled = values.map(v => v.trim()).filter(v => !EMPTY_CELL.test(v));
+  return filled.length > 0 && filled.every(v => NUMERIC_CELL.test(v));
+}
+
 export function isLongToken(run: string): boolean {
   if (/\s/.test(run)) return false;
   const length = Array.from(run).length;
@@ -230,8 +246,9 @@ export function markLongTokens(cell: any) {
  * Rehype plugin that decorates GFM tables with the metadata the layout in
  * TextContainer.module.scss needs: data-stack on the <table> (when/if it
  * should restack in narrow containers), data-label on each <td> (its column
- * header, shown by CSS when the header row is hidden), and data-token spans
- * around long unbreakable runs in cells.
+ * header, shown by CSS when the header row is hidden), data-numeric on the
+ * cells of a column of numbers, and data-token spans around long unbreakable
+ * runs in cells.
  * Pure decoration — the DOM stays a semantic table in both presentations.
  */
 export function rehypeTableMeta() {
@@ -244,12 +261,42 @@ export function rehypeTableMeta() {
   };
 }
 
+// A column the author aligned in the markdown keeps that alignment
+function markNumericColumns(table: any, thead: any) {
+  const bodyRows = elementChildren(table, 'tbody').flatMap(tbody =>
+    elementChildren(tbody, 'tr')
+  );
+  const rows = [...elementChildren(thead, 'tr'), ...bodyRows];
+  const cellsOf = (row: any) =>
+    (row.children || []).filter(
+      (cell: any) => isElement(cell, 'th') || isElement(cell, 'td')
+    );
+  const columnCount = Math.max(0, ...rows.map(row => cellsOf(row).length));
+  for (let column = 0; column < columnCount; column++) {
+    const cells = rows.map(row => cellsOf(row)[column]).filter(Boolean);
+    const values = bodyRows.map(row =>
+      extractText(cellsOf(row)[column]?.children || [])
+    );
+    if (
+      cells.some(cell => cell.properties?.align) ||
+      !isNumericColumn(values)
+    ) {
+      continue;
+    }
+    for (const cell of cells) {
+      cell.properties = { ...cell.properties, dataNumeric: true };
+    }
+  }
+}
+
 export function decorateTable(table: any) {
   const [thead] = elementChildren(table, 'thead');
   const [headerRow] = elementChildren(thead, 'tr');
   const labels = elementChildren(headerRow, 'th').map(th =>
     extractText(th.children || []).trim()
   );
+
+  markNumericColumns(table, thead);
 
   for (const section of [thead, ...elementChildren(table, 'tbody')]) {
     for (const row of elementChildren(section, 'tr')) {
