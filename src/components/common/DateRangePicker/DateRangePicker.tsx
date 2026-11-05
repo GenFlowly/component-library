@@ -115,6 +115,7 @@ export default function DateRangePicker({
           selectedValues={activePresetId ? [activePresetId] : []}
           onChange={handlePresetChange}
           allowEmpty
+          className={styles.presets}
           aria-label={presetsAriaLabel}
           data-testid={testId ? `${testId}-presets` : undefined}
         />

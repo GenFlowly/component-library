@@ -31,6 +31,11 @@ describe('DateRangePicker', () => {
     expect(screen.getByTestId('usage-range-to')).toHaveValue(maxDate);
   });
 
+  test('gives the preset group the class that keeps it on one row on phones', () => {
+    render(<DateRangePicker {...defaultProps} />);
+    expect(screen.getByTestId('usage-range-presets')).toHaveClass('presets');
+  });
+
   test('highlights the preset matching the current value', () => {
     render(<DateRangePicker {...defaultProps} />);
 

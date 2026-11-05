@@ -7,6 +7,26 @@
   gap: $spacing-md;
 }
 
+// The group's default pills need about 392px, so a phone would wrap the last one
+// onto its own row, where corners meant for a single row look broken. Nested under
+// .container to outrank the group's own rules whichever stylesheet loads first.
+.container .presets {
+  @include respond-to-mobile {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+
+    > button {
+      flex: 1 1 0;
+      min-width: 0;
+      padding-left: 4px;
+      padding-right: 4px;
+      font-size: clamp(0.8125rem, 4.4vw, 1rem);
+      white-space: nowrap;
+    }
+  }
+}
+
 .customRange {
   display: flex;
   align-items: flex-end;
