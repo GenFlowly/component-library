@@ -18,7 +18,10 @@
   border-radius: 6px;
   font-size: 0.85rem;
   white-space: pre-wrap;
-  max-width: 300px;
+  // max-content: a fixed box otherwise narrows to the room left of its `left`,
+  // so its width would change with where it lands.
+  width: max-content;
+  max-width: min(300px, calc(100vw - 16px));
   box-shadow: $shadow-lg;
   z-index: 9999;
   pointer-events: none;
@@ -64,7 +67,7 @@
 
     &::before {
       top: 100%;
-      left: 50%;
+      left: var(--tooltip-arrow-left, 50%);
       transform: translateX(-50%);
       border-top-color: $color-navbar-background;
     }
@@ -75,7 +78,7 @@
 
     &::before {
       bottom: 100%;
-      left: 50%;
+      left: var(--tooltip-arrow-left, 50%);
       transform: translateX(-50%);
       border-bottom-color: $color-navbar-background;
     }
