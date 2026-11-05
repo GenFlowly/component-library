@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import Response from './Response';
 import Request from './Request';
+import { landOnElement } from './landOnElement';
 import {
   useConversation,
   useConversationAuth,
@@ -29,6 +30,10 @@ function ConversationBlock({
   const conversationBlock = conversationBlockList.find(
     b => b.conversationBlockId === id
   );
+  const isLastResponseBlock =
+    [...conversationBlockList]
+      .reverse()
+      .find(b => b.responseMessages.length > 0)?.conversationBlockId === id;
   const responseRef = useRef<HTMLDivElement | null>(null);
   // Gates the one-time jump-to-start below. Never reset back to false, so a
   // regenerate/vendor-switch on an already-visible last response can't
@@ -53,6 +58,12 @@ function ConversationBlock({
     return () => clearTimeout(armTimer);
   }, [conversationBlock?.isLoading]);
 
+  // A finished block appearing means a conversation is being opened. Only its
+  // latest response takes the jump: the text renders lazily, so the page keeps
+  // growing, and one smooth scroll per block would stop far short of it.
+  const endLandingRef = useRef<(() => void) | null>(null);
+  useEffect(() => () => endLandingRef.current?.(), []);
+
   // Scroll to response when it appears and we haven't scrolled yet (Initial "Jump" to start)
   useEffect(() => {
     if (
@@ -60,6 +71,17 @@ function ConversationBlock({
       responseRef.current &&
       !hasScrolledRef.current
     ) {
+      if (!conversationBlock.isLoading) {
+        hasScrolledRef.current = true;
+        if (isLastResponseBlock) {
+          setTimeout(() => {
+            if (responseRef.current) {
+              endLandingRef.current = landOnElement(responseRef.current);
+            }
+          }, 100);
+        }
+        return;
+      }
       // Wait a tick for layout
       setTimeout(() => {
         responseRef.current?.scrollIntoView({
@@ -69,7 +91,11 @@ function ConversationBlock({
         hasScrolledRef.current = true;
       }, 100);
     }
-  }, [conversationBlock?.responseMessages, conversationBlock?.isLoading]);
+  }, [
+    conversationBlock?.responseMessages,
+    conversationBlock?.isLoading,
+    isLastResponseBlock,
+  ]);
 
   // Continuous scroll during streaming (Sticky Bottom)
   useEffect(() => {
@@ -220,11 +246,6 @@ function ConversationBlock({
   );
 
   if (!conversationBlock) return null;
-
-  const isLastResponseBlock =
-    [...conversationBlockList]
-      .reverse()
-      .find(b => b.responseMessages.length > 0)?.conversationBlockId === id;
 
   return (
     <div
