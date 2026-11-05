@@ -1,5 +1,13 @@
-import React, { ReactNode, useEffect, useRef, useState } from 'react';
+import React, {
+  ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import ScrollArea from '../ScrollArea/ScrollArea';
+import SwipeableRow, { SwipeRowsContext } from './SwipeableRow';
 import styles from './SidebarListPanel.module.scss';
 
 // Exposed for consumers that render custom item content and want to reuse the
@@ -12,6 +20,8 @@ export interface SidebarListItemAction {
   onClick: (e: React.MouseEvent) => void;
   // Hidden until the row is hovered or focused (always shown on touch devices)
   revealOnHover?: boolean;
+  // Fill of the action in a swipe tray; ignored on inline buttons
+  tone?: 'neutral' | 'primary' | 'muted';
   testId?: string;
 }
 
@@ -48,8 +58,10 @@ export interface SidebarListGroup {
   collapsible?: boolean;
   // Initial expanded state for collapsible groups; expansion is uncontrolled
   defaultExpanded?: boolean;
-  // Leading node on collapsible headers (e.g. a folder icon for a project)
+  // Leading node on the header (e.g. a folder icon for a project)
   icon?: ReactNode;
+  // Extra controls at the right of a static header (e.g. filter chips)
+  headerContent?: ReactNode;
   onToggle?: (expanded: boolean) => void;
   // Icon buttons at the right edge of the group header (e.g. "new project",
   // "new conversation"). On a static section header they sit inline beside
@@ -73,6 +85,9 @@ export interface SidebarListPanelProps {
   errorText: string;
   emptyText: string;
   listAriaLabel?: string;
+  // 'menu': the full-screen mobile menu. Touch sizing at every width it shows
+  // at, and on touch devices item actions move into a swipe tray.
+  variant?: 'default' | 'menu';
   // Infinite scroll: called when the end of the scrolling list comes within
   // ~120px of view — including right after a load that still doesn't fill
   // the viewport. Pass it only while another page can actually be fetched
@@ -115,48 +130,59 @@ export function SidebarListLoadMore({
 }
 
 function ItemRow({ item }: { item: SidebarListItem }) {
+  const { swipeRows } = useContext(SwipeRowsContext);
   const itemActions = item.actions ?? (item.action ? [item.action] : []);
   const children = item.children ?? [];
+  const swipeable = swipeRows && itemActions.length > 0;
+  const rowButton = (
+    <button
+      className={`${styles.item} ${item.isActive ? styles.active : ''}`}
+      onClick={item.onSelect}
+      title={typeof item.label === 'string' ? item.label : undefined}
+      aria-current={item.isActive ? (item.ariaCurrent ?? 'true') : undefined}
+      data-testid={item.testId}
+    >
+      <div className={styles.itemContent}>
+        <div className={styles.itemHeader}>
+          <span className={styles.itemLabel}>{item.label}</span>
+        </div>
+        {item.details != null && (
+          <div className={styles.itemDetails}>{item.details}</div>
+        )}
+      </div>
+    </button>
+  );
   return (
     // The row itself is a div inside the li so hover-reveal and the action
     // overlay stay scoped to this row, not the nested children below it
     <li className={styles.itemLi}>
       <div
-        className={`${styles.itemRow} ${itemActions.length > 1 ? styles.multiAction : ''}`}
+        className={`${styles.itemRow} ${!swipeable && itemActions.length > 1 ? styles.multiAction : ''} ${itemActions.length === 0 ? styles.noActions : ''}`}
       >
-        <button
-          className={`${styles.item} ${item.isActive ? styles.active : ''}`}
-          onClick={item.onSelect}
-          title={typeof item.label === 'string' ? item.label : undefined}
-          aria-current={
-            item.isActive ? (item.ariaCurrent ?? 'true') : undefined
-          }
-          data-testid={item.testId}
-        >
-          <div className={styles.itemContent}>
-            <div className={styles.itemHeader}>
-              <span className={styles.itemLabel}>{item.label}</span>
-            </div>
-            {item.details != null && (
-              <div className={styles.itemDetails}>{item.details}</div>
+        {swipeable ? (
+          <SwipeableRow rowId={item.id} actions={itemActions}>
+            {rowButton}
+          </SwipeableRow>
+        ) : (
+          <>
+            {rowButton}
+            {itemActions.length > 0 && (
+              <div className={styles.actionsWrap}>
+                {itemActions.map((action, index) => (
+                  <button
+                    key={index}
+                    className={`${styles.actionBtn} ${action.revealOnHover ? styles.hoverReveal : ''}`}
+                    onClick={action.onClick}
+                    title={action.label}
+                    aria-label={action.label}
+                    data-testid={action.testId}
+                  >
+                    {action.icon}
+                  </button>
+                ))}
+              </div>
             )}
-          </div>
-        </button>
-        {itemActions.length > 0 && (
-          <div className={styles.actionsWrap}>
-            {itemActions.map((action, index) => (
-              <button
-                key={index}
-                className={`${styles.actionBtn} ${action.revealOnHover ? styles.hoverReveal : ''}`}
-                onClick={action.onClick}
-                title={action.label}
-                aria-label={action.label}
-                data-testid={action.testId}
-              >
-                {action.icon}
-              </button>
-            ))}
-          </div>
+          </>
         )}
       </div>
       {children.length > 0 && (
@@ -249,7 +275,11 @@ function GroupSection({
             className={`${styles.groupHeader} ${isTopLevel ? styles.stickyHeader : ''}`}
             data-testid={group.testId}
           >
+            {group.icon != null && (
+              <span className={styles.groupIcon}>{group.icon}</span>
+            )}
             <span className={styles.groupHeaderLabel}>{group.label}</span>
+            {group.headerContent}
             {headerActions.length > 0 && (
               <span className={styles.groupHeaderActions}>
                 {headerActions.map((action, index) => (
@@ -337,7 +367,7 @@ function GroupSection({
       {hasChildren && expanded && (
         <div
           id={contentId}
-          className={isTopLevel ? undefined : styles.groupChildren}
+          className={isTopLevel ? styles.topLevelContent : styles.groupChildren}
         >
           {content}
         </div>
@@ -376,11 +406,21 @@ export default function SidebarListPanel({
   errorText,
   emptyText,
   listAriaLabel,
+  variant = 'default',
   onEndReached,
   footer,
   'data-testid': testId,
   testIds,
 }: SidebarListPanelProps) {
+  const [isTouchDevice] = useState(
+    () => window.matchMedia?.('(hover: none)').matches ?? false
+  );
+  const swipeRows = variant === 'menu' && isTouchDevice;
+  const [openRowId, setOpenRowId] = useState<string | null>(null);
+  const swipeContext = useMemo(
+    () => ({ swipeRows, openRowId, setOpenRowId }),
+    [swipeRows, openRowId]
+  );
   const fixed = fixedGroups ?? [];
   const isEmpty = !hasContent(groups) && !hasContent(fixed);
 
@@ -407,60 +447,66 @@ export default function SidebarListPanel({
   }, [onEndReached, isEmpty, groups]);
 
   return (
-    <div className={styles.container} data-testid={testId}>
-      {title && <div className={styles.header}>{title}</div>}
+    <div
+      className={`${styles.container} ${variant === 'menu' ? styles.menuVariant : ''}`}
+      data-testid={testId}
+    >
+      <SwipeRowsContext.Provider value={swipeContext}>
+        {title && <div className={styles.header}>{title}</div>}
 
-      {isLoading && isEmpty ? (
-        <div className={styles.skeleton} data-testid={testIds?.loading}>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className={styles.skeletonItem}
-              style={{ width: `${70 + (i % 3) * 10}%` }}
-            />
-          ))}
-        </div>
-      ) : hasError && isEmpty ? (
-        // A failed background refresh keeps showing the stale list;
-        // the error state is only for having nothing at all to show
-        <div className={styles.emptyState} data-testid={testIds?.error}>
-          {errorText}
-        </div>
-      ) : isEmpty ? (
-        <div className={styles.emptyState} data-testid={testIds?.empty}>
-          {emptyText}
-        </div>
-      ) : (
-        <>
-          {hasContent(fixed) && (
-            <div className={styles.fixedSection}>
-              {fixed.map(group => (
+        {isLoading && isEmpty ? (
+          <div className={styles.skeleton} data-testid={testIds?.loading}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className={styles.skeletonItem}
+                style={{ width: `${70 + (i % 3) * 10}%` }}
+              />
+            ))}
+          </div>
+        ) : hasError && isEmpty ? (
+          // A failed background refresh keeps showing the stale list;
+          // the error state is only for having nothing at all to show
+          <div className={styles.emptyState} data-testid={testIds?.error}>
+            {errorText}
+          </div>
+        ) : isEmpty ? (
+          <div className={styles.emptyState} data-testid={testIds?.empty}>
+            {emptyText}
+          </div>
+        ) : (
+          <>
+            {hasContent(fixed) && (
+              <div className={styles.fixedSection}>
+                {fixed.map(group => (
+                  <GroupSection key={group.id} group={group} isTopLevel />
+                ))}
+              </div>
+            )}
+            <ScrollArea
+              ref={listRef}
+              className={styles.list}
+              aria-label={listAriaLabel}
+              data-testid={testIds?.list}
+              onScroll={openRowId ? () => setOpenRowId(null) : undefined}
+            >
+              {groups.map(group => (
                 <GroupSection key={group.id} group={group} isTopLevel />
               ))}
-            </div>
-          )}
-          <ScrollArea
-            ref={listRef}
-            className={styles.list}
-            aria-label={listAriaLabel}
-            data-testid={testIds?.list}
-          >
-            {groups.map(group => (
-              <GroupSection key={group.id} group={group} isTopLevel />
-            ))}
-            {onEndReached != null && (
-              <div
-                ref={endSentinelRef}
-                className={styles.endSentinel}
-                aria-hidden="true"
-                data-testid={testIds?.endSentinel}
-              />
-            )}
-          </ScrollArea>
-        </>
-      )}
+              {onEndReached != null && (
+                <div
+                  ref={endSentinelRef}
+                  className={styles.endSentinel}
+                  aria-hidden="true"
+                  data-testid={testIds?.endSentinel}
+                />
+              )}
+            </ScrollArea>
+          </>
+        )}
 
-      {footer}
+        {footer}
+      </SwipeRowsContext.Provider>
     </div>
   );
 }

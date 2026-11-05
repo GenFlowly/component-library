@@ -7,6 +7,7 @@ import menuIcon from '../assets/icons/menu.svg';
 import moreVerticalIcon from '../assets/icons/more-vertical.svg';
 import altArrowLeft from '../assets/icons/alt-arrow-left.svg';
 import closeIcon from '../assets/icons/close.svg';
+import searchIcon from '../assets/icons/search.svg';
 import documentIcon from '../assets/icons/document.svg';
 import downloadIcon from '../assets/icons/download.svg';
 import sendIcon from '../assets/icons/send-icon.svg';
@@ -26,6 +27,7 @@ export const ICONS = {
   MORE_VERTICAL: moreVerticalIcon,
   ALT_ARROW_LEFT: altArrowLeft,
   CLOSE: closeIcon,
+  SEARCH: searchIcon,
   DOCUMENT: documentIcon,
   DOWNLOAD: downloadIcon,
   SEND: sendIcon,

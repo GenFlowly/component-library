@@ -18,7 +18,8 @@ describe('MobileMenu', () => {
       </MobileMenu>
     );
 
-    expect(screen.getByText('History')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'History' })).toBeInTheDocument();
+    expect(screen.queryByText('History')).not.toBeInTheDocument();
     expect(screen.getByTestId('context-stub')).toBeInTheDocument();
     expect(screen.queryByTestId('app-menu-stub')).not.toBeInTheDocument();
 
@@ -75,5 +76,26 @@ describe('MobileMenu', () => {
     fireEvent.click(screen.getByTestId('mobile-menu-app-toggle'));
     fireEvent.click(screen.getByTestId('mobile-menu-close'));
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  test('shows the action in the context view only', () => {
+    const onClick = jest.fn();
+    render(
+      <MobileMenu
+        title="History"
+        action={{ label: 'New chat', onClick, 'data-testid': 'menu-action' }}
+        appMenuTitle="Menu"
+        appMenu={appMenu}
+        onClose={jest.fn()}
+      >
+        <div>Conversations</div>
+      </MobileMenu>
+    );
+
+    fireEvent.click(screen.getByTestId('menu-action'));
+    expect(onClick).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByTestId('mobile-menu-app-toggle'));
+    expect(screen.queryByTestId('menu-action')).not.toBeInTheDocument();
   });
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SidebarListPanel, {
   SidebarListGroup,
@@ -716,5 +716,163 @@ describe('SidebarListPanel nested item children', () => {
 
     await userEvent.click(screen.getByTestId('fork-archive'));
     expect(onArchive).toHaveBeenCalled();
+  });
+});
+
+describe('SidebarListPanel menu variant', () => {
+  const originalMatchMedia = window.matchMedia;
+  const originalPointerEvent = window.PointerEvent;
+
+  // jsdom has no PointerEvent, so fireEvent would drop clientX and clientY
+  beforeAll(() => {
+    window.PointerEvent = MouseEvent as unknown as typeof PointerEvent;
+  });
+
+  afterAll(() => {
+    window.PointerEvent = originalPointerEvent;
+  });
+
+  const useTouchDevice = (isTouch: boolean) => {
+    window.matchMedia = jest.fn().mockReturnValue({ matches: isTouch });
+  };
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
+  const archive = jest.fn();
+  const select = jest.fn();
+
+  const renderMenuPanel = () =>
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        title={undefined}
+        variant="menu"
+        groups={[
+          {
+            id: 'g1',
+            label: 'Recents',
+            items: ['one', 'two'].map(id => ({
+              id,
+              label: `Item ${id}`,
+              onSelect: select,
+              testId: `row-${id}`,
+              actions: [
+                {
+                  icon: <span />,
+                  label: `Archive ${id}`,
+                  onClick: archive,
+                  tone: 'muted' as const,
+                  testId: `archive-${id}`,
+                },
+              ],
+            })),
+          },
+        ]}
+      />
+    );
+
+  const swipe = (row: HTMLElement, fromX: number, toX: number, toY = 0) => {
+    const init = { bubbles: true, clientY: 100 };
+    fireEvent.pointerDown(row, { ...init, clientX: fromX });
+    fireEvent.pointerMove(row, { ...init, clientX: toX, clientY: 100 + toY });
+    fireEvent.pointerUp(row, { ...init, clientX: toX });
+    fireEvent.click(row);
+  };
+
+  const contentOf = (id: string) =>
+    screen.getByTestId(`row-${id}`).parentElement as HTMLElement;
+
+  beforeEach(() => {
+    archive.mockClear();
+    select.mockClear();
+  });
+
+  it('keeps inline buttons on a device with hover', () => {
+    useTouchDevice(false);
+    renderMenuPanel();
+    expect(contentOf('one').style.transform).toBe('');
+    expect(screen.getByTestId('archive-one')).toBeInTheDocument();
+  });
+
+  it('opens a row on a left swipe without selecting it', () => {
+    useTouchDevice(true);
+    renderMenuPanel();
+    swipe(screen.getByTestId('row-one'), 200, 120);
+    expect(contentOf('one').style.transform).toBe('translateX(-48px)');
+    expect(select).not.toHaveBeenCalled();
+  });
+
+  it('stays closed when the swipe is too short or mostly vertical', () => {
+    useTouchDevice(true);
+    renderMenuPanel();
+    swipe(screen.getByTestId('row-one'), 200, 185);
+    expect(contentOf('one').style.transform).toBe('translateX(0px)');
+    swipe(screen.getByTestId('row-two'), 200, 150, 90);
+    expect(contentOf('two').style.transform).toBe('translateX(0px)');
+  });
+
+  it('keeps one row open at a time and closes on an outside press', () => {
+    useTouchDevice(true);
+    renderMenuPanel();
+    swipe(screen.getByTestId('row-one'), 200, 120);
+    swipe(screen.getByTestId('row-two'), 200, 120);
+    expect(contentOf('one').style.transform).toBe('translateX(0px)');
+    expect(contentOf('two').style.transform).toBe('translateX(-48px)');
+
+    fireEvent.pointerDown(document.body);
+    expect(contentOf('two').style.transform).toBe('translateX(0px)');
+  });
+
+  it('closes an open row on tap instead of selecting it', () => {
+    useTouchDevice(true);
+    renderMenuPanel();
+    const row = screen.getByTestId('row-one');
+    swipe(row, 200, 120);
+    fireEvent.pointerDown(row, { clientX: 100, clientY: 100 });
+    fireEvent.pointerUp(row, { clientX: 100, clientY: 100 });
+    fireEvent.click(row);
+    expect(select).not.toHaveBeenCalled();
+    expect(contentOf('one').style.transform).toBe('translateX(0px)');
+
+    fireEvent.click(row);
+    expect(select).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs a tray action and closes, and reaches it by keyboard focus', () => {
+    useTouchDevice(true);
+    renderMenuPanel();
+    const action = screen.getByTestId('archive-one');
+    fireEvent.focus(action);
+    expect(contentOf('one').style.transform).toBe('translateX(-48px)');
+
+    fireEvent.click(action);
+    expect(archive).toHaveBeenCalledTimes(1);
+    expect(contentOf('one').style.transform).toBe('translateX(0px)');
+  });
+
+  it('renders an icon and extra content in a static header', () => {
+    useTouchDevice(false);
+    render(
+      <SidebarListPanel
+        {...baseProps}
+        title={undefined}
+        variant="menu"
+        groups={[
+          {
+            id: 'g1',
+            label: 'Agents',
+            icon: <span data-testid="header-icon" />,
+            headerContent: <button>All agents</button>,
+            items: [{ id: 'a', label: 'Agent', onSelect: jest.fn() }],
+          },
+        ]}
+      />
+    );
+    expect(screen.getByTestId('header-icon')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'All agents' })
+    ).toBeInTheDocument();
   });
 });

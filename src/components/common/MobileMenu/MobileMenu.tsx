@@ -2,11 +2,25 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../Icon/Icon';
 import { ICONS } from '../../../constants/icons';
+import PillButton from '../PillButton/PillButton';
 import styles from './MobileMenu.module.scss';
 
+export interface MobileMenuAction {
+  label: string;
+  /** Icon source rendered before the label. */
+  icon?: string;
+  onClick: () => void;
+  'data-testid'?: string;
+}
+
 export interface MobileMenuProps {
-  /** Title of the page-context view (e.g. "History", "Saved Notes"). */
+  /**
+   * Accessible name of the page-context view (e.g. "History", "Saved Notes").
+   * That view's top bar shows `action` instead of a visible title.
+   */
   title?: string;
+  /** The page's create action, centered in the page-context view's top bar. */
+  action?: MobileMenuAction;
   /** Title of the app-menu view (e.g. "Menu"). */
   appMenuTitle: string;
   /** App-wide navigation content — what the desktop navbar shows. */
@@ -28,6 +42,7 @@ export interface MobileMenuProps {
  */
 export default function MobileMenu({
   title,
+  action,
   appMenuTitle,
   appMenu,
   children,
@@ -72,7 +87,21 @@ export default function MobileMenu({
             <Icon src={ICONS.MENU} size={20} />
           </button>
         )}
-        <h2 className={styles.title}>{showAppMenu ? appMenuTitle : title}</h2>
+        {showAppMenu ? (
+          <h2 className={styles.title}>{appMenuTitle}</h2>
+        ) : (
+          <div className={styles.actionSlot}>
+            {action && (
+              <PillButton
+                label={action.label}
+                icon={action.icon}
+                className={styles.actionPill}
+                onClick={action.onClick}
+                data-testid={action['data-testid']}
+              />
+            )}
+          </div>
+        )}
         <button
           onClick={onClose}
           className={styles.iconButton}
@@ -83,7 +112,10 @@ export default function MobileMenu({
         </button>
       </div>
 
-      <div className={styles.content} data-testid="mobile-menu-content">
+      <div
+        className={`${styles.content} ${showAppMenu ? '' : styles.contextContent}`}
+        data-testid="mobile-menu-content"
+      >
         {showAppMenu ? appMenu : children}
       </div>
     </div>

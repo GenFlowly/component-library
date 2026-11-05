@@ -98,3 +98,32 @@
   opacity: 0;
   transition: opacity 0.15s ease;
 }
+
+// 44px target from a 12px gap. It reaches further into the pane above so the
+// section header at the top of the pane below stays tappable.
+.dividerTouch {
+  height: 0.75rem;
+
+  &::before {
+    top: -20px;
+    bottom: -12px;
+  }
+
+  .dividerGrip {
+    height: 4px;
+    opacity: 0.75;
+  }
+
+  &:hover .dividerGrip,
+  &:active .dividerGrip {
+    opacity: 1;
+  }
+
+  &[aria-hidden='true'] {
+    cursor: default;
+
+    &::before {
+      display: none;
+    }
+  }
+}

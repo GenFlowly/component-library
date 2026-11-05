@@ -63,7 +63,14 @@ export type { ToastMessage } from './components/common/Toast/Toast';
 export { default as MobileFullPageModal } from './components/common/MobileFullPageModal/MobileFullPageModal';
 export { default as MobileHeader } from './components/common/MobileHeader/MobileHeader';
 export { default as MobileMenu } from './components/common/MobileMenu/MobileMenu';
-export type { MobileMenuProps } from './components/common/MobileMenu/MobileMenu';
+export type {
+  MobileMenuProps,
+  MobileMenuAction,
+} from './components/common/MobileMenu/MobileMenu';
+export { default as MenuSearchField } from './components/common/MenuSearchField/MenuSearchField';
+export type { MenuSearchFieldProps } from './components/common/MenuSearchField/MenuSearchField';
+export { default as SidebarCard } from './components/common/SidebarCard/SidebarCard';
+export type { SidebarCardProps } from './components/common/SidebarCard/SidebarCard';
 export type {
   MobileHeaderProps,
   MobileHeaderMenuItem,

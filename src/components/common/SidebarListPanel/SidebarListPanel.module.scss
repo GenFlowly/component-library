@@ -521,11 +521,11 @@
   }
 }
 
-// 📱 Mobile: the panel fills the screen as a touch surface, not a dense
+// 📱 Touch sizing: the panel fills the screen as a touch surface, not a dense
 // desktop sidebar — larger type, taller rows, roomier action targets. The
 // always-visible touch actions (no hover reveal) also need real clearance,
 // so the label padding grows with the bigger buttons.
-@include respond-to-mobile {
+@mixin touch-sizing {
   .list {
     gap: 2px;
     padding: 0.4rem 0;
@@ -611,4 +611,171 @@
   .skeletonItem {
     height: 40px;
   }
+}
+
+@include respond-to-mobile {
+  @include touch-sizing;
+}
+
+// The full-screen mobile menu. It shows below isNarrow, so its touch sizing
+// can't depend on the mobile breakpoint.
+.menuVariant {
+  @include touch-sizing;
+
+  // A card that hugs its content has no definite height for height: 100%
+  flex: 1 1 auto;
+  min-height: 0;
+
+  // A collapsed card hugs its header, so the spacing below the rows belongs to
+  // the rows, not the list or the group
+  .list {
+    gap: 0;
+    padding: 0;
+  }
+
+  .list > .group {
+    margin-bottom: 0;
+  }
+
+  .list > .group > .groupList,
+  .topLevelContent {
+    padding-bottom: 0.5rem;
+  }
+
+  .item {
+    align-items: center;
+    min-height: 3rem;
+  }
+
+  .groupHeader {
+    min-height: 2.625rem;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+  }
+
+  .groupHeaderToggle {
+    padding-left: 0.625rem;
+  }
+
+  .groupHeaderActions {
+    margin-right: -0.9rem;
+  }
+
+  .groupHeaderBtn {
+    width: 44px;
+    height: 42px;
+    margin: 0;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .actionsWrap {
+    right: 0;
+  }
+
+  .actionBtn {
+    width: 44px;
+    height: 44px;
+  }
+
+  // Selection is a fill and weight here, not an accent-colored label
+  .item.active {
+    color: $color-text-primary;
+
+    .itemLabel {
+      font-weight: 600;
+    }
+  }
+
+  .noActions .item {
+    padding-right: 0.625rem;
+  }
+
+  // Sublabels inside a card, under its uppercase header
+  .group .group > .groupHeader {
+    min-height: 0;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .collapsibleHeaderRow.hasActions .groupHeaderToggle,
+  .collapsibleHeaderRow.hasActions .collapsibleHeader {
+    padding-right: 3rem;
+  }
+}
+
+.swipeRow {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: $radius-sm;
+}
+
+// The browser keeps vertical scrolling; horizontal movement is the swipe
+.swipeContent {
+  position: relative;
+  background-color: $color-sidebar-background;
+  transition: transform $transition-fast;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+
+  .item {
+    padding-right: 0.5rem;
+  }
+}
+
+.swipeContentDragging {
+  transition: none;
+}
+
+.swipeTray {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+}
+
+.swipeTrayClosed {
+  opacity: 0;
+}
+
+.swipeAction {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid $color-text-primary;
+    outline-offset: -2px;
+  }
+}
+
+.swipeAction-neutral {
+  background-color: $color-background-tertiary;
+  color: $color-text-primary;
+}
+
+.swipeAction-primary {
+  background-color: $color-button-primary;
+  color: #ffffff;
+}
+
+.swipeAction-muted {
+  background-color: $color-conversation-header-bg;
+  color: $color-conversation-header-text;
 }

@@ -1,0 +1,66 @@
+@import '../../../styles/themes.scss';
+
+.field {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 44px;
+  padding: 0 0 0 0.875rem;
+  border-radius: 22px;
+  background-color: rgba(127, 127, 127, 0.18);
+  color: $color-text-muted;
+
+  &:focus-within {
+    outline: 2px solid $color-primary;
+    outline-offset: -2px;
+  }
+}
+
+.searchIcon {
+  flex-shrink: 0;
+}
+
+.input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0 0.875rem 0 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: $color-text-primary;
+  font: inherit;
+  // iOS Safari zooms the page when a focused input's text is under 16px
+  font-size: 1rem;
+  appearance: none;
+
+  &::placeholder {
+    color: $color-text-muted;
+    opacity: 1;
+  }
+
+  // The field has its own clear button
+  &::-webkit-search-cancel-button {
+    display: none;
+  }
+}
+
+.clear {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: $color-text-muted;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: -2px;
+  }
+}

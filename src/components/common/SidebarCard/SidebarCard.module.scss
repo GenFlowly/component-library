@@ -1,0 +1,15 @@
+@import '../../../styles/sidebar-card.scss';
+
+.card {
+  @include sidebar-card-props;
+  @include sidebar-card-chrome;
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+:global([data-theme='dark']) .card {
+  @include sidebar-card-props-dark;
+  @include sidebar-card-chrome-dark;
+}

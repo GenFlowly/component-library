@@ -226,4 +226,32 @@ describe('VerticalSplit', () => {
     );
     fireEvent(window, new MouseEvent('pointerup', { bubbles: true }));
   });
+
+  it('keeps the grip for a touch layout and drops it once the divider is inert', () => {
+    const { rerender } = render(
+      <VerticalSplit
+        top={<div>Top</div>}
+        bottom={<div>Bottom</div>}
+        storageKey="split-show-grip"
+        showGrip
+        handleTestId="split-handle"
+      />
+    );
+    const handle = screen.getByTestId('split-handle');
+    expect(handle.querySelector('span')).toBeInTheDocument();
+
+    rerender(
+      <VerticalSplit
+        top={<div>Top</div>}
+        bottom={<div>Bottom</div>}
+        storageKey="split-show-grip"
+        showGrip
+        topCollapsed
+        handleTestId="split-handle"
+      />
+    );
+    // eslint-disable-next-line testing-library/no-node-access
+    const inertGrip = screen.getByTestId('split-handle').querySelector('span');
+    expect(inertGrip).not.toBeInTheDocument();
+  });
 });

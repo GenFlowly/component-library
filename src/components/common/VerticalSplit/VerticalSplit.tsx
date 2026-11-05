@@ -38,6 +38,11 @@ export interface VerticalSplitProps {
    * takes over the freed space (switches from its drag fraction to fill).
    */
   bottomCollapsed?: boolean;
+  /**
+   * Keeps the grip visible at rest and gives the divider a finger-sized target,
+   * for layouts used by touch where nothing else shows the panes can be resized.
+   */
+  showGrip?: boolean;
   'data-testid'?: string;
   handleTestId?: string;
   topTestId?: string;
@@ -60,6 +65,7 @@ export default function VerticalSplit({
   separatorLabel = 'Resize panels',
   topCollapsed = false,
   bottomCollapsed = false,
+  showGrip = false,
   'data-testid': testId,
   handleTestId,
   topTestId,
@@ -200,12 +206,14 @@ export default function VerticalSplit({
         aria-valuemax={Math.round(maxFraction * 100)}
         tabIndex={eitherCollapsed ? -1 : 0}
         aria-hidden={eitherCollapsed || undefined}
-        className={styles.divider}
+        className={`${styles.divider} ${showGrip ? styles.dividerTouch : ''}`}
         onPointerDown={eitherCollapsed ? undefined : handleDragStart}
         onKeyDown={eitherCollapsed ? undefined : handleKeyDown}
         data-testid={handleTestId}
       >
-        <span className={styles.dividerGrip} aria-hidden="true" />
+        {!(showGrip && eitherCollapsed) && (
+          <span className={styles.dividerGrip} aria-hidden="true" />
+        )}
       </div>
       <div
         className={`${styles.pane} ${styles.paneFill} ${bottomCollapsed ? styles.paneFillCollapsed : ''}`}
