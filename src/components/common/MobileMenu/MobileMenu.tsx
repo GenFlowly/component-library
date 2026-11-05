@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../Icon/Icon';
 import { ICONS } from '../../../constants/icons';
@@ -15,93 +15,62 @@ export interface MobileMenuAction {
 
 export interface MobileMenuProps {
   /**
-   * Accessible name of the page-context view (e.g. "History", "Saved Notes").
-   * That view's top bar shows `action` instead of a visible title.
+   * Accessible name of the menu (e.g. "History", "Saved Notes"). The top bar
+   * shows `action` instead of a visible title.
    */
   title?: string;
-  /** The page's create action, centered in the page-context view's top bar. */
+  /** The page's create action, centered in the top bar. */
   action?: MobileMenuAction;
-  /** Title of the app-menu view (e.g. "Menu"). */
-  appMenuTitle: string;
-  /** App-wide navigation content — what the desktop navbar shows. */
-  appMenu: React.ReactNode;
-  /**
-   * Page-context content (conversation history, saved notes, ...) shown as
-   * the first level. Omit it to open the app menu directly.
-   */
-  children?: React.ReactNode;
+  /** Opens the app-wide menu, which the consuming app owns. */
+  onOpenAppMenu: () => void;
+  /** Page-context content (conversation history, saved notes, ...). */
+  children: React.ReactNode;
   onClose: () => void;
   'data-testid'?: string;
 }
 
 /**
- * 📱 Two-level full-screen mobile menu. The first level is page context
- * (history, saved notes, ...); its hamburger button drills into the app menu,
- * whose back button returns to the context. Without context content the app
- * menu is the only level.
+ * 📱 Full-screen mobile menu of a page's context (history, saved notes, ...).
+ * Its hamburger leads to the app-wide menu, its close button to the page.
  */
 export default function MobileMenu({
   title,
   action,
-  appMenuTitle,
-  appMenu,
+  onOpenAppMenu,
   children,
   onClose,
   'data-testid': testId,
 }: MobileMenuProps): React.ReactElement {
   const { t } = useTranslation();
-  const hasContext = children != null;
-  const [isAppMenuOpen, setAppMenuOpen] = useState(!hasContext);
-  const showAppMenu = isAppMenuOpen || !hasContext;
 
   return (
     <div
-      className={`${styles.mobileMenu} ${showAppMenu ? styles.appView : ''}`}
+      className={styles.mobileMenu}
       role="dialog"
       aria-modal="true"
-      aria-label={showAppMenu ? appMenuTitle : title}
+      aria-label={title}
       data-testid={testId || 'mobile-menu'}
     >
       <div className={styles.header}>
-        {showAppMenu ? (
-          hasContext ? (
-            <button
-              onClick={() => setAppMenuOpen(false)}
-              className={styles.iconButton}
-              aria-label={t('layout.mobileMenu.back')}
-              data-testid="mobile-menu-back"
-            >
-              <Icon src={ICONS.ALT_ARROW_LEFT} size={20} />
-            </button>
-          ) : (
-            // Keeps the title centered when there is nothing to go back to
-            <div className={styles.iconPlaceholder} aria-hidden="true" />
-          )
-        ) : (
-          <button
-            onClick={() => setAppMenuOpen(true)}
-            className={styles.iconButton}
-            aria-label={t('layout.mobileMenu.menu')}
-            data-testid="mobile-menu-app-toggle"
-          >
-            <Icon src={ICONS.MENU} size={20} />
-          </button>
-        )}
-        {showAppMenu ? (
-          <h2 className={styles.title}>{appMenuTitle}</h2>
-        ) : (
-          <div className={styles.actionSlot}>
-            {action && (
-              <PillButton
-                label={action.label}
-                icon={action.icon}
-                className={styles.actionPill}
-                onClick={action.onClick}
-                data-testid={action['data-testid']}
-              />
-            )}
-          </div>
-        )}
+        <button
+          onClick={onOpenAppMenu}
+          className={styles.iconButton}
+          aria-label={t('layout.mobileMenu.menu')}
+          data-testid="mobile-menu-app-toggle"
+        >
+          <Icon src={ICONS.MENU} size={20} />
+        </button>
+        <div className={styles.actionSlot}>
+          {action && (
+            <PillButton
+              label={action.label}
+              icon={action.icon}
+              className={styles.actionPill}
+              onClick={action.onClick}
+              data-testid={action['data-testid']}
+            />
+          )}
+        </div>
         <button
           onClick={onClose}
           className={styles.iconButton}
@@ -112,11 +81,8 @@ export default function MobileMenu({
         </button>
       </div>
 
-      <div
-        className={`${styles.content} ${showAppMenu ? '' : styles.contextContent}`}
-        data-testid="mobile-menu-content"
-      >
-        {showAppMenu ? appMenu : children}
+      <div className={styles.content} data-testid="mobile-menu-content">
+        {children}
       </div>
     </div>
   );

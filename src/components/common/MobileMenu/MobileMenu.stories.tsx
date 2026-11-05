@@ -14,27 +14,10 @@ const meta: Meta<typeof MobileMenu> = {
 export default meta;
 type Story = StoryObj<typeof MobileMenu>;
 
-const sampleAppMenu = (
-  <nav
-    style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.5rem',
-      padding: '1rem',
-    }}
-  >
-    <span>Chat</span>
-    <span>Memory</span>
-    <span>Agents</span>
-    <span>Instructions</span>
-  </nav>
-);
-
 export const WithContext: Story = {
   args: {
     title: 'History',
-    appMenuTitle: 'Menu',
-    appMenu: sampleAppMenu,
+    onOpenAppMenu: () => {},
     onClose: () => {},
     children: (
       <ul style={{ margin: 0, padding: '1rem', listStyle: 'none' }}>
@@ -43,13 +26,5 @@ export const WithContext: Story = {
         <li>Recipe ideas</li>
       </ul>
     ),
-  },
-};
-
-export const AppMenuOnly: Story = {
-  args: {
-    appMenuTitle: 'Menu',
-    appMenu: sampleAppMenu,
-    onClose: () => {},
   },
 };

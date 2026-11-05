@@ -1,6 +1,6 @@
 @import '../../../styles/themes.scss';
 
-// Full-screen two-level mobile menu overlay
+// Full-screen mobile menu overlay
 .mobileMenu {
   position: fixed;
   left: 0;
@@ -16,43 +16,36 @@
   color: $color-text-primary;
 }
 
+// Cards float on the page surface below a borderless bar
 .header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid $color-border;
+  padding: max(0.5rem, env(safe-area-inset-top, 0px))
+    max(0.75rem, env(safe-area-inset-right, 0px)) 0.5rem
+    max(0.75rem, env(safe-area-inset-left, 0px));
   flex-shrink: 0;
 }
 
-.title {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-  font-size: 1.15rem;
-  font-weight: 600;
-  text-align: center;
-  color: $color-text-primary;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .iconButton {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   border-radius: 50%;
-  background: transparent;
+  background-color: rgba(127, 127, 127, 0.18);
   color: $color-text-primary;
   cursor: pointer;
 
   &:hover {
     background-color: $color-background-hover;
+  }
+
+  &:active {
+    background-color: rgba(127, 127, 127, 0.32);
   }
 
   &:focus-visible {
@@ -61,17 +54,16 @@
   }
 }
 
-.iconPlaceholder {
-  width: 40px;
-  flex-shrink: 0;
-}
-
 .content {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden;
+  gap: 0.75rem;
+  padding: 0 max(0.75rem, env(safe-area-inset-right, 0px))
+    max(0.75rem, env(safe-area-inset-bottom, 0px))
+    max(0.75rem, env(safe-area-inset-left, 0px));
 }
 
 .actionSlot {
@@ -88,51 +80,4 @@
   padding: 0 1.375rem 0 1.125rem;
   font-size: 0.9375rem;
   font-weight: 600;
-}
-
-// Page-context level: cards float on the page surface below a borderless bar
-.mobileMenu:not(.appView) {
-  .header {
-    padding: max(0.5rem, env(safe-area-inset-top, 0px))
-      max(0.75rem, env(safe-area-inset-right, 0px)) 0.5rem
-      max(0.75rem, env(safe-area-inset-left, 0px));
-    border-bottom: none;
-  }
-
-  .iconButton {
-    width: 44px;
-    height: 44px;
-    background-color: rgba(127, 127, 127, 0.18);
-
-    &:active {
-      background-color: rgba(127, 127, 127, 0.32);
-    }
-  }
-}
-
-.contextContent {
-  overflow: hidden;
-  gap: 0.75rem;
-  padding: 0 max(0.75rem, env(safe-area-inset-right, 0px))
-    max(0.75rem, env(safe-area-inset-bottom, 0px))
-    max(0.75rem, env(safe-area-inset-left, 0px));
-}
-
-// App-menu level keeps the dark navbar look; the context level (history,
-// saved notes) stays on the standard surface so its lists render normally
-.appView {
-  background-color: $color-navbar-background;
-  color: $color-navbar-text;
-
-  .title {
-    color: $color-navbar-text;
-  }
-
-  .iconButton {
-    color: $color-navbar-text;
-
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.12);
-    }
-  }
 }
