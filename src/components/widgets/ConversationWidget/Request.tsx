@@ -59,7 +59,6 @@ function Request({
     customerName,
     customerPicture,
     user,
-    customerId,
     getAccessTokenSilently,
   } = useConversationAuth();
   const { uploadAttachment } = useConversationServices();
@@ -352,32 +351,11 @@ function Request({
   );
 
   // Dependencies moved from TextEditor
-  const storageTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  );
   const contextTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
-  const STORAGE_KEY = customerId
-    ? `${customerId}_prompt_editor_content_conv-${blockId}`
-    : '';
-
-  // Load from localStorage only on mount if empty
-  useEffect(() => {
-    if (!STORAGE_KEY) return;
-
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved && !draftPrompt) {
-        setDraftPrompt(saved);
-        // Also sync to parent/global if needed, but usually we wait for user action
-        // actually, if we load from storage, we should probably update the draft
-      }
-    } catch (err) {
-      console.error('Failed to load from localStorage:', err);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Drafts live only in this component: a sent prompt must never come back as
+  // the next conversation's draft, so nothing is kept in localStorage.
 
   // Sync draft if global prompt changes (e.g. history load or API success)
   useEffect(() => {
@@ -407,25 +385,13 @@ function Request({
       // Immediate UI update via local state
       setDraftPrompt(newValue);
 
-      // Debounce localStorage
-      if (storageTimerRef.current) clearTimeout(storageTimerRef.current);
-      storageTimerRef.current = setTimeout(() => {
-        try {
-          if (STORAGE_KEY) {
-            localStorage.setItem(STORAGE_KEY, newValue);
-          }
-        } catch (err) {
-          console.error(err);
-        }
-      }, 500);
-
       // Debounce Context (Token Counting)
       if (contextTimerRef.current) clearTimeout(contextTimerRef.current);
       contextTimerRef.current = setTimeout(() => {
         setEditorPrompt(newValue);
       }, 500);
     },
-    [blockId, setActiveBlockId, setEditorPrompt, STORAGE_KEY]
+    [blockId, setActiveBlockId, setEditorPrompt]
   );
 
   // ---- Selection-asks (quote selected response text into this draft) ----
@@ -439,7 +405,6 @@ function Request({
   // Cleanup timers
   useEffect(() => {
     return () => {
-      if (storageTimerRef.current) clearTimeout(storageTimerRef.current);
       if (contextTimerRef.current) clearTimeout(contextTimerRef.current);
       if (focusEndTimerRef.current) clearTimeout(focusEndTimerRef.current);
     };

@@ -249,17 +249,33 @@ describe('Request Widget Component', () => {
     expect(mockSetActiveBlockId).toHaveBeenCalledWith('block-1');
   });
 
-  test('loads draft from localStorage on mount', () => {
+  test('never restores a draft from localStorage', () => {
     const storageKey = 'cust-123_prompt_editor_content_conv-block-1';
-    localStorage.setItem(storageKey, 'Restored Draft');
+    localStorage.setItem(storageKey, 'A prompt already sent');
 
     render(<Request blockId="block-1" />);
-    const editor = screen.getByTestId('text-editor');
 
-    expect(editor).toHaveValue('Restored Draft');
-
-    // Clean up
+    expect(screen.getByTestId('text-editor')).toHaveValue('');
     localStorage.removeItem(storageKey);
+  });
+
+  test('typing keeps the draft out of localStorage', () => {
+    localStorage.clear();
+    jest.useFakeTimers();
+    try {
+      render(<Request blockId="block-1" />);
+
+      fireEvent.change(screen.getByTestId('text-editor'), {
+        target: { value: 'Unsent draft' },
+      });
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+
+      expect(Object.keys(localStorage)).toEqual([]);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   describe('message author identity', () => {
