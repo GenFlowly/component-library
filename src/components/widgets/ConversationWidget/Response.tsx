@@ -38,6 +38,8 @@ import { AIVendor } from './vendors';
 import { useMaxVendors } from './useMaxVendors';
 import { ToggleOption } from '../../common/PillButtonGroup/PillButtonGroup';
 import CheckboxButtonGroup from '../../common/PillButtonGroup/CheckboxButtonGroup';
+import { useResponseSwipe } from './useResponseSwipe';
+import ResponseSwipeLabel from './ResponseSwipeLabel';
 
 /**
  * Turn bare [n] citation markers into markdown links to their web source, so
@@ -616,6 +618,25 @@ function Response({
     );
   }, [visibleMessages, effectiveSelectedVendors, byVendorPriority]);
 
+  const switchVendorRef = useRef<(vendor: string) => void>(() => {});
+  const swipe = useResponseSwipe({
+    rowRef: innerRef,
+    enabled: maxVendors === 1 && visibleMessages.length > 0,
+    vendors: availableVendors,
+    currentVendor: effectiveSelectedVendors[0],
+    onSwitch: vendor => switchVendorRef.current(vendor),
+  });
+  const swipeNeighborMessage = swipe.neighbor
+    ? [...visibleMessages]
+        .reverse()
+        .find(message => message.aiVendor === swipe.neighbor?.vendor)
+    : undefined;
+  // The neighbor shares the card's key space, so a finished swipe promotes
+  // the very same DOM instead of remounting its markdown.
+  const renderedResponses = swipeNeighborMessage
+    ? [...filteredResponseList, swipeNeighborMessage]
+    : filteredResponseList;
+
   // Regenerating a response clears its text immediately — before new
   // content streams back in — which shrinks this container. If the user
   // was scrolled past where the now-short "thinking" placeholder ends, the
@@ -787,6 +808,18 @@ function Response({
     };
     requestAnimationFrame(poll);
   };
+  switchVendorRef.current = vendor => handleVendorSelectionChange([vendor]);
+
+  const rowClassName = [
+    styles.inner,
+    sidebarsHidden ? styles.sideBySide : '',
+    maxVendors === 1 ? styles.swipeable : '',
+    swipe.phase !== 'idle' ? styles.swipeActive : '',
+    swipe.phase === 'dragging' ? styles.swipeDragging : '',
+    swipe.phase === 'settling' ? styles.swipeSettling : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <div
@@ -817,11 +850,8 @@ function Response({
         </div>
       )}
 
-      <div
-        ref={innerRef}
-        className={`${styles.inner} ${sidebarsHidden ? styles.sideBySide : ''}`}
-      >
-        {filteredResponseList.map(
+      <div ref={innerRef} className={rowClassName} data-testid="response-row">
+        {renderedResponses.map(
           ({
             aiVendor,
             model,
@@ -844,6 +874,17 @@ function Response({
           }) => {
             const isSelected = selectedResponseId === messageId;
             const isThinkingPhase = !!isLoading && text.trim().length === 0;
+            const isSwipeNeighbor =
+              messageId === swipeNeighborMessage?.messageId;
+            const swipeClassName = isSwipeNeighbor
+              ? `${styles.swipeNeighbor} ${
+                  swipe.neighbor?.side === 'next'
+                    ? styles.swipeNeighborNext
+                    : styles.swipeNeighborPrevious
+                }`
+              : swipe.phase !== 'idle'
+                ? styles.swipeCurrent
+                : '';
 
             // Only a response generated in THIS session (learnedFacts
             // never set — historical loads always set it, if only to
@@ -916,7 +957,10 @@ function Response({
 
             return (
               <ErrorBoundary key={messageId}>
-                <div className={styles.responseWrapper}>
+                <div
+                  className={`${styles.responseWrapper} ${swipeClassName}`}
+                  aria-hidden={isSwipeNeighbor || undefined}
+                >
                   <TextContainer
                     title={HeaderComponent}
                     content={linkifyCitations(text, webSources)}
@@ -1043,11 +1087,17 @@ function Response({
                         !!messageId &&
                         !error &&
                         !PLACEHOLDER_MESSAGE_ID.test(messageId);
-                      if (!isLoading && !isLastResponseBlock && !canFork) {
+                      if (
+                        isSwipeNeighbor ||
+                        (!isLoading && !isLastResponseBlock && !canFork)
+                      ) {
                         return null;
                       }
                       return (
-                        <div className={styles.responseActionButtonsWrapper}>
+                        <div
+                          className={styles.responseActionButtonsWrapper}
+                          data-response-swipe-ignore
+                        >
                           <div style={{ display: 'flex', gap: '8px' }}>
                             {isLoading ? (
                               <RectangleButton
@@ -1155,6 +1205,15 @@ function Response({
                       );
                     })()}
                   </TextContainer>
+                  {aiVendor && swipe.labelState !== 'hidden' && (
+                    <ResponseSwipeLabel
+                      vendor={aiVendor}
+                      model={model}
+                      position={availableVendors.indexOf(aiVendor)}
+                      total={availableVendors.length}
+                      isFading={swipe.labelState === 'fading'}
+                    />
+                  )}
                 </div>
               </ErrorBoundary>
             );
