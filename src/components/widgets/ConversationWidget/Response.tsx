@@ -622,6 +622,9 @@ function Response({
   const swipe = useResponseSwipe({
     rowRef: innerRef,
     enabled: maxVendors === 1 && visibleMessages.length > 0,
+    hintReady:
+      availableVendors.length > 1 &&
+      !visibleMessages.some(message => message.isLoading),
     vendors: availableVendors,
     currentVendor: effectiveSelectedVendors[0],
     onSwitch: vendor => switchVendorRef.current(vendor),
@@ -817,6 +820,7 @@ function Response({
     swipe.phase !== 'idle' ? styles.swipeActive : '',
     swipe.phase === 'dragging' ? styles.swipeDragging : '',
     swipe.phase === 'settling' ? styles.swipeSettling : '',
+    swipe.phase === 'hinting' ? styles.swipeHinting : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -1212,6 +1216,7 @@ function Response({
                       position={availableVendors.indexOf(aiVendor)}
                       total={availableVendors.length}
                       isFading={swipe.labelState === 'fading'}
+                      showsHint={swipe.showsHint && !isSwipeNeighbor}
                     />
                   )}
                 </div>

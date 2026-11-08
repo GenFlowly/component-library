@@ -9,6 +9,7 @@ interface ResponseSwipeLabelProps {
   position: number;
   total: number;
   isFading: boolean;
+  showsHint: boolean;
 }
 
 /**
@@ -21,6 +22,7 @@ export default function ResponseSwipeLabel({
   position,
   total,
   isFading,
+  showsHint,
 }: ResponseSwipeLabelProps) {
   const { t } = useTranslation();
   return (
@@ -47,6 +49,11 @@ export default function ResponseSwipeLabel({
         ) : (
           <span className={styles.swipeLabelOnly}>
             {t('conversation.response.onlyResponse')}
+          </span>
+        )}
+        {showsHint && (
+          <span className={styles.swipeLabelHint}>
+            {t('conversation.response.swipeHint')}
           </span>
         )}
       </div>

@@ -1,5 +1,11 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  act,
+  cleanup,
+} from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Response from './Response';
 import {
@@ -72,7 +78,7 @@ const messages = [
 let setVendorSelectionForBlock: jest.Mock;
 let selection: string[];
 
-function renderResponses(list = messages) {
+function mountResponses(list = messages) {
   (useConversation as jest.Mock).mockReturnValue({
     setSelectedResponseForBlock: jest.fn(),
     getSelectedResponseForBlock: () => undefined,
@@ -134,7 +140,7 @@ describe('swiping between vendor responses', () => {
   });
 
   it('slides the next response in and shows both labels mid-drag', () => {
-    const row = renderResponses();
+    const row = mountResponses();
     drag(row, [350, 300], [150, 300]);
     expect(screen.getByText('second')).toBeInTheDocument();
     expect(screen.getAllByTestId('response-swipe-label')).toHaveLength(2);
@@ -142,7 +148,7 @@ describe('swiping between vendor responses', () => {
   });
 
   it('switches through the same selection as the toggle past the midpoint', () => {
-    const row = renderResponses();
+    const row = mountResponses();
     drag(row, [380, 300], [100, 300]);
     release(row);
     expect(setVendorSelectionForBlock).toHaveBeenCalledWith('block', ['B']);
@@ -150,7 +156,7 @@ describe('swiping between vendor responses', () => {
   });
 
   it('switches on a short flick', () => {
-    const row = renderResponses();
+    const row = mountResponses();
     fireEvent.touchStart(row, touch(350, 300));
     act(() => {
       jest.advanceTimersByTime(50);
@@ -166,14 +172,14 @@ describe('swiping between vendor responses', () => {
 
   it('goes to the previous vendor on a rightward drag', () => {
     selection = ['B'];
-    const row = renderResponses();
+    const row = mountResponses();
     drag(row, [60, 300], [340, 300]);
     release(row);
     expect(setVendorSelectionForBlock).toHaveBeenCalledWith('block', ['A']);
   });
 
   it('springs back when released before the midpoint, then fades the label', () => {
-    const row = renderResponses();
+    const row = mountResponses();
     drag(row, [350, 300], [300, 300]);
     expect(
       screen.getAllByTestId('response-swipe-label').length
@@ -194,14 +200,14 @@ describe('swiping between vendor responses', () => {
   });
 
   it('keeps the action bar off the incoming response', () => {
-    const row = renderResponses();
+    const row = mountResponses();
     drag(row, [350, 300], [150, 300]);
     expect(screen.getAllByTestId('regenerate-button')).toHaveLength(1);
   });
 
   it('rubber-bands past the last vendor and never switches', () => {
     selection = ['C'];
-    const row = renderResponses();
+    const row = mountResponses();
     drag(row, [380, 300], [30, 300]);
     expect(
       Math.abs(parseFloat(row.style.getPropertyValue('--swipe-dx')))
@@ -212,7 +218,7 @@ describe('swiping between vendor responses', () => {
 
   it('peeks at a lone response without switching', () => {
     selection = ['A'];
-    const row = renderResponses([messages[0]]);
+    const row = mountResponses([messages[0]]);
     drag(row, [350, 300], [250, 300]);
     expect(screen.getByTestId('response-swipe-label')).toHaveTextContent(
       'A-model'
@@ -225,7 +231,7 @@ describe('swiping between vendor responses', () => {
   });
 
   it('leaves vertical scrolling alone', () => {
-    const row = renderResponses();
+    const row = mountResponses();
     fireEvent.touchStart(row, touch(200, 300));
     const notPrevented = fireEvent.touchMove(row, touch(205, 200));
     expect(notPrevented).toBe(true);
@@ -235,13 +241,13 @@ describe('swiping between vendor responses', () => {
   });
 
   it('cancels the page scroll once it owns the drag', () => {
-    const row = renderResponses();
+    const row = mountResponses();
     fireEvent.touchStart(row, touch(300, 300));
     expect(fireEvent.touchMove(row, touch(200, 300))).toBe(false);
   });
 
   it('leaves the left edge to the menu swipe', () => {
-    const row = renderResponses();
+    const row = mountResponses();
     drag(row, [10, 300], [200, 300]);
     expect(
       screen.queryByTestId('response-swipe-label')
@@ -249,7 +255,7 @@ describe('swiping between vendor responses', () => {
   });
 
   it('leaves a held touch to text selection', () => {
-    const row = renderResponses();
+    const row = mountResponses();
     fireEvent.touchStart(row, touch(350, 300));
     act(() => {
       jest.advanceTimersByTime(500);
@@ -261,7 +267,7 @@ describe('swiping between vendor responses', () => {
   });
 
   it('leaves an active selection alone', () => {
-    const row = renderResponses();
+    const row = mountResponses();
     const spy = jest.spyOn(window, 'getSelection').mockReturnValue({
       isCollapsed: false,
       anchorNode: row,
@@ -274,7 +280,7 @@ describe('swiping between vendor responses', () => {
   });
 
   it('lets an inner scroller use the drag while it can still scroll', () => {
-    const row = renderResponses();
+    const row = mountResponses();
     const scroller = document.createElement('div');
     scroller.style.overflowX = 'auto';
     Object.defineProperty(scroller, 'scrollWidth', { value: 900 });
@@ -287,7 +293,7 @@ describe('swiping between vendor responses', () => {
   });
 
   it('takes the drag once the inner scroller is at its end', () => {
-    const row = renderResponses();
+    const row = mountResponses();
     const scroller = document.createElement('div');
     scroller.style.overflowX = 'auto';
     Object.defineProperty(scroller, 'scrollWidth', { value: 900 });
@@ -301,7 +307,7 @@ describe('swiping between vendor responses', () => {
   });
 
   it('ignores drags that start on the action bar', () => {
-    const row = renderResponses();
+    const row = mountResponses();
     drag(screen.getByTestId('regenerate-button'), [350, 300], [150, 300]);
     expect(
       screen.queryByTestId('response-swipe-label')
@@ -312,7 +318,7 @@ describe('swiping between vendor responses', () => {
   it('does not page when two columns are showing', () => {
     mockMaxVendors = 2;
     selection = ['A', 'B'];
-    const row = renderResponses();
+    const row = mountResponses();
     drag(row, [350, 300], [150, 300]);
     expect(
       screen.queryByTestId('response-swipe-label')
@@ -320,13 +326,169 @@ describe('swiping between vendor responses', () => {
   });
 
   it('springs back when the browser takes the touch over', () => {
-    const row = renderResponses();
+    const row = mountResponses();
     drag(row, [380, 300], [100, 300]);
     fireEvent.touchCancel(row, { touches: [] });
     act(() => {
       jest.advanceTimersByTime(300);
     });
     expect(setVendorSelectionForBlock).not.toHaveBeenCalled();
+  });
+});
+
+describe('the one-time swipe hint', () => {
+  const HINT = 'conversation.response.swipeHint';
+  let observers: {
+    callback: IntersectionObserverCallback;
+    disconnect: jest.Mock;
+  }[];
+  let media: Record<string, boolean>;
+
+  const scrollIntoView = () =>
+    act(() => {
+      observers.forEach(o =>
+        o.callback(
+          [{ isIntersecting: true } as IntersectionObserverEntry],
+          {} as IntersectionObserver
+        )
+      );
+    });
+  const advance = (ms: number) =>
+    act(() => {
+      jest.advanceTimersByTime(ms);
+    });
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    localStorage.clear();
+    mockMaxVendors = 1;
+    selection = ['A'];
+    setVendorSelectionForBlock = jest.fn();
+    observers = [];
+    media = { '(pointer: coarse)': true };
+    (window as any).IntersectionObserver = jest.fn(
+      (callback: IntersectionObserverCallback) => {
+        const observer = { callback, disconnect: jest.fn() };
+        observers.push(observer);
+        return { observe: jest.fn(), disconnect: observer.disconnect };
+      }
+    );
+    window.matchMedia = jest.fn((query: string) => ({
+      matches: !!media[query],
+    })) as any;
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    delete (window as any).IntersectionObserver;
+    delete (window as any).matchMedia;
+  });
+
+  it('peeks at the next response once it is in view, then settles', () => {
+    const row = mountResponses();
+    expect(screen.queryByText(HINT)).not.toBeInTheDocument();
+    scrollIntoView();
+    advance(800);
+    expect(screen.getByText(HINT)).toBeInTheDocument();
+    expect(screen.getByText('second')).toBeInTheDocument();
+    advance(40);
+    expect(row.style.getPropertyValue('--swipe-dx')).toBe('-56px');
+    advance(1260);
+    expect(row.style.getPropertyValue('--swipe-dx')).toBe('0px');
+    advance(340);
+    expect(row.style.getPropertyValue('--swipe-dx')).toBe('');
+    expect(screen.queryByText('second')).not.toBeInTheDocument();
+    advance(1200);
+    expect(screen.queryByText(HINT)).not.toBeInTheDocument();
+    expect(setVendorSelectionForBlock).not.toHaveBeenCalled();
+  });
+
+  it('never plays again', () => {
+    mountResponses();
+    scrollIntoView();
+    advance(800);
+    expect(localStorage.getItem('responseSwipeHintSeen')).toBe('1');
+    advance(3000);
+    cleanup();
+    observers.length = 0;
+    mountResponses();
+    expect(observers).toHaveLength(0);
+  });
+
+  it('peeks toward the previous response from the last vendor', () => {
+    selection = ['C'];
+    const row = mountResponses();
+    scrollIntoView();
+    advance(840);
+    expect(row.style.getPropertyValue('--swipe-dx')).toBe('56px');
+    expect(screen.getByText('second')).toBeInTheDocument();
+  });
+
+  it('does not play if the response scrolls away during the delay', () => {
+    mountResponses();
+    scrollIntoView();
+    advance(400);
+    act(() => {
+      observers[0].callback(
+        [{ isIntersecting: false } as IntersectionObserverEntry],
+        {} as IntersectionObserver
+      );
+    });
+    advance(2000);
+    expect(screen.queryByText(HINT)).not.toBeInTheDocument();
+    expect(localStorage.getItem('responseSwipeHintSeen')).toBeNull();
+  });
+
+  it('stays out of the way of a mouse', () => {
+    media = {};
+    mountResponses();
+    expect(observers).toHaveLength(0);
+  });
+
+  it('needs a second vendor', () => {
+    mountResponses([messages[0]]);
+    expect(observers).toHaveLength(0);
+  });
+
+  it('waits for generation to finish', () => {
+    mountResponses([messages[0], { ...messages[1], isLoading: true }]);
+    expect(observers).toHaveLength(0);
+  });
+
+  it('does not play in two columns', () => {
+    mockMaxVendors = 2;
+    selection = ['A', 'B'];
+    mountResponses();
+    expect(observers).toHaveLength(0);
+  });
+
+  it('is skipped by someone who already swiped', () => {
+    const row = mountResponses();
+    drag(row, [350, 300], [300, 300]);
+    expect(localStorage.getItem('responseSwipeHintSeen')).toBe('1');
+    release(row);
+    scrollIntoView();
+    advance(800);
+    expect(screen.queryByText(HINT)).not.toBeInTheDocument();
+  });
+
+  it('gets out of the way when the reader touches the response', () => {
+    const row = mountResponses();
+    scrollIntoView();
+    advance(840);
+    fireEvent.touchStart(row, touch(200, 300));
+    expect(row.style.getPropertyValue('--swipe-dx')).toBe('0px');
+    advance(340);
+    expect(screen.queryByText('second')).not.toBeInTheDocument();
+  });
+
+  it('keeps still under reduced motion but still says it', () => {
+    media['(prefers-reduced-motion: reduce)'] = true;
+    const row = mountResponses();
+    scrollIntoView();
+    advance(840);
+    expect(screen.getByText(HINT)).toBeInTheDocument();
+    expect(row.style.getPropertyValue('--swipe-dx')).toBe('');
   });
 });
 

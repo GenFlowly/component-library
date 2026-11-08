@@ -24,6 +24,15 @@ const SETTLE_DURATION = 260;
 const LABEL_LINGER = 1000;
 const LABEL_FADE = 200;
 
+const HINT_STORAGE_KEY = 'responseSwipeHintSeen';
+/** Lets the reader land on the response before anything moves on its own. */
+const HINT_DELAY = 800;
+/** Far enough to show the next response's edge past the gap between cards. */
+const HINT_DISTANCE = 56;
+const HINT_HOLD = 1260;
+/** Outlasts the 320ms CSS transition, which only starts on the next frame. */
+const HINT_RETURN = 340;
+
 export function neighborVendor(
   vendors: string[],
   current: string | undefined,
@@ -86,6 +95,29 @@ function prefersReducedMotion(): boolean {
   return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
+/** A mouse can't swipe, however narrow the window is. */
+function hasCoarsePointer(): boolean {
+  return !!window.matchMedia?.('(pointer: coarse)').matches;
+}
+
+let hintSeenWithoutStorage = false;
+
+function hasSeenSwipeHint(): boolean {
+  try {
+    return localStorage.getItem(HINT_STORAGE_KEY) === '1';
+  } catch {
+    return hintSeenWithoutStorage;
+  }
+}
+
+function markSwipeHintSeen(): void {
+  try {
+    localStorage.setItem(HINT_STORAGE_KEY, '1');
+  } catch {
+    hintSeenWithoutStorage = true;
+  }
+}
+
 interface Gesture {
   startX: number;
   startY: number;
@@ -104,6 +136,8 @@ interface Gesture {
 interface UseResponseSwipeOptions {
   rowRef: RefObject<HTMLDivElement | null>;
   enabled: boolean;
+  /** Finished responses from more than one vendor, so a swipe has somewhere to go. */
+  hintReady: boolean;
   vendors: string[];
   currentVendor: string | undefined;
   onSwitch: (vendor: string) => void;
@@ -117,13 +151,18 @@ interface UseResponseSwipeOptions {
 export function useResponseSwipe({
   rowRef,
   enabled,
+  hintReady,
   vendors,
   currentVendor,
   onSwitch,
 }: UseResponseSwipeOptions) {
   const [neighbor, setNeighbor] = useState<SwipeNeighbor | null>(null);
-  const [phase, setPhase] = useState<'idle' | 'dragging' | 'settling'>('idle');
+  const [phase, setPhase] = useState<
+    'idle' | 'dragging' | 'settling' | 'hinting'
+  >('idle');
   const [labelState, setLabelState] = useState<SwipeLabelState>('hidden');
+  const [showsHint, setShowsHint] = useState(false);
+  const playHint = useRef<() => boolean>(() => false);
 
   const latest = useRef({ vendors, currentVendor, onSwitch });
   latest.current = { vendors, currentVendor, onSwitch };
@@ -134,6 +173,9 @@ export function useResponseSwipe({
 
     let gesture: Gesture | null = null;
     let isSettling = false;
+    let isHinting = false;
+    let hintFrame = 0;
+    let hintTimer: ReturnType<typeof setTimeout> | undefined;
     let settleTimer: ReturnType<typeof setTimeout> | undefined;
     let labelTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -158,12 +200,9 @@ export function useResponseSwipe({
       }, LABEL_LINGER);
     };
 
-    const claim = (current: Gesture, dx: number) => {
+    const measureRow = (): number => {
       const rowRect = row.getBoundingClientRect();
       const card = row.firstElementChild?.getBoundingClientRect();
-      current.isClaimed = true;
-      current.lockOffset = Math.sign(dx) * LOCK_DISTANCE;
-      current.page = rowRect.width;
       row.style.setProperty('--swipe-page', `${rowRect.width}px`);
       if (card) {
         row.style.setProperty('--swipe-top', `${card.top - rowRect.top}px`);
@@ -171,9 +210,70 @@ export function useResponseSwipe({
         row.style.setProperty('--swipe-width', `${card.width}px`);
         row.style.setProperty('--swipe-height', `${card.height}px`);
       }
+      return rowRect.width;
+    };
+
+    const claim = (current: Gesture, dx: number) => {
+      current.isClaimed = true;
+      current.lockOffset = Math.sign(dx) * LOCK_DISTANCE;
+      current.page = measureRow();
       clearTimeout(labelTimer);
+      markSwipeHintSeen();
+      setShowsHint(false);
       setPhase('dragging');
       setLabelState('shown');
+    };
+
+    const endHint = () => {
+      cancelAnimationFrame(hintFrame);
+      clearTimeout(hintTimer);
+      isHinting = false;
+      isSettling = true;
+      row.style.setProperty('--swipe-dx', '0px');
+      settleTimer = setTimeout(
+        () => {
+          clearRow();
+          isSettling = false;
+          setNeighbor(null);
+          setPhase('idle');
+          hideLabelLater();
+        },
+        prefersReducedMotion() ? 0 : HINT_RETURN
+      );
+    };
+
+    playHint.current = () => {
+      if (hasSeenSwipeHint()) return true;
+      if (gesture || isSettling || isHinting) return false;
+      const { vendors: order, currentVendor: current } = latest.current;
+      const side: SwipeSide = neighborVendor(order, current, 'next')
+        ? 'next'
+        : 'previous';
+      const vendor = neighborVendor(order, current, side);
+      if (!vendor) return false;
+
+      markSwipeHintSeen();
+      measureRow();
+      isHinting = true;
+      clearTimeout(labelTimer);
+      setNeighbor({ vendor, side });
+      setPhase('hinting');
+      setShowsHint(true);
+      setLabelState('shown');
+      if (!prefersReducedMotion()) {
+        // Two frames: the incoming card has to be painted before the slide
+        // or there is nothing for its transition to start from.
+        hintFrame = requestAnimationFrame(() => {
+          hintFrame = requestAnimationFrame(() => {
+            row.style.setProperty(
+              '--swipe-dx',
+              `${side === 'next' ? -HINT_DISTANCE : HINT_DISTANCE}px`
+            );
+          });
+        });
+      }
+      hintTimer = setTimeout(endHint, HINT_HOLD);
+      return true;
     };
 
     const place = (current: Gesture, dx: number) => {
@@ -198,6 +298,10 @@ export function useResponseSwipe({
     const handleStart = (event: TouchEvent) => {
       if (gesture?.isClaimed) return;
       gesture = null;
+      if (isHinting) {
+        endHint();
+        return;
+      }
       const touch = event.touches[0];
       if (
         isSettling ||
@@ -306,14 +410,51 @@ export function useResponseSwipe({
       row.removeEventListener('touchmove', handleMove);
       row.removeEventListener('touchend', handleEnd);
       row.removeEventListener('touchcancel', handleCancel);
+      cancelAnimationFrame(hintFrame);
+      clearTimeout(hintTimer);
       clearTimeout(settleTimer);
       clearTimeout(labelTimer);
+      playHint.current = () => false;
       clearRow();
       setNeighbor(null);
       setPhase('idle');
       setLabelState('hidden');
+      setShowsHint(false);
     };
   }, [enabled, rowRef]);
 
-  return { neighbor, phase, labelState };
+  useEffect(() => {
+    const row = rowRef.current;
+    if (
+      !enabled ||
+      !hintReady ||
+      !row ||
+      hasSeenSwipeHint() ||
+      !hasCoarsePointer() ||
+      typeof IntersectionObserver === 'undefined'
+    ) {
+      return;
+    }
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // The middle half of the viewport: a tall response still intersects it,
+    // and a block at the far edge of the screen doesn't use up the one hint.
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        clearTimeout(timer);
+        if (!entry.isIntersecting) return;
+        timer = setTimeout(() => {
+          if (playHint.current()) observer.disconnect();
+        }, HINT_DELAY);
+      },
+      { rootMargin: '-25% 0px -25% 0px' }
+    );
+    observer.observe(row);
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
+  }, [enabled, hintReady, rowRef]);
+
+  return { neighbor, phase, labelState, showsHint };
 }
