@@ -42,8 +42,8 @@
     // The tallest its text grows it: from where it rests (the keyboard, or
     // the screen's bottom) up to just under the header; it scrolls after that
     --editor-max-height: calc(
-      var(--vvh, 100svh) - #{$mobile-header-height} - 0.5rem -
-        env(safe-area-inset-bottom, 0px)
+      var(--vvh, 100svh) - #{$mobile-header-height} -
+        0.5rem - env(safe-area-inset-bottom, 0px)
     );
     // Height of the on-screen keyboard: the gap between the static page
     // (100svh) and the visual viewport; 0 while the keyboard is closed.
@@ -77,11 +77,6 @@
   justify-content: center;
   background-color: $color-request-container-background;
 
-  // Match the request card's max width to the total max allowed width of
-  // the response columns (N cards + the gaps between them), so the request
-  // and the response row share the same edges. --response-column-count is
-  // set inline by Request.tsx; the tablet/mobile !important overrides in
-  // message-card-base and below still win over this.
   .requestWrapper {
     border: none; // The request card is borderless (responses keep theirs)
 
@@ -95,11 +90,6 @@
       padding-top: $spacing-md;
       padding-bottom: $spacing-md;
     }
-
-    max-width: calc(
-      var(--response-column-count, 1) * #{$message-card-max-width} +
-        (var(--response-column-count, 1) - 1) * #{$response-column-gap}
-    );
 
     // Presentation-only: the prompt text begins with a capital letter
     // (the stored/copied text is untouched)
@@ -142,6 +132,32 @@
   font-size: 0.7rem;
   color: $color-text-muted;
   white-space: nowrap;
+}
+
+// 🖥️ The V3 boards' prompt: no band, in the conversation column it shares
+// with the responses and the editor, so all three keep one left edge
+@media (min-width: #{$breakpoint-tablet + 1px}) {
+  .resolvedRequestContainer {
+    max-width: $message-card-max-width;
+    margin: 0 auto;
+    padding: 20px 2rem 8px;
+    background-color: transparent;
+
+    .requestWrapper {
+      padding: 0;
+      border-radius: 0;
+      background: transparent;
+      font-size: 1.0625rem;
+      min-width: 0;
+      // message-card-base narrows a card in a narrow column with !important
+      width: 100% !important;
+      max-width: none !important;
+    }
+  }
+
+  .sentTimestamp {
+    font-size: 0.75rem;
+  }
 }
 
 // Hosts the editor, the floating mobile generate button and the attachment
@@ -202,9 +218,7 @@
 // publishes the editor's live height as its text grows it.
 .container.followUp {
   @include respond-to-tablet {
-    height: calc(
-      var(--editor-live-height, var(--editor-height)) + var(--kb)
-    );
+    height: calc(var(--editor-live-height, var(--editor-height)) + var(--kb));
     min-height: var(--editor-height);
     overflow: visible;
   }
@@ -362,12 +376,16 @@
 // a minimum height (set inline by Request.tsx) and scrolls to the top of the
 // view, where the space reserved below it keeps it. Its text grows it from
 // there; the conversation scrolls, not the box.
+// In the conversation column the prompt and the responses use, so the box
+// shares their left edge
 .composer {
   width: 100%;
+  max-width: $message-card-max-width;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: $widget-padding-y 1rem 1.5rem;
+  padding: $widget-padding-y 2rem 1.5rem;
   background-color: $color-request-container-background;
 }
 
@@ -379,7 +397,6 @@
 
 .composerBox {
   width: 100%;
-  max-width: $message-card-max-width;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

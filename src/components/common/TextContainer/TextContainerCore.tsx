@@ -423,6 +423,8 @@ export interface TextContainerCoreProps {
    * button that hands the selected plain text to this callback.
    */
   onAskSelection?: (selectedText: string) => void;
+  /** See TextContainer's `variant`. */
+  variant?: 'card' | 'turn';
 }
 
 export default function TextContainerCore({
@@ -437,6 +439,7 @@ export default function TextContainerCore({
   loadingContent,
   subheader,
   onAskSelection,
+  variant = 'card',
 }: TextContainerCoreProps) {
   const { t } = useTranslation();
   const selectionScopeRef = React.useRef<HTMLDivElement>(null);
@@ -445,7 +448,7 @@ export default function TextContainerCore({
 
   return (
     <article
-      className={`${styles.article} ${className || ''}`}
+      className={`${styles.article} ${variant === 'turn' ? styles.turn : ''} ${className || ''}`}
       data-testid={testId}
     >
       {(headerContent || showCopyButton) && (

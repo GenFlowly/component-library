@@ -594,24 +594,14 @@ function Request({
 
   // Only lock Request when actively streaming/resolved AND not being edited
   if (conversationBlock.status === 'resolved' || conversationBlock.isLoading) {
-    // The request card spans the total max allowed width of the response
-    // columns below it (N columns + the gaps between them)
-    const responseColumnCount = Math.max(
-      1,
-      conversationBlock.responseMessages.length
-    );
     return (
       <div
         className={styles.resolvedRequestContainer}
-        style={
-          {
-            '--response-column-count': responseColumnCount,
-          } as React.CSSProperties
-        }
         data-testid={testId || 'resolved-request-wrapper'}
       >
         <TextContainer
           className={styles.requestWrapper}
+          variant="turn"
           content={conversationBlock.prompt}
           title={
             <UserBrandName

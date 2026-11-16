@@ -61,14 +61,20 @@ jest.mock('../../common/TextContainer/TextContainer', () => ({
     content,
     title,
     copyLabel,
+    variant,
     children,
   }: {
     content: string;
     title?: React.ReactNode;
     copyLabel?: string;
+    variant?: string;
     children?: React.ReactNode;
   }) => (
-    <div data-testid="text-container" data-copy-label={copyLabel}>
+    <div
+      data-testid="text-container"
+      data-copy-label={copyLabel}
+      data-variant={variant}
+    >
       {title}
       {content}
       {children}
@@ -247,6 +253,11 @@ describe('Request Widget Component', () => {
     expect(screen.getByTestId('text-container')).toHaveAttribute(
       'data-copy-label',
       'Copy Prompt'
+    );
+    // Drawn as a conversation turn, in the column the responses share
+    expect(screen.getByTestId('text-container')).toHaveAttribute(
+      'data-variant',
+      'turn'
     );
 
     // No Stop Generating (or any) button in the Request widget while

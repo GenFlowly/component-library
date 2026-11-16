@@ -34,3 +34,20 @@ describe('TextContainerCore copy button', () => {
     expect(button).toHaveAttribute('title', 'Copy Prompt');
   });
 });
+
+describe('TextContainerCore variant', () => {
+  test('a conversation turn takes the turn look; other cards keep the card look', () => {
+    const { rerender } = render(
+      <TextContainerCore
+        content="An answer"
+        variant="turn"
+        data-testid="card"
+      />
+    );
+    expect(screen.getByTestId('card')).toHaveClass('article', 'turn');
+
+    rerender(<TextContainerCore content="A policy" data-testid="card" />);
+    expect(screen.getByTestId('card')).toHaveClass('article');
+    expect(screen.getByTestId('card')).not.toHaveClass('turn');
+  });
+});

@@ -23,6 +23,12 @@ export interface TextContainerProps {
    * button that hands the selected plain text to this callback.
    */
   onAskSelection?: (selectedText: string) => void;
+  /**
+   * 'turn': a conversation turn as the V3 boards draw it on desktop, with one
+   * header row (identity left, a plain copy icon right) and the
+   * conversation's type sizes. Below isNarrow it looks like the default card.
+   */
+  variant?: 'card' | 'turn';
 }
 
 export default function TextContainer({
@@ -37,13 +43,14 @@ export default function TextContainer({
   loadingContent,
   subheader,
   onAskSelection,
+  variant = 'card',
 }: TextContainerProps) {
   const { t } = useTranslation();
 
   // Same fallback UX preserving structural padding layout
   const fallbackUI = (
     <article
-      className={`${styles.article} ${className || ''}`}
+      className={`${styles.article} ${variant === 'turn' ? styles.turn : ''} ${className || ''}`}
       data-testid={testId}
     >
       <div
@@ -74,6 +81,7 @@ export default function TextContainer({
         loadingContent={loadingContent}
         subheader={subheader}
         onAskSelection={onAskSelection}
+        variant={variant}
       />
     </Suspense>
   );

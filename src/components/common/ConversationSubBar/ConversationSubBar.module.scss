@@ -15,10 +15,12 @@
   box-shadow: 0 6px 12px -8px rgba(0, 0, 0, 0.25);
 }
 
+// Shown in full. Only a title too long for the bar is cut, leaving room for
+// the turn's crumb and the controls on the right.
 .title {
   @include ellipsis;
-  flex: 0 1 auto;
-  max-width: 220px;
+  flex: none;
+  max-width: calc(100% - 20rem);
   font-size: 0.75rem;
   color: $color-text-muted;
 }
@@ -27,11 +29,17 @@
   color: $color-text-muted;
 }
 
+// Takes the room the title leaves; its prompt is cut only when it doesn't fit
 .crumbWrap {
   position: relative;
   display: flex;
   min-width: 0;
   flex: 0 1 auto;
+
+  // The tooltip's wrapper too, or it holds the crumb at its full text width
+  > * {
+    min-width: 0;
+  }
 }
 
 .crumb {
@@ -39,7 +47,6 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  max-width: 520px;
   height: 28px;
   padding: 0 8px 0 6px;
   border: none;
