@@ -546,13 +546,8 @@ function Response({
       })),
     [availableVendors, vendorDisplayName]
   );
-  // With a column for every vendor, all of them show and there is nothing to
-  // pick (as the V3 boards draw two responses side by side)
-  const canPickVendors = availableVendors.length > maxVendors;
   const rawSelectedVendors =
-    canPickVendors && selectedVendors.length > 0
-      ? selectedVendors
-      : availableVendors;
+    selectedVendors.length > 0 ? selectedVendors : availableVendors;
   // Priority also decides WHICH vendors survive the display cap
   const effectiveSelectedVendors = [...rawSelectedVendors]
     .sort(byVendorPriority)
@@ -766,6 +761,7 @@ function Response({
 
   const rowClassName = [
     styles.inner,
+    filteredResponseList.length === 1 ? styles.single : '',
     sidebarsHidden ? styles.sideBySide : '',
     maxVendors === 1 ? styles.swipeable : '',
     swipe.phase !== 'idle' ? styles.swipeActive : '',
@@ -783,7 +779,7 @@ function Response({
       data-response-block-id={blockId}
       data-testid={testId}
     >
-      {canPickVendors && (
+      {availableVendors.length > 1 && (
         <div
           className={styles.toggleWrapper}
           ref={toggleWrapperRef}

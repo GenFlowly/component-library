@@ -130,18 +130,6 @@ describe('Response Widget Component', () => {
     },
   ];
 
-  // More vendors than the two columns, so there is something to pick
-  const withThirdVendor = () => [
-    ...mockMessages,
-    {
-      messageId: 'msg-3',
-      text: 'Response 3',
-      aiVendor: AIVendor.GEMINI,
-      isLoading: false,
-      timestamp: 0,
-    },
-  ];
-
   test('renders nothing if no messages', () => {
     render(<Response blockId="block-1" responseMessages={[]} />);
     expect(screen.queryByTestId('text-container')).not.toBeInTheDocument();
@@ -446,15 +434,30 @@ describe('Response Widget Component', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('with a column for every vendor, shows them all and nothing to pick', () => {
-    // A selection saved earlier no longer hides a vendor that has room
+  test('shows the checkbox group when vendors fit the column limit', () => {
+    mockSelection = [AIVendor.OPENAI, AIVendor.CLAUDE];
+    render(<Response blockId="block-1" responseMessages={mockMessages} />);
+
+    expect(screen.getByTestId('vendor-checkbox-group')).toBeInTheDocument();
+    expect(screen.queryByTestId('vendor-radio-group')).not.toBeInTheDocument();
+  });
+
+  test('shows only the chosen vendor even when the others would fit', () => {
     mockSelection = [AIVendor.OPENAI];
     render(<Response blockId="block-1" responseMessages={mockMessages} />);
 
-    expect(
-      screen.queryByTestId('vendor-checkbox-group')
-    ).not.toBeInTheDocument();
-    expect(screen.getAllByTestId('response-message')).toHaveLength(2);
+    expect(screen.getAllByTestId('response-message')).toHaveLength(1);
+    expect(screen.getByTestId('response-row')).toHaveClass('single');
+  });
+
+  test('marks a row that holds one card, which takes wider padding', () => {
+    const { rerender } = render(
+      <Response blockId="block-1" responseMessages={[mockMessages[0]]} />
+    );
+    expect(screen.getByTestId('response-row')).toHaveClass('single');
+
+    rerender(<Response blockId="block-1" responseMessages={mockMessages} />);
+    expect(screen.getByTestId('response-row')).not.toHaveClass('single');
   });
 
   test('still shows the checkbox group when vendors exceed the column limit', () => {
@@ -505,7 +508,7 @@ describe('Response Widget Component', () => {
 
   test('checkbox group keeps other selections when below the limit', () => {
     mockSelection = [AIVendor.OPENAI];
-    render(<Response blockId="block-1" responseMessages={withThirdVendor()} />);
+    render(<Response blockId="block-1" responseMessages={mockMessages} />);
 
     fireEvent.click(
       screen.getByTestId(`vendor-checkbox-group-option-${AIVendor.CLAUDE}`)
@@ -519,7 +522,7 @@ describe('Response Widget Component', () => {
 
   test('vendor toggle row fades only the edges with hidden pills', () => {
     mockSelection = [AIVendor.OPENAI, AIVendor.CLAUDE];
-    render(<Response blockId="block-1" responseMessages={withThirdVendor()} />);
+    render(<Response blockId="block-1" responseMessages={mockMessages} />);
     const scroller = screen.getByTestId('vendor-toggle-scroller');
 
     // Simulate an overflowing chip row: 300px viewport, 500px of pills

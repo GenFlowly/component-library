@@ -135,11 +135,11 @@
 }
 
 // 🖥️ The V3 boards' prompt: no band, in the conversation column it shares
-// with the responses and the editor, so all three keep one left edge
+// with the responses and the editor, so all three keep one left edge. The
+// column spans the panel at every width; a cap leaves blank margins on wide
+// windows.
 @media (min-width: #{$breakpoint-tablet + 1px}) {
   .resolvedRequestContainer {
-    max-width: $message-card-max-width;
-    margin: 0 auto;
     padding: 20px 2rem 8px;
     background-color: transparent;
 
@@ -157,6 +157,7 @@
 
   .sentTimestamp {
     font-size: 0.75rem;
+    line-height: 1.4;
   }
 }
 
@@ -377,15 +378,13 @@
 // view, where the space reserved below it keeps it. Its text grows it from
 // there; the conversation scrolls, not the box.
 // In the conversation column the prompt and the responses use, so the box
-// shares their left edge
+// shares their left edge and spans the panel like they do
 .composer {
   width: 100%;
-  max-width: $message-card-max-width;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: $widget-padding-y 2rem 1.5rem;
+  padding: 20px 2rem 1.5rem;
   background-color: $color-request-container-background;
 }
 

@@ -655,15 +655,15 @@
 }
 
 // 🖥️ The V3 boards' response row on desktop: white cards on the panel, in the
-// conversation column the prompt above and the editor below share
+// conversation column the prompt above and the editor below share. The
+// column spans the panel at every width; a cap leaves blank margins on wide
+// windows.
 @media (min-width: #{$breakpoint-tablet + 1px}) {
   .container {
     background-color: transparent;
   }
 
   .inner {
-    max-width: $message-card-max-width;
-    margin: 0 auto;
     padding: 12px 2rem 8px;
   }
 
@@ -679,7 +679,9 @@
     }
 
     article {
-      padding: 24px 28px;
+      // The action bar cancels this side padding to meet the card's sides
+      --turn-card-padding-x: 28px;
+      padding: 24px var(--turn-card-padding-x);
       border: none;
       border-radius: 8px;
       background: $color-response-container-background;
@@ -687,6 +689,11 @@
       width: 100% !important;
       max-width: none !important;
     }
+  }
+
+  // A card alone in its row has the boards' wider side padding
+  .single .responseWrapper article {
+    --turn-card-padding-x: 32px;
   }
 
   .responseCardTitle {
@@ -721,8 +728,8 @@
 
   .responseActionButtonsWrapper {
     // Cancels the card's padding so the bar meets its sides and bottom
-    margin: auto -28px -24px;
-    width: calc(100% + 56px);
+    margin: auto calc(-1 * var(--turn-card-padding-x)) -24px;
+    width: calc(100% + 2 * var(--turn-card-padding-x));
     padding: 18px 0 24px;
     // The card's own color: the bar only shows over text scrolled beneath it
     background-color: color-mix(
