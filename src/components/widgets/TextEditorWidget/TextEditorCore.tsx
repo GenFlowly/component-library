@@ -28,6 +28,13 @@ const READONLY_EXTENSIONS = [
   EditorView.editable.of(false),
   EditorState.readOnly.of(true),
 ];
+// The chat composer draws its controls under the text and grows instead of
+// scrolling, so the page follows the caret: keep the controls in view too
+const COMPOSER_CONTROLS_SPACE_PX = 64;
+const COMPOSER_EXTENSIONS = [
+  ...EDITABLE_EXTENSIONS,
+  EditorView.scrollMargins.of(() => ({ bottom: COMPOSER_CONTROLS_SPACE_PX })),
+];
 
 interface TextEditorCoreProps {
   id: string;
@@ -131,7 +138,11 @@ const TextEditorCore = React.forwardRef<TextEditorHandle, TextEditorCoreProps>(
                 placeholder={placeholder}
                 className={styles.markdownEditor}
                 extensions={
-                  readOnly ? READONLY_EXTENSIONS : EDITABLE_EXTENSIONS
+                  readOnly
+                    ? READONLY_EXTENSIONS
+                    : variant === 'composer'
+                      ? COMPOSER_EXTENSIONS
+                      : EDITABLE_EXTENSIONS
                 }
               />
             </div>

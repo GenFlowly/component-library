@@ -40,7 +40,7 @@ interface RequestProps {
   blockId: string;
 }
 
-/** Height of the desktop editor box while it is in use. */
+/** Height the desktop editor box starts at while in use; its text grows it. */
 const GROWN_EDITOR_HEIGHT_PX = 300;
 
 /** The nearest ancestor that scrolls vertically (the conversation scroller). */
@@ -52,6 +52,14 @@ function findScrollParent(el: HTMLElement): HTMLElement | null {
     node = node.parentElement;
   }
   return null;
+}
+
+/** 📱 Scrolls the conversation to its end, where the docked editor sits. */
+function scrollConversationToEnd(): void {
+  const scroller = document.querySelector(
+    '[data-testid="center-section-scroll"]'
+  );
+  if (scroller) scroller.scrollTop = scroller.scrollHeight;
 }
 
 // Memoized (see export): props are stable, so re-renders come only from its
@@ -122,13 +130,6 @@ function Request({
     const viewport = window.visualViewport;
     if (!viewport) return;
 
-    const scrollConversationToEnd = () => {
-      const scroller = document.querySelector(
-        '[data-testid="center-section-scroll"]'
-      );
-      if (scroller) scroller.scrollTop = scroller.scrollHeight;
-    };
-
     const handleResize = () => {
       if (!editorWrapperRef.current?.contains(document.activeElement)) return;
       // Double rAF: the --vvh/--kb CSS vars are themselves written in a
@@ -140,6 +141,31 @@ function Request({
 
     viewport.addEventListener('resize', handleResize);
     return () => viewport.removeEventListener('resize', handleResize);
+  }, [isNarrow, isEditorView, isFollowUpBlock]);
+
+  // 📱 The docked editor grows upward with its text, up to the header (the
+  // SCSS caps it). It is positioned out of flow, so a follow-up block reserves
+  // the editor's real height itself, or a grown editor would cover the reply
+  // above it; while the editor grows, the conversation stays at its end so
+  // the editor stays on the keyboard.
+  const narrowContainerRef = React.useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    const container = narrowContainerRef.current;
+    const wrapper = editorWrapperRef.current;
+    if (!isNarrow || !isEditorView || !isFollowUpBlock) return;
+    if (!container || !wrapper) return;
+    const observer = new ResizeObserver(() => {
+      container.style.setProperty(
+        '--editor-live-height',
+        `${wrapper.offsetHeight}px`
+      );
+      if (wrapper.contains(document.activeElement)) scrollConversationToEnd();
+    });
+    observer.observe(wrapper);
+    return () => {
+      observer.disconnect();
+      container.style.removeProperty('--editor-live-height');
+    };
   }, [isNarrow, isEditorView, isFollowUpBlock]);
 
   // 📱 iOS Safari force-scrolls the page on focus when it thinks the
@@ -490,7 +516,8 @@ function Request({
 
   // 🖥️ The desktop editor rests as a one-line box at the end of the
   // conversation and grows to a large box at the top of the view while in use
-  // (focused, or holding a draft). A new chat's editor is always grown.
+  // (focused, or holding a draft), then on with its text, never scrolling
+  // inside. A new chat's editor is always grown.
   const [isFocused, setFocused] = React.useState(false);
   const composerRef = React.useRef<HTMLDivElement | null>(null);
   const hasDraft =
@@ -635,6 +662,7 @@ function Request({
     const isIdleFollowUp = isFollowUpBlock && !isFocused && !hasDraft;
     return (
       <div
+        ref={narrowContainerRef}
         className={`${styles.container}${isFollowUpBlock ? ` ${styles.followUp}` : ''}${isIdleFollowUp ? ` ${styles.idleFollowUp}` : ''}`}
         onPasteCapture={handlePasteCapture}
         data-testid={testId || 'request-widget-container'}
@@ -706,7 +734,7 @@ function Request({
       <div
         ref={editorWrapperRef}
         className={`${styles.composerBox} ${isFocused ? styles.composerFocused : ''}`}
-        style={isGrown ? { height: GROWN_EDITOR_HEIGHT_PX } : undefined}
+        style={isGrown ? { minHeight: GROWN_EDITOR_HEIGHT_PX } : undefined}
         onFocus={() => setFocused(true)}
         onBlur={handleComposerBlur}
         onMouseDown={handleComposerMouseDown}
@@ -717,7 +745,7 @@ function Request({
           id={blockId}
           value={draftPrompt}
           onChange={handleEditorChange}
-          height="100%"
+          height="auto"
           variant="composer"
           placeholder={placeholder}
           className={styles.composerText}

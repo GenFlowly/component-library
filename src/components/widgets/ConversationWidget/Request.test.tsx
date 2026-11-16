@@ -36,7 +36,7 @@ jest.mock('../TextEditorWidget/TextEditor', () => {
     __esModule: true,
     default: ReactActual.forwardRef(
       (
-        { value, onChange, placeholder, 'data-testid': testId }: any,
+        { value, onChange, placeholder, height, 'data-testid': testId }: any,
         ref: any
       ) => {
         ReactActual.useImperativeHandle(ref, () => ({
@@ -45,6 +45,7 @@ jest.mock('../TextEditorWidget/TextEditor', () => {
         return (
           <textarea
             data-testid={testId}
+            data-height={height}
             value={value}
             placeholder={placeholder}
             onChange={(e: any) => onChange(e.target.value)}
@@ -1090,6 +1091,47 @@ describe('Request Widget Component', () => {
       );
     });
 
+    test('reserves the height its text grows it to, keeping the conversation at its end while typing', () => {
+      let resized = () => {};
+      const OriginalResizeObserver = window.ResizeObserver;
+      window.ResizeObserver = class {
+        constructor(callback: () => void) {
+          resized = callback;
+        }
+        observe() {}
+        disconnect() {}
+      } as unknown as typeof ResizeObserver;
+      const scroller = document.createElement('div');
+      scroller.setAttribute('data-testid', 'center-section-scroll');
+      Object.defineProperty(scroller, 'scrollHeight', { value: 900 });
+      document.body.appendChild(scroller);
+
+      try {
+        const { unmount } = render(<Request blockId="block-2" />);
+        const container = screen.getByTestId('request-widget-container');
+        const editor = container.firstElementChild as HTMLElement;
+        Object.defineProperty(editor, 'offsetHeight', { value: 480 });
+
+        act(() => resized());
+        expect(container.style.getPropertyValue('--editor-live-height')).toBe(
+          '480px'
+        );
+        expect(scroller.scrollTop).toBe(0);
+
+        screen.getByTestId('text-editor').focus();
+        act(() => resized());
+        expect(scroller.scrollTop).toBe(900);
+
+        unmount();
+        expect(container.style.getPropertyValue('--editor-live-height')).toBe(
+          ''
+        );
+      } finally {
+        scroller.remove();
+        window.ResizeObserver = OriginalResizeObserver;
+      }
+    });
+
     test('the first block of a new chat is never the small one', () => {
       mockUseConversation.mockReturnValue({
         conversationBlockList: blocks().slice(1),
@@ -1165,7 +1207,7 @@ describe('Request Widget Component', () => {
       const composer = screen.getByTestId('request-widget-container');
       expect(composer).toHaveAttribute('data-composer-state', 'idle');
       expect(screen.getByTestId('composer-box')).not.toHaveStyle({
-        height: '300px',
+        minHeight: '300px',
       });
       expect(screen.getByTestId('text-editor')).toHaveAttribute(
         'placeholder',
@@ -1191,13 +1233,23 @@ describe('Request Widget Component', () => {
         'grown'
       );
       expect(screen.getByTestId('composer-box')).toHaveStyle({
-        height: '300px',
+        minHeight: '300px',
       });
       expect(screen.getByTestId('text-editor')).toHaveAttribute(
         'placeholder',
         'Ask anything'
       );
       expect(scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    test('the grown box only sets a minimum, so its text grows it', () => {
+      render(<Request blockId="block-1" />);
+
+      expect(screen.getByTestId('composer-box').style.height).toBe('');
+      expect(screen.getByTestId('text-editor')).toHaveAttribute(
+        'data-height',
+        'auto'
+      );
     });
 
     test('focus grows the box and brings it to the top of the view', () => {
@@ -1210,7 +1262,7 @@ describe('Request Widget Component', () => {
         'grown'
       );
       expect(screen.getByTestId('composer-box')).toHaveStyle({
-        height: '300px',
+        minHeight: '300px',
       });
       expect(scrollIntoView).toHaveBeenCalledWith({
         behavior: 'smooth',

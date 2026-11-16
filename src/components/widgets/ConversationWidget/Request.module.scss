@@ -34,10 +34,16 @@
     // attachment/generate buttons (44px tall, 0.75rem inset, 0.5rem gap
     // above) — text must never render inside it
     --editor-button-strip: calc(44px + 0.75rem + 0.5rem);
-    // The one editor size used everywhere on mobile: ~3-4 visible lines
-    // PLUS the button strip, so the strip doesn't eat into the text area
+    // The docked editor's resting size: ~3-4 visible lines PLUS the button
+    // strip, so the strip doesn't eat into the text area
     --editor-height: calc(
       clamp(12rem, 32svh, 16rem) + var(--editor-button-strip)
+    );
+    // The tallest its text grows it: from where it rests (the keyboard, or
+    // the screen's bottom) up to just under the header; it scrolls after that
+    --editor-max-height: calc(
+      var(--vvh, 100svh) - #{$mobile-header-height} - 0.5rem -
+        env(safe-area-inset-bottom, 0px)
     );
     // Height of the on-screen keyboard: the gap between the static page
     // (100svh) and the visual viewport; 0 while the keyboard is closed.
@@ -154,6 +160,8 @@
     // keyboard is closed, translated up to sit flush on the keyboard's
     // top edge when it opens. Keeping the caret right above the keyboard
     // also stops iOS Safari from force-scrolling the page to reveal it.
+    // Anchored by its bottom, it grows upward with its text (the limits are
+    // on .cm-editor below).
     position: absolute;
     left: 0;
     right: 0;
@@ -163,8 +171,7 @@
     // viewport-fit=cover, so this is a no-op everywhere else). Additive with
     // the keyboard-riding transform below, not a replacement for it.
     bottom: env(safe-area-inset-bottom, 0px);
-    height: var(--editor-height);
-    min-height: 0;
+    min-height: var(--editor-height);
     // Ride the keyboard with a transform (compositor-animated, no layout
     // work per frame) instead of `bottom`. iOS reports the final visual
     // viewport in one discrete event at the END of the keyboard
@@ -191,10 +198,13 @@
 // the riding editor moves into is RESERVED in the layout rather than
 // overlapping the response above. Request.tsx keeps the conversation
 // scrolled to the end when --kb changes, which lands the editor flush on
-// the keyboard with the last response fully visible right above it.
+// the keyboard with the last response fully visible right above it. It also
+// publishes the editor's live height as its text grows it.
 .container.followUp {
   @include respond-to-tablet {
-    height: calc(var(--editor-height) + var(--kb));
+    height: calc(
+      var(--editor-live-height, var(--editor-height)) + var(--kb)
+    );
     min-height: var(--editor-height);
     overflow: visible;
   }
@@ -225,17 +235,32 @@
     // Never shrink below two lines of text (2 × 1.6rem line-height) plus
     // the editor's vertical padding and the button strip, however small
     // --vvh gets
-    min-height: calc(
+    --editor-floor: calc(
       2 * 1.6rem + 2 * 1.5rem + 4px + var(--editor-button-strip)
     );
+    min-height: var(--editor-floor);
 
     // The floating attachment/generate buttons overlay the editor's
     // bottom-right corner. End the scrollable text area above them so no
     // line can be typed or scrolled underneath — the reserved strip shows
     // only the editor background, and CodeMirror keeps the caret inside
     // the shortened scrollport.
+    // Sized by its text between the docked box's resting and tallest
+    // heights, less the compact editor's frame around it: its padding above
+    // and below, the gap over the box and the box's 1px borders.
     :global(.cm-editor) {
       padding-bottom: var(--editor-button-strip);
+      --frame: calc(2 * #{$mobile-content-inset} + 0.5rem + 2px);
+      min-height: calc(
+        max(var(--editor-height), var(--editor-floor)) - var(--frame)
+      );
+      max-height: calc(var(--editor-max-height) - var(--frame));
+    }
+
+    // The scroll area fills the box below short text too, so a tap anywhere
+    // in it lands in the text
+    :global(.cm-scroller) {
+      flex-grow: 1;
     }
   }
 }
@@ -334,8 +359,9 @@
 
 // 🖥️ Desktop composer: one rounded box holding the text and its controls.
 // Idle it is a single line at the end of the conversation; in use it grows to
-// a fixed height (set inline by Request.tsx) and scrolls to the top of the
-// view, where the space reserved below it keeps it.
+// a minimum height (set inline by Request.tsx) and scrolls to the top of the
+// view, where the space reserved below it keeps it. Its text grows it from
+// there; the conversation scrolls, not the box.
 .composer {
   width: 100%;
   display: flex;
