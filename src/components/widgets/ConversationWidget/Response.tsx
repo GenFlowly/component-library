@@ -1090,6 +1090,7 @@ function Response({
                                     <PillButton
                                       label={t('conversation.response.fork')}
                                       icon={ICONS.GIT_FORK}
+                                      iconSize={14}
                                       variant="secondary"
                                       onClick={() => handleFork(messageId)}
                                       data-testid="fork-button"

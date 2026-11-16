@@ -33,6 +33,15 @@ describe('PillButton Component', () => {
     const icon = screen.getByTestId('test-pill-icon');
     expect(icon).toBeInTheDocument();
     expect(screen.getByTestId('test-pill')).toContainElement(icon);
+    expect(icon).toHaveStyle({ width: '16px', height: '16px' });
+  });
+
+  test('draws the icon at the size it is given', () => {
+    render(<PillButton {...defaultProps} icon="fake-icon.svg" iconSize={14} />);
+    expect(screen.getByTestId('test-pill-icon')).toHaveStyle({
+      width: '14px',
+      height: '14px',
+    });
   });
 
   test('calls onClick when clicked', async () => {

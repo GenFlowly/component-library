@@ -10,10 +10,15 @@ export interface PillButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
    */
   label: React.ReactNode;
   /**
-   * Optional icon source rendered at 16px before the label. Omit to render
-   * a text-only pill.
+   * Optional icon source rendered before the label. Omit to render a
+   * text-only pill.
    */
   icon?: string;
+  /**
+   * The icon's size in px.
+   * @default 16
+   */
+  iconSize?: number;
   /**
    * Visual style of the pill.
    * @default 'primary'
@@ -36,6 +41,7 @@ export interface PillButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
 export default function PillButton({
   label,
   icon,
+  iconSize = 16,
   className = '',
   variant = 'primary',
   type = 'button',
@@ -59,7 +65,7 @@ export default function PillButton({
       {icon && (
         <Icon
           src={icon}
-          size={16}
+          size={iconSize}
           aria-hidden={true}
           data-testid={testId ? `${testId}-icon` : undefined}
         />

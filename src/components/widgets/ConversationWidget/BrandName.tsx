@@ -127,15 +127,19 @@ export function UserBrandName<T extends ElementType = 'div'>({
           src={picture}
           alt={name}
           style={{
-            width: '1.5rem',
-            height: '1.5rem',
+            width: '1.625rem',
+            height: '1.625rem',
             borderRadius: '50%',
             objectFit: 'cover',
             flexShrink: 0,
           }}
         />
       ) : (
-        <Icon src={ICONS.USER_CIRCLE} size={24} />
+        <Icon
+          src={ICONS.USER_CIRCLE}
+          size={26}
+          className={styles.placeholderAvatar}
+        />
       )}
       <span data-testid="user-brand-name-text">{name}</span>
     </Component>

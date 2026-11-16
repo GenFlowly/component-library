@@ -479,54 +479,97 @@
   z-index: 9999;
 }
 
-// A conversation turn as the V3 boards draw it on desktop: one header row with
-// the identity on the left and a plain copy icon on the right, and the
-// conversation's type sizes. Below isNarrow the default card look stays.
-@media (min-width: #{$breakpoint-tablet + 1px}) {
+// A conversation turn as the V3 boards draw it: one header row with the
+// identity on the left and a plain copy icon on the right, and the
+// conversation's type sizes. The prompt and the response each set the gap
+// below the header through --turn-header-gap.
+.article.turn {
+  line-height: 1.55;
+
+  // The turn sets the text size (a prompt is larger than a response), with
+  // the boards' 12px between blocks
+  p {
+    font-size: 1em;
+    margin-bottom: 12px;
+  }
+
+  // Lists indent inside the turn, so their markers show where the turn has
+  // no padding to hang in (phones)
+  ul,
+  ol {
+    margin: 0 0 12px;
+    padding-left: 22px;
+  }
+
+  li {
+    margin: 4px 0;
+  }
+
+  li > :is(ul, ol) {
+    margin-bottom: 0;
+  }
+
+  // What precedes the text (header, thinking) and what follows it (time,
+  // facts, actions) set its gaps, whatever the text opens or ends with
+  .markdownBody > :first-child {
+    margin-top: 0;
+  }
+
+  .markdownBody > :last-child {
+    margin-bottom: 0;
+  }
+
+  .header {
+    margin-bottom: var(--turn-header-gap, 10px);
+  }
+
+  .headerContent {
+    justify-content: flex-start;
+    min-height: 28px;
+    // Room for the copy icon on the right
+    padding-right: 36px;
+    font-size: 0.9375rem;
+  }
+
+  .copyButtonPositioner > button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background-color: transparent;
+    color: $color-text-muted;
+    // The icon is sized 1.2em: 16px
+    font-size: 0.8333rem;
+
+    &:hover:not(:disabled) {
+      background-color: $color-background-hover;
+      color: $color-text-primary;
+      transform: none;
+    }
+  }
+}
+
+// 📱 Below isNarrow the phone boards draw the turn on the page itself, with
+// 32px icon targets
+@include respond-to-tablet {
   .article.turn {
-    line-height: 1.55;
-
-    // The turn sets the text size (a prompt is larger than a response)
-    p {
-      font-size: 1em;
-    }
-
-    // What follows the text (time, facts, actions) sets its own gap
-    .markdownBody > :last-child {
-      margin-bottom: 0;
-    }
-
-    .header {
-      margin-bottom: 10px;
-    }
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
 
     .headerContent {
-      justify-content: flex-start;
-      min-height: 28px;
-      // Room for the copy icon on the right
-      padding-right: 36px;
-      font-size: 0.9375rem;
+      min-height: 32px;
+      padding-right: 40px;
     }
 
     .copyButtonPositioner > button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      padding: 0;
-      border: none;
-      border-radius: 6px;
-      background-color: transparent;
-      color: $color-text-muted;
-      // The icon is sized 1.2em: 16px
-      font-size: 0.8333rem;
-
-      &:hover:not(:disabled) {
-        background-color: $color-background-hover;
-        color: $color-text-primary;
-        transform: none;
-      }
+      width: 32px;
+      height: 32px;
     }
   }
 }

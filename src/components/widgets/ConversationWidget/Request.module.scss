@@ -65,61 +65,50 @@
   }
 }
 
+// The V3 boards' prompt: no band and no card, in the conversation column it
+// shares with the responses and the editor, so all three keep one left edge
 .resolvedRequestContainer {
   width: 100%;
-  padding-top: $widget-padding-y;
-  padding-bottom: $widget-padding-y;
-  padding-left: 1rem;
-  padding-right: 1rem;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background-color: $color-request-container-background;
 
   .requestWrapper {
-    border: none; // The request card is borderless (responses keep theirs)
-
-    // Tighter vertical rhythm than the default 2rem card padding
-    padding-top: 1rem;
-    padding-bottom: 1rem;
-
-    // Re-assert the tablet values from TextContainer's .article rule,
-    // which this higher-specificity block would otherwise override
-    @container (max-width: #{$breakpoint-tablet}) {
-      padding-top: $spacing-md;
-      padding-bottom: $spacing-md;
-    }
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    font-size: 1.0625rem;
+    min-width: 0;
+    // message-card-base narrows a card in a narrow column with !important
+    width: 100% !important;
+    max-width: none !important;
 
     // Presentation-only: the prompt text begins with a capital letter
     // (the stored/copied text is untouched)
     p:first-of-type::first-letter {
       text-transform: uppercase;
     }
+  }
 
-    // Left-align the header (TextContainer centers it by default). Element
-    // selector because .headerContent is a hashed class in TextContainer's
-    // module; the copy button keeps its absolute right position.
-    header > div {
-      justify-content: flex-start;
+  // 🖥️ The column spans the panel at every width; a cap leaves blank margins
+  // on wide windows
+  @media (min-width: #{$breakpoint-tablet + 1px}) {
+    padding: 20px 2rem 8px;
+
+    [data-testid='user-brand-name-container'] {
+      gap: 10px;
     }
   }
 
-  @container (max-width: #{$breakpoint-tablet}) {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-radius: 0;
-    margin: 0;
-  }
-
+  // 📱 8px in from the screen's edges, as the phone boards draw it, and 16px
+  // below the header (the boards' first turn) or the turn above
   @include respond-to-tablet {
-    // Match the prompt editor's geometry below isNarrow
-    padding-left: $mobile-content-inset;
-    padding-right: $mobile-content-inset;
+    padding: 16px $mobile-content-inset 0;
 
     .requestWrapper {
-      width: $mobile-content-width !important;
-      max-width: $mobile-content-width !important;
+      --turn-header-gap: 8px;
     }
   }
 }
@@ -129,35 +118,13 @@
 .sentTimestamp {
   align-self: flex-end;
   margin-top: 0.5rem;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
   color: $color-text-muted;
   white-space: nowrap;
-}
 
-// 🖥️ The V3 boards' prompt: no band, in the conversation column it shares
-// with the responses and the editor, so all three keep one left edge. The
-// column spans the panel at every width; a cap leaves blank margins on wide
-// windows.
-@media (min-width: #{$breakpoint-tablet + 1px}) {
-  .resolvedRequestContainer {
-    padding: 20px 2rem 8px;
-    background-color: transparent;
-
-    .requestWrapper {
-      padding: 0;
-      border-radius: 0;
-      background: transparent;
-      font-size: 1.0625rem;
-      min-width: 0;
-      // message-card-base narrows a card in a narrow column with !important
-      width: 100% !important;
-      max-width: none !important;
-    }
-  }
-
-  .sentTimestamp {
-    font-size: 0.75rem;
-    line-height: 1.4;
+  @include respond-to-tablet {
+    margin-top: 6px;
   }
 }
 

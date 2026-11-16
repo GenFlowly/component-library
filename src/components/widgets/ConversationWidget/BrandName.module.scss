@@ -29,3 +29,8 @@
   line-height: 1;
   user-select: none;
 }
+
+/* The person shown where the sender has no picture, muted as the boards draw it */
+.placeholderAvatar {
+  color: $color-text-muted;
+}
