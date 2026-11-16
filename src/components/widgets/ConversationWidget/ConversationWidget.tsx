@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   useConversation,
+  useConversationComposer,
   useConversationUI,
 } from './ConversationWidgetContext';
 import ConversationBlock from './ConversationBlock';
@@ -16,8 +17,30 @@ import { AskSelectionProvider } from './AskSelectionContext';
  * back through setActiveViewportItem (used e.g. to sync a sidebar outline).
  */
 export default function ConversationWidget() {
-  const { conversationBlockList } = useConversation();
+  const { conversationBlockList, addNewConversationBlockWithId } =
+    useConversation();
   const { setActiveViewportItem } = useConversationUI();
+  const { canCompose = true } = useConversationComposer();
+
+  // A finished last turn gets an empty editor after it, so a follow-up is
+  // always one click away. Each finished turn gets at most one: the ref also
+  // absorbs effect re-runs before the new block reaches the list.
+  const lastBlock = conversationBlockList[conversationBlockList.length - 1];
+  const lastBlockId = lastBlock?.conversationBlockId;
+  const lastBlockFinished =
+    lastBlock?.status === 'resolved' && !lastBlock.isLoading;
+  const appendedAfterRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!canCompose || !lastBlockId || !lastBlockFinished) return;
+    if (appendedAfterRef.current === lastBlockId) return;
+    appendedAfterRef.current = lastBlockId;
+    addNewConversationBlockWithId(`conv-${Date.now()}`);
+  }, [
+    canCompose,
+    lastBlockId,
+    lastBlockFinished,
+    addNewConversationBlockWithId,
+  ]);
 
   useEffect(() => {
     const root = document.querySelector('[data-testid="center-section"]');

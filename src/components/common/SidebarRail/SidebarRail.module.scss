@@ -1,0 +1,63 @@
+@import '../../../styles/themes.scss';
+@import '../../../styles/sidebar-card.scss';
+
+.rail {
+  @include sidebar-card-props;
+  @include sidebar-card-chrome;
+  flex: none;
+  width: 28px;
+  height: 100%;
+  min-height: 0;
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+:global([data-theme='dark']) .rail {
+  @include sidebar-card-props-dark;
+  @include sidebar-card-chrome-dark;
+}
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 2px;
+}
+
+// Reads bottom to top, like IDE tool-window stripes
+.tab {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  padding: 12px 0;
+  border: none;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $color-text-muted;
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--sidebar-hover-fill);
+    color: $color-text-primary;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: -2px;
+  }
+}
+
+.activeTab {
+  color: $color-text-secondary;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}

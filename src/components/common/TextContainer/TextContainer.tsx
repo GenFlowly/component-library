@@ -9,6 +9,8 @@ export interface TextContainerProps {
   title?: React.ReactNode;
   content: string;
   showCopyButton?: boolean;
+  /** The copy button's label and tooltip; "Copy Response" when not set. */
+  copyLabel?: string;
   className?: string;
   isLoading?: boolean;
   children?: React.ReactNode;
@@ -27,6 +29,7 @@ export default function TextContainer({
   title,
   content,
   showCopyButton = true,
+  copyLabel,
   className,
   isLoading = false,
   children,
@@ -63,6 +66,7 @@ export default function TextContainer({
         title={title}
         content={content}
         showCopyButton={showCopyButton}
+        copyLabel={copyLabel}
         className={className}
         isLoading={isLoading}
         children={children}

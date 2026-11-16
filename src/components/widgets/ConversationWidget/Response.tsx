@@ -60,11 +60,6 @@ function linkifyCitations(
   });
 }
 
-/** "$1.23" / "$0.0421" — sub-dollar amounts keep enough decimals for sub-cent turn costs. */
-function formatUsd(cost: number): string {
-  return cost >= 1 ? `$${cost.toFixed(2)}` : `$${cost.toFixed(4)}`;
-}
-
 // Raw vendor finish reasons grouped by how they should read to the user. A
 // refusal/block means "no (or partial) answer, here's why"; a length cap means
 // "cut off". Normal completions render nothing — the answer speaks for
@@ -250,7 +245,7 @@ function LearnedFactsStat({
     return (
       <Tooltip content={t('conversation.response.learningFacts')}>
         <span
-          className={`${styles.tokenItem} ${styles.learnedFactsPending}`}
+          className={`${styles.statItem} ${styles.learnedFactsPending}`}
           aria-label={t('conversation.response.learningFacts')}
           data-testid="learned-facts-pending"
         >
@@ -265,7 +260,7 @@ function LearnedFactsStat({
     return (
       <Tooltip content={t('conversation.response.noNewFacts')}>
         <span
-          className={`${styles.tokenItem} ${styles.learnedFactsNone}`}
+          className={`${styles.statItem} ${styles.learnedFactsNone}`}
           aria-label={t('conversation.response.noNewFacts')}
           data-testid="learned-facts-none"
         >
@@ -309,7 +304,7 @@ function LearnedFactsStat({
       }
     >
       <span
-        className={styles.tokenItem}
+        className={styles.statItem}
         aria-label={t('conversation.response.factsAddedToMemory', {
           count: facts.length,
         })}
@@ -428,60 +423,11 @@ function Response({
     setVendorSelectionForBlock,
     stopGenerating,
     forkConversation,
-    conversationBlockList = [],
     conversationId = '',
   } = useConversation();
   const { getLearnedFacts } = useConversationServices();
   const { queueAsk, enabled: asksEnabled } = useAskSelection();
   const { showToast } = useToast();
-
-  // Running per-vendor totals (tokens + exact cost) up to and including each
-  // response, keyed by messageId. The badge shows these conversation-so-far
-  // numbers on every response; a single turn's usage is the difference
-  // between consecutive responses of the same vendor.
-  const cumulativeByMessage = useMemo(() => {
-    type Totals = {
-      inputTokens: number;
-      outputTokens: number;
-      totalTokens: number;
-      tokensReadFromCache: number;
-      costUsd: number | null;
-    };
-    const perVendor: Partial<Record<string, Totals>> = {};
-    const byMessage: Partial<Record<string, Totals>> = {};
-    for (const block of conversationBlockList) {
-      for (const msg of block.responseMessages) {
-        if (!msg.aiVendor) continue;
-        const hasUsage =
-          msg.inputTokens != null ||
-          msg.outputTokens != null ||
-          msg.totalTokens != null ||
-          msg.costUsd != null;
-        if (!hasUsage) continue;
-        const prev = perVendor[msg.aiVendor] ?? {
-          inputTokens: 0,
-          outputTokens: 0,
-          totalTokens: 0,
-          tokensReadFromCache: 0,
-          costUsd: null,
-        };
-        const next: Totals = {
-          inputTokens: prev.inputTokens + (msg.inputTokens ?? 0),
-          outputTokens: prev.outputTokens + (msg.outputTokens ?? 0),
-          totalTokens: prev.totalTokens + (msg.totalTokens ?? 0),
-          tokensReadFromCache:
-            prev.tokensReadFromCache + (msg.tokensReadFromCache ?? 0),
-          costUsd:
-            msg.costUsd != null
-              ? (prev.costUsd ?? 0) + msg.costUsd
-              : prev.costUsd,
-        };
-        perVendor[msg.aiVendor] = next;
-        byMessage[msg.messageId] = next;
-      }
-    }
-    return byMessage;
-  }, [conversationBlockList]);
 
   const selectedResponseId = getSelectedResponseForBlock(blockId);
   const sidebarsHidden = !isLeftSidebarExpanded && !isRightSidebarExpanded;
@@ -902,26 +848,14 @@ function Response({
               !!messageId &&
               !PLACEHOLDER_MESSAGE_ID.test(messageId);
 
-            // Conversation-so-far totals for this response's vendor; a
-            // response not (yet) in the block list — e.g. rendered in
-            // isolation — falls back to its own per-turn values.
-            const hasOwnUsage =
+            // A response that finished with usage data went through the
+            // whole pipeline, so it is the one memory extraction runs for
+            const hasUsage =
               inputTokens != null ||
               outputTokens != null ||
               totalTokens != null ||
               tokensReadFromCache != null ||
               costUsd != null;
-            const usageTotals =
-              cumulativeByMessage[messageId] ??
-              (hasOwnUsage
-                ? {
-                    inputTokens: inputTokens ?? 0,
-                    outputTokens: outputTokens ?? 0,
-                    totalTokens: totalTokens ?? 0,
-                    tokensReadFromCache: tokensReadFromCache ?? 0,
-                    costUsd: costUsd ?? null,
-                  }
-                : undefined);
 
             // The learned-facts stat is only meaningful when the host either
             // preloaded facts on the message or injected the polling service
@@ -1021,62 +955,14 @@ function Response({
                     {!isLoading && stopReason && (
                       <StopReasonNote reason={stopReason} />
                     )}
-                    {!isLoading && usageTotals && (
-                      <div className={styles.tokenBadge}>
-                        <Tooltip
-                          content={t('conversation.response.totalInputTokens')}
-                        >
-                          <span className={styles.tokenItem}>
-                            <Icon src={ICONS.INPUT_TOKENS} size={12} />
-                            {usageTotals.inputTokens.toLocaleString()}
-                          </span>
-                        </Tooltip>
-                        <Tooltip
-                          content={t('conversation.response.totalOutputTokens')}
-                        >
-                          <span className={styles.tokenItem}>
-                            <Icon src={ICONS.OUTPUT_TOKENS} size={12} />
-                            {usageTotals.outputTokens.toLocaleString()}
-                          </span>
-                        </Tooltip>
-                        <Tooltip
-                          content={t(
-                            'conversation.response.tokensReadFromCache'
-                          )}
-                        >
-                          <span className={styles.tokenItem}>
-                            <Icon src={ICONS.CACHE_TOKENS} size={12} />
-                            {usageTotals.tokensReadFromCache.toLocaleString()}
-                          </span>
-                        </Tooltip>
-                        <Tooltip
-                          content={t('conversation.response.totalTokens')}
-                        >
-                          <span className={styles.tokenItem}>
-                            <Icon src={ICONS.TOTAL_TOKENS} size={12} />
-                            {usageTotals.totalTokens.toLocaleString()}
-                          </span>
-                        </Tooltip>
-                        {usageTotals.costUsd != null && (
-                          <Tooltip
-                            content={t(
-                              'conversation.response.conversationCostUsd',
-                              { vendor: aiVendor }
-                            )}
-                          >
-                            <span className={styles.tokenItem}>
-                              {formatUsd(usageTotals.costUsd)}
-                            </span>
-                          </Tooltip>
-                        )}
-                        {showLearnedFacts && (
-                          <LearnedFactsStat
-                            conversationId={conversationId}
-                            messageId={messageId}
-                            initialFacts={learnedFacts}
-                            isFreshResponse={isFreshResponse}
-                          />
-                        )}
+                    {!isLoading && hasUsage && showLearnedFacts && (
+                      <div className={styles.statsRow}>
+                        <LearnedFactsStat
+                          conversationId={conversationId}
+                          messageId={messageId}
+                          initialFacts={learnedFacts}
+                          isFreshResponse={isFreshResponse}
+                        />
                       </div>
                     )}
                     {(() => {
@@ -1120,7 +1006,9 @@ function Response({
                                         ? t(
                                             'conversation.response.noApiKeysSet'
                                           )
-                                        : ''
+                                        : t(
+                                            'conversation.response.regenerateHint'
+                                          )
                                     }
                                   >
                                     <div
@@ -1154,7 +1042,11 @@ function Response({
                                           ? t(
                                               'conversation.response.noApiKeysSet'
                                             )
-                                          : ''
+                                          : isSelected
+                                            ? ''
+                                            : t(
+                                                'conversation.response.followUpHint'
+                                              )
                                       }
                                     >
                                       <div

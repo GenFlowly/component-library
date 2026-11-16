@@ -107,6 +107,20 @@ export interface ConversationWidgetLayout {
   isRightSidebarExpanded: boolean;
 }
 
+/** What the host puts into the prompt editor. */
+export interface ConversationWidgetComposer {
+  /**
+   * Extra controls in the desktop editor's bottom bar, between the attach
+   * button and Generate (e.g. the host's instruction picker chip).
+   */
+  controls?: React.ReactNode;
+  /**
+   * False when the viewer can't post (a view-only shared conversation): no
+   * empty editor is added after the last finished turn. @default true
+   */
+  canCompose?: boolean;
+}
+
 export interface ConversationWidgetContextValue {
   conversation: ConversationWidgetApi;
   conversationUI: ConversationWidgetUiApi;
@@ -116,6 +130,7 @@ export interface ConversationWidgetContextValue {
   layout?: ConversationWidgetLayout;
   /** Shows a toast; `duration` (ms) is optional, for longer messages. */
   showToast?: (message: string, duration?: number) => void;
+  composer?: ConversationWidgetComposer;
 }
 
 const ConversationWidgetContext =
@@ -170,6 +185,12 @@ const DEFAULT_LAYOUT: ConversationWidgetLayout = {
 
 export function useConversationLayout(): ConversationWidgetLayout {
   return useWidgetContext().layout ?? DEFAULT_LAYOUT;
+}
+
+const DEFAULT_COMPOSER: ConversationWidgetComposer = {};
+
+export function useConversationComposer(): ConversationWidgetComposer {
+  return useWidgetContext().composer ?? DEFAULT_COMPOSER;
 }
 
 const NOOP_TOAST = () => undefined;

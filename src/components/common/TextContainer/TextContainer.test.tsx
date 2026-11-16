@@ -28,6 +28,7 @@ jest.mock('./TextContainerCore', () => {
       title,
       content,
       showCopyButton = true,
+      copyLabel,
       className,
       isLoading,
       children,
@@ -44,6 +45,7 @@ jest.mock('./TextContainerCore', () => {
                 {headerContent}
                 {showCopyButton && (
                   <button
+                    aria-label={copyLabel}
                     data-testid={testId ? `${testId}-copy-button` : undefined}
                   >
                     Copy
@@ -155,6 +157,15 @@ describe('TextContainer Component', () => {
 
     const copyButton = screen.getByTestId('test-container-copy-button');
     expect(copyButton).toBeInTheDocument();
+  });
+
+  test('passes a custom copy label to the copy button', () => {
+    render(<TextContainer {...defaultProps} copyLabel="Copy Prompt" />);
+
+    expect(screen.getByTestId('test-container-copy-button')).toHaveAttribute(
+      'aria-label',
+      'Copy Prompt'
+    );
   });
 
   test('hides copy button when prop is false', () => {

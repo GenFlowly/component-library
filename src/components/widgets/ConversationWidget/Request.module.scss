@@ -200,6 +200,13 @@
   }
 }
 
+// 📱 An unused follow-up editor: about two lines above the button strip
+.container.followUp.idleFollowUp {
+  @include respond-to-tablet {
+    --editor-height: calc(3.75rem + var(--editor-button-strip));
+  }
+}
+
 .textEditorFullscreen {
   flex: 1;
   min-height: 0;
@@ -316,5 +323,105 @@
 
   &:active {
     background-color: $color-background-selected;
+  }
+}
+
+// The current line's highlight read as an empty toolbar strip across the top
+// of an empty editor; the caret alone marks the line
+.textEditorFullscreen :global(.cm-activeLine) {
+  background-color: transparent;
+}
+
+// 🖥️ Desktop composer: one rounded box holding the text and its controls.
+// Idle it is a single line at the end of the conversation; in use it grows to
+// a fixed height (set inline by Request.tsx) and scrolls to the top of the
+// view, where the space reserved below it keeps it.
+.composer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $widget-padding-y 1rem 1.5rem;
+  background-color: $color-request-container-background;
+}
+
+// At the top of the view nothing of the turn above may show, so the gap
+// above the box is the composer's own padding, not a scroll margin
+.grown {
+  padding-top: 1rem;
+}
+
+.composerBox {
+  width: 100%;
+  max-width: $message-card-max-width;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid $color-border;
+  border-radius: 12px;
+  background-color: $color-background-secondary;
+  cursor: text;
+  transition:
+    border-color $transition-fast,
+    box-shadow $transition-fast;
+}
+
+.composerFocused {
+  border-color: $color-primary;
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
+}
+
+.composerText {
+  flex: 1 1 auto;
+  min-height: 1.5rem;
+  width: 100%;
+}
+
+.idle .composerText {
+  flex: none;
+}
+
+.composerBar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  cursor: default;
+}
+
+.composerSpacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sendButton {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: $color-button-primary;
+  color: #ffffff;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background-color: $color-primary-pressed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    background-color: $color-disabled;
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }

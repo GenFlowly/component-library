@@ -27,6 +27,9 @@
   font-family: inherit;
   font-weight: 500;
   font-size: 0.9rem;
+  // The min-width above can resolve to the label's exact width inside a
+  // shrink-wrapped flex row; without this the label breaks onto two lines
+  white-space: nowrap;
 
   @include interactive-base;
   @include interactive-primary-states;

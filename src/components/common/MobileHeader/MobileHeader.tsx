@@ -17,6 +17,12 @@ export interface MobileHeaderProps {
   subtitle?: React.ReactNode;
   /** Makes the subtitle tappable (e.g. to open an instruction picker). */
   onSubtitleClick?: () => void;
+  /** Makes the title tappable, with a chevron (e.g. to open an outline sheet). */
+  onTitleClick?: () => void;
+  /** Accessible name of the tappable title; defaults to the title itself. */
+  titleActionLabel?: string;
+  /** What the title opens is showing: the chevron turns up. */
+  titleExpanded?: boolean;
   /** Entries of the kebab (3-dot) menu on the right; omit to hide the kebab. */
   menuItems?: MobileHeaderMenuItem[];
   /** Fired by the hamburger button; the app decides what menu it opens. */
@@ -36,6 +42,9 @@ export default function MobileHeader({
   title,
   subtitle,
   onSubtitleClick,
+  onTitleClick,
+  titleActionLabel,
+  titleExpanded = false,
   menuItems = [],
   onMenuClick,
   children,
@@ -73,9 +82,30 @@ export default function MobileHeader({
 
         <div className={styles.center}>
           <div className={styles.centerPill}>
-            <span className={styles.title} title={title}>
-              {title}
-            </span>
+            {onTitleClick ? (
+              <button
+                type="button"
+                onClick={onTitleClick}
+                className={styles.titleButton}
+                aria-label={titleActionLabel}
+                aria-haspopup="dialog"
+                aria-expanded={titleExpanded}
+                data-testid="mobile-header-title"
+              >
+                <span className={styles.title} title={title}>
+                  {title}
+                </span>
+                <Icon
+                  src={ICONS.ALT_ARROW_RIGHT}
+                  size={12}
+                  className={`${styles.titleChevron} ${titleExpanded ? styles.titleChevronUp : ''}`}
+                />
+              </button>
+            ) : (
+              <span className={styles.title} title={title}>
+                {title}
+              </span>
+            )}
             {subtitle != null &&
               (onSubtitleClick ? (
                 <button

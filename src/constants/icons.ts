@@ -6,6 +6,7 @@ import copyIcon from '../assets/icons/copy-icon.svg';
 import menuIcon from '../assets/icons/menu.svg';
 import moreVerticalIcon from '../assets/icons/more-vertical.svg';
 import altArrowLeft from '../assets/icons/alt-arrow-left.svg';
+import altArrowRight from '../assets/icons/alt-arrow-right.svg';
 import closeIcon from '../assets/icons/close.svg';
 import searchIcon from '../assets/icons/search.svg';
 import documentIcon from '../assets/icons/document.svg';
@@ -19,6 +20,7 @@ import totalTokensIcon from '../assets/icons/total-tokens.svg';
 import cacheTokensIcon from '../assets/icons/cache-tokens.svg';
 import brainIcon from '../assets/icons/brain.svg';
 import imageAttachmentIcon from '../assets/icons/image-attachment-icon.svg';
+import attachmentIcon from '../assets/icons/attachment.svg';
 
 export const ICONS = {
   USER_CIRCLE: userCircle,
@@ -26,6 +28,7 @@ export const ICONS = {
   MENU: menuIcon,
   MORE_VERTICAL: moreVerticalIcon,
   ALT_ARROW_LEFT: altArrowLeft,
+  ALT_ARROW_RIGHT: altArrowRight,
   CLOSE: closeIcon,
   SEARCH: searchIcon,
   DOCUMENT: documentIcon,
@@ -39,4 +42,5 @@ export const ICONS = {
   CACHE_TOKENS: cacheTokensIcon,
   BRAIN: brainIcon,
   IMAGE_ATTACHMENT: imageAttachmentIcon,
+  ATTACHMENT: attachmentIcon,
 };

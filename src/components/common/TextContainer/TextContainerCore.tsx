@@ -409,6 +409,8 @@ export interface TextContainerCoreProps {
   title?: React.ReactNode;
   content: string;
   showCopyButton?: boolean;
+  /** The copy button's label and tooltip; "Copy Response" when not set. */
+  copyLabel?: string;
   className?: string;
   isLoading?: boolean;
   children?: React.ReactNode;
@@ -427,6 +429,7 @@ export default function TextContainerCore({
   title,
   content,
   showCopyButton = true,
+  copyLabel,
   className,
   isLoading = false,
   children,
@@ -456,7 +459,7 @@ export default function TextContainerCore({
               <div className={styles.copyButtonPositioner}>
                 <CopyToClipboard
                   content={content}
-                  label={t('common.textContainer.copyResponse')}
+                  label={copyLabel ?? t('common.textContainer.copyResponse')}
                   icon={ICONS.COPY}
                   successMessage="✓"
                   successDuration={2000}

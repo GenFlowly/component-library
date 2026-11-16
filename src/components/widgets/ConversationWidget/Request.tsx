@@ -1,16 +1,17 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useLayoutEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ICONS } from '../../../constants/icons';
 import TextEditor, {
   type TextEditorHandle,
 } from '../TextEditorWidget/TextEditor';
 import { useAskSelection } from './AskSelectionContext';
-import RectangleButton from '../../common/RectangleButton/RectangleButton';
+import IconButton from '../../common/IconButton/IconButton';
 import Tooltip from '../../common/Tooltip/Tooltip';
 import { Icon } from '../../common/Icon/Icon';
 import {
   useConversation,
   useConversationAuth,
+  useConversationComposer,
   useConversationServices,
   useConversationUI,
   useToast,
@@ -39,6 +40,20 @@ interface RequestProps {
   blockId: string;
 }
 
+/** Height of the desktop editor box while it is in use. */
+const GROWN_EDITOR_HEIGHT_PX = 300;
+
+/** The nearest ancestor that scrolls vertically (the conversation scroller). */
+function findScrollParent(el: HTMLElement): HTMLElement | null {
+  let node = el.parentElement;
+  while (node) {
+    const { overflowY } = window.getComputedStyle(node);
+    if (overflowY === 'auto' || overflowY === 'scroll') return node;
+    node = node.parentElement;
+  }
+  return null;
+}
+
 // Memoized (see export): props are stable, so re-renders come only from its
 // own editing state and the contexts it subscribes to
 function Request({
@@ -62,6 +77,7 @@ function Request({
     getAccessTokenSilently,
   } = useConversationAuth();
   const { uploadAttachment } = useConversationServices();
+  const { controls: composerControls } = useConversationComposer();
   const { showToast } = useToast();
   const validateAttachments = useAttachmentValidation();
   const hasAnyValidApiKey = aiVendorAPIKeyStatusList.some(s => s.isAPIKeyValid);
@@ -85,6 +101,7 @@ function Request({
   // block only occupies the editor's height on mobile, not a full screen
   const isFollowUpBlock =
     conversationBlockList.findIndex(b => b.conversationBlockId === blockId) > 0;
+  const isNewChatBlock = !isFollowUpBlock;
   // Selection-asks always land in the trailing draft block — the follow-up
   // flow reuses or creates it before the ask is queued
   const isLastBlock =
@@ -101,7 +118,7 @@ function Request({
   // keyboard opens/closes so the editor lands flush on the keyboard with
   // the last response visible right above it.
   useEffect(() => {
-    if (!isEditorView || !isFollowUpBlock) return;
+    if (!isNarrow || !isEditorView || !isFollowUpBlock) return;
     const viewport = window.visualViewport;
     if (!viewport) return;
 
@@ -123,7 +140,7 @@ function Request({
 
     viewport.addEventListener('resize', handleResize);
     return () => viewport.removeEventListener('resize', handleResize);
-  }, [isEditorView, isFollowUpBlock]);
+  }, [isNarrow, isEditorView, isFollowUpBlock]);
 
   // 📱 iOS Safari force-scrolls the page on focus when it thinks the
   // keyboard will cover the caret — before our CSS has moved the editor up
@@ -471,6 +488,67 @@ function Request({
     resetAskSession();
   };
 
+  // 🖥️ The desktop editor rests as a one-line box at the end of the
+  // conversation and grows to a large box at the top of the view while in use
+  // (focused, or holding a draft). A new chat's editor is always grown.
+  const [isFocused, setFocused] = React.useState(false);
+  const composerRef = React.useRef<HTMLDivElement | null>(null);
+  const hasDraft =
+    draftPrompt.trim().length > 0 ||
+    pendingAttachments.length > 0 ||
+    validatingCount > 0;
+  const isGrown = isNewChatBlock || isFocused || hasDraft;
+
+  // A grown follow-up editor reserves a full view of height below its top
+  // edge, so the conversation can always scroll it up to the top of the view.
+  // The sent prompt renders into the same element, so the reserve has to go
+  // with the editor, not just when it shrinks back to one line.
+  useLayoutEffect(() => {
+    const el = composerRef.current;
+    if (!el || isNarrow || !isEditorView || !isGrown || isNewChatBlock) return;
+    const reserve = () => {
+      const scroller = findScrollParent(el);
+      el.style.minHeight = scroller ? `${scroller.clientHeight}px` : '';
+    };
+    reserve();
+    window.addEventListener('resize', reserve);
+    return () => {
+      window.removeEventListener('resize', reserve);
+      el.style.minHeight = '';
+    };
+  }, [isGrown, isNewChatBlock, isNarrow, isEditorView]);
+
+  // Starting to type brings the editor to the top of the view
+  const wasFocusedRef = React.useRef(false);
+  useEffect(() => {
+    if (!isNarrow && isFocused && !wasFocusedRef.current && !isNewChatBlock) {
+      composerRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
+    wasFocusedRef.current = isFocused;
+  }, [isFocused, isNarrow, isNewChatBlock]);
+
+  const handleComposerBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    // Focus moving between the text and the box's own buttons keeps it open
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+    setFocused(false);
+  };
+
+  // A press on the box outside the text and its controls puts the caret in
+  // the text, so the whole box is the target, not just the text line
+  const handleComposerMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button, input, a, [role="button"], .cm-editor')) return;
+    e.preventDefault();
+    editorHandleRef.current?.focusEnd();
+  };
+
+  const placeholder = isNewChatBlock
+    ? t('conversation.request.placeholderNewChat')
+    : t('conversation.request.placeholderFollowUp');
+
   if (!conversationBlock) return null;
 
   // If we have responses AND loading is finished, this block is "resolved" -> Show static text
@@ -516,6 +594,7 @@ function Request({
             />
           }
           showCopyButton={true}
+          copyLabel={t('common.textContainer.copyPrompt')}
           data-testid={testId || 'resolved-request-wrapper'}
         >
           {(conversationBlock.attachments?.length ?? 0) > 0 && (
@@ -536,28 +615,51 @@ function Request({
     );
   }
 
-  // Otherwise show the editor
-  return (
-    <div
-      className={`${styles.container}${isFollowUpBlock ? ` ${styles.followUp}` : ''}`}
-      onPasteCapture={handlePasteCapture}
-      data-testid={testId || 'request-widget-container'}
-    >
-      <div className={styles.editorWrapper} ref={editorWrapperRef}>
-        <TextEditor
-          ref={editorHandleRef}
-          id={blockId}
-          value={draftPrompt}
-          onChange={handleEditorChange}
-          height="100%"
-          className={styles.textEditorFullscreen}
-          compact={isNarrow}
-          data-testid="text-editor"
-        />
+  const fileInput = uploadAttachment ? (
+    // Shared hidden file input, driven by the attach buttons. Accepts images
+    // and PDFs.
+    <input
+      ref={attachmentInputRef}
+      type="file"
+      accept={ATTACHMENT_FILE_INPUT_ACCEPT}
+      multiple
+      hidden
+      onChange={handleAttachmentInputChange}
+      data-testid="attachment-file-input"
+    />
+  ) : null;
 
-        {isNarrow && (
-          // Compact icon-only generate button floating inside the
-          // editor's bottom-right corner
+  if (isNarrow) {
+    // 📱 A follow-up editor nobody is using rests small; it takes its full
+    // docked size once focused or holding a draft
+    const isIdleFollowUp = isFollowUpBlock && !isFocused && !hasDraft;
+    return (
+      <div
+        className={`${styles.container}${isFollowUpBlock ? ` ${styles.followUp}` : ''}${isIdleFollowUp ? ` ${styles.idleFollowUp}` : ''}`}
+        onPasteCapture={handlePasteCapture}
+        data-testid={testId || 'request-widget-container'}
+        data-composer-state={isIdleFollowUp ? 'idle' : 'grown'}
+      >
+        <div
+          className={styles.editorWrapper}
+          ref={editorWrapperRef}
+          onFocus={() => setFocused(true)}
+          onBlur={handleComposerBlur}
+        >
+          <TextEditor
+            ref={editorHandleRef}
+            id={blockId}
+            value={draftPrompt}
+            onChange={handleEditorChange}
+            height="100%"
+            className={styles.textEditorFullscreen}
+            compact
+            placeholder={placeholder}
+            data-testid="text-editor"
+          />
+
+          {/* Compact icon-only generate button floating inside the editor's
+              bottom-right corner */}
           <button
             className={styles.mobileGenerateButton}
             onClick={handleGenerate}
@@ -567,77 +669,101 @@ function Request({
           >
             <Icon src={ICONS.SEND} size={22} />
           </button>
-        )}
 
-        {uploadAttachment && (
-          // Shared hidden file input, driven by the mobile and desktop
-          // attach buttons. Accepts images and PDFs.
-          <input
-            ref={attachmentInputRef}
-            type="file"
-            accept={ATTACHMENT_FILE_INPUT_ACCEPT}
-            multiple
-            hidden
-            onChange={handleAttachmentInputChange}
-            data-testid="attachment-file-input"
+          {fileInput}
+
+          {uploadAttachment && (
+            // Attachment picker to the LEFT of the generate button — this
+            // layout has no paste path, so it's the only way to attach a
+            // file (image or PDF) here.
+            <button
+              className={styles.mobileAttachmentButton}
+              onClick={() => attachmentInputRef.current?.click()}
+              aria-label={t('conversation.request.addAttachment')}
+              data-testid="attachment-button"
+            >
+              <Icon src={ICONS.ATTACHMENT} size={22} />
+            </button>
+          )}
+
+          <AttachmentPreviewStrip
+            attachments={pendingAttachments}
+            onRemove={removeAttachment}
           />
-        )}
+        </div>
+      </div>
+    );
+  }
 
-        {isNarrow && uploadAttachment && (
-          // Attachment picker to the LEFT of the generate button — this
-          // layout has no paste path, so it's the only way to attach a
-          // file (image or PDF) here.
-          <button
-            className={styles.mobileAttachmentButton}
-            onClick={() => attachmentInputRef.current?.click()}
-            aria-label={t('conversation.request.addAttachment')}
-            data-testid="attachment-button"
-          >
-            <Icon src={ICONS.IMAGE_ATTACHMENT} size={22} />
-          </button>
-        )}
+  return (
+    <div
+      ref={composerRef}
+      className={`${styles.composer} ${isGrown ? styles.grown : styles.idle}`}
+      onPasteCapture={handlePasteCapture}
+      data-testid={testId || 'request-widget-container'}
+      data-composer-state={isGrown ? 'grown' : 'idle'}
+    >
+      <div
+        ref={editorWrapperRef}
+        className={`${styles.composerBox} ${isFocused ? styles.composerFocused : ''}`}
+        style={isGrown ? { height: GROWN_EDITOR_HEIGHT_PX } : undefined}
+        onFocus={() => setFocused(true)}
+        onBlur={handleComposerBlur}
+        onMouseDown={handleComposerMouseDown}
+        data-testid="composer-box"
+      >
+        <TextEditor
+          ref={editorHandleRef}
+          id={blockId}
+          value={draftPrompt}
+          onChange={handleEditorChange}
+          height="100%"
+          variant="composer"
+          placeholder={placeholder}
+          className={styles.composerText}
+          data-testid="text-editor"
+        />
 
         <AttachmentPreviewStrip
           attachments={pendingAttachments}
           onRemove={removeAttachment}
         />
-      </div>
 
-      {!isNarrow && (
-        <div
-          className={styles.buttonWrapper}
-          data-testid="generate-button-wrapper"
-        >
+        <div className={styles.composerBar}>
           {uploadAttachment && (
-            // 🖥️ Desktop attach button — the only way to add a PDF on
-            // desktop (PDFs can't be pasted); images can still be pasted.
-            <button
-              className={styles.desktopAttachmentButton}
+            <IconButton
+              icon={ICONS.ATTACHMENT}
+              label={t('conversation.request.addAttachment')}
+              tooltipPosition="top"
               onClick={() => attachmentInputRef.current?.click()}
-              aria-label={t('conversation.request.addAttachment')}
-              title={t('conversation.request.addAttachment')}
               data-testid="attachment-button"
-            >
-              <Icon src={ICONS.IMAGE_ATTACHMENT} size={20} />
-            </button>
+            />
           )}
+          {composerControls}
+          <span className={styles.composerSpacer} />
           <Tooltip
             content={
-              !hasAnyValidApiKey ? t('conversation.request.noApiKeysSet') : ''
+              hasAnyValidApiKey
+                ? t('conversation.request.generate')
+                : t('conversation.request.noApiKeysSet')
             }
+            position="top"
           >
-            <div style={!hasAnyValidApiKey ? { cursor: 'not-allowed' } : {}}>
-              <RectangleButton
-                onClick={handleGenerate}
-                label={t('conversation.request.generate')}
-                disabled={!hasAnyValidApiKey}
-                icon={ICONS.SEND}
-                data-testid="generate-button"
-              />
-            </div>
+            <button
+              type="button"
+              className={styles.sendButton}
+              onClick={handleGenerate}
+              disabled={!hasAnyValidApiKey}
+              aria-label={t('conversation.request.generate')}
+              data-testid="generate-button"
+            >
+              <Icon src={ICONS.SEND} size={16} />
+            </button>
           </Tooltip>
         </div>
-      )}
+
+        {fileInput}
+      </div>
     </div>
   );
 }

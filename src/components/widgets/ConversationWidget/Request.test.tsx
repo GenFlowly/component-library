@@ -18,37 +18,56 @@ import '@testing-library/jest-dom';
 // attachment upload service all flow through it)
 const mockShowToast = jest.fn();
 const mockUploadAttachment = jest.fn();
+const mockComposer: { controls?: React.ReactNode } = {};
 jest.mock('./ConversationWidgetContext', () => ({
   useConversation: jest.fn(),
   useConversationUI: jest.fn(),
   useConversationAuth: jest.fn(),
   useConversationServices: () => ({ uploadAttachment: mockUploadAttachment }),
+  useConversationComposer: () => mockComposer,
   useToast: () => ({ showToast: mockShowToast }),
 }));
 
 // Mock heavy child components
-jest.mock('../TextEditorWidget/TextEditor', () => ({
-  __esModule: true,
-  default: ({ value, onChange, 'data-testid': testId }: any) => (
-    <textarea
-      data-testid={testId}
-      value={value}
-      onChange={e => onChange(e.target.value)}
-    />
-  ),
-}));
+const mockFocusEnd = jest.fn();
+jest.mock('../TextEditorWidget/TextEditor', () => {
+  const ReactActual = jest.requireActual('react');
+  return {
+    __esModule: true,
+    default: ReactActual.forwardRef(
+      (
+        { value, onChange, placeholder, 'data-testid': testId }: any,
+        ref: any
+      ) => {
+        ReactActual.useImperativeHandle(ref, () => ({
+          focusEnd: mockFocusEnd,
+        }));
+        return (
+          <textarea
+            data-testid={testId}
+            value={value}
+            placeholder={placeholder}
+            onChange={(e: any) => onChange(e.target.value)}
+          />
+        );
+      }
+    ),
+  };
+});
 jest.mock('../../common/TextContainer/TextContainer', () => ({
   __esModule: true,
   default: ({
     content,
     title,
+    copyLabel,
     children,
   }: {
     content: string;
     title?: React.ReactNode;
+    copyLabel?: string;
     children?: React.ReactNode;
   }) => (
-    <div data-testid="text-container">
+    <div data-testid="text-container" data-copy-label={copyLabel}>
       {title}
       {content}
       {children}
@@ -223,6 +242,11 @@ describe('Request Widget Component', () => {
     // Editor should NOT be visible, TextContainer should be visible
     expect(screen.queryByTestId('text-editor')).not.toBeInTheDocument();
     expect(screen.getByTestId('resolved-request-wrapper')).toBeInTheDocument();
+    // The sent prompt's copy button names what it copies
+    expect(screen.getByTestId('text-container')).toHaveAttribute(
+      'data-copy-label',
+      'Copy Prompt'
+    );
 
     // No Stop Generating (or any) button in the Request widget while
     // loading — stopping is handled per-vendor in the Response widget
@@ -1009,6 +1033,323 @@ describe('Request Widget Component', () => {
       ).toBeInTheDocument();
       expect(mockUploadAttachment).toHaveBeenCalledWith('test-token', photo);
       expect(mockShowToast).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('phone follow-up editor', () => {
+    const blocks = (draft = '') => [
+      {
+        conversationBlockId: 'block-1',
+        responseMessages: [{ id: 'res-1' }],
+        isLoading: false,
+        status: 'resolved',
+        prompt: 'First prompt',
+      },
+      {
+        conversationBlockId: 'block-2',
+        responseMessages: [],
+        isLoading: false,
+        status: 'draft',
+        prompt: draft,
+      },
+    ];
+
+    beforeEach(() => {
+      mockUseConversation.mockReturnValue({
+        conversationBlockList: blocks(),
+        generateResponsesStream: mockGenerateResponsesStream,
+        stopGenerating: mockStopGenerating,
+        getSelectedResponseForBlock: mockGetSelectedResponseForBlock,
+        setActiveBlockId: mockSetActiveBlockId,
+      });
+    });
+
+    test('rests small until it is used', () => {
+      render(<Request blockId="block-2" />);
+      const container = screen.getByTestId('request-widget-container');
+      expect(container).toHaveClass('idleFollowUp');
+      expect(screen.getByTestId('text-editor')).toHaveAttribute(
+        'placeholder',
+        'Follow up…'
+      );
+
+      fireEvent.focus(screen.getByTestId('text-editor'));
+      expect(container).not.toHaveClass('idleFollowUp');
+
+      fireEvent.blur(screen.getByTestId('text-editor'));
+      expect(container).toHaveClass('idleFollowUp');
+    });
+
+    test('a draft keeps it full size', () => {
+      render(<Request blockId="block-2" />);
+      fireEvent.change(screen.getByTestId('text-editor'), {
+        target: { value: 'Shorter' },
+      });
+      expect(screen.getByTestId('request-widget-container')).not.toHaveClass(
+        'idleFollowUp'
+      );
+    });
+
+    test('the first block of a new chat is never the small one', () => {
+      mockUseConversation.mockReturnValue({
+        conversationBlockList: blocks().slice(1),
+        generateResponsesStream: mockGenerateResponsesStream,
+        stopGenerating: mockStopGenerating,
+        getSelectedResponseForBlock: mockGetSelectedResponseForBlock,
+        setActiveBlockId: mockSetActiveBlockId,
+      });
+      render(<Request blockId="block-2" />);
+      expect(screen.getByTestId('request-widget-container')).not.toHaveClass(
+        'idleFollowUp'
+      );
+      expect(screen.getByTestId('text-editor')).toHaveAttribute(
+        'placeholder',
+        'Ask anything'
+      );
+    });
+  });
+
+  describe('desktop composer', () => {
+    const originalInnerWidth = window.innerWidth;
+    const scrollIntoView = jest.fn();
+
+    const followUpBlocks = (draft = '') => [
+      {
+        conversationBlockId: 'block-1',
+        responseMessages: [{ id: 'res-1' }],
+        isLoading: false,
+        status: 'resolved',
+        prompt: 'First prompt',
+      },
+      {
+        conversationBlockId: 'block-2',
+        responseMessages: [],
+        isLoading: false,
+        status: 'draft',
+        prompt: draft,
+      },
+    ];
+
+    const useBlocks = (blocks: any[]) =>
+      mockUseConversation.mockReturnValue({
+        conversationBlockList: blocks,
+        generateResponsesStream: mockGenerateResponsesStream,
+        stopGenerating: mockStopGenerating,
+        getSelectedResponseForBlock: mockGetSelectedResponseForBlock,
+        setActiveBlockId: mockSetActiveBlockId,
+      });
+
+    beforeEach(() => {
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: 1440,
+      });
+      window.HTMLElement.prototype.scrollIntoView = scrollIntoView;
+      scrollIntoView.mockClear();
+      mockFocusEnd.mockClear();
+      delete mockComposer.controls;
+    });
+
+    afterEach(() => {
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: originalInnerWidth,
+      });
+    });
+
+    test('a follow-up rests as a one-line box with its controls inside', () => {
+      useBlocks(followUpBlocks());
+      mockComposer.controls = <button>Choose instruction</button>;
+      render(<Request blockId="block-2" />);
+
+      const composer = screen.getByTestId('request-widget-container');
+      expect(composer).toHaveAttribute('data-composer-state', 'idle');
+      expect(screen.getByTestId('composer-box')).not.toHaveStyle({
+        height: '300px',
+      });
+      expect(screen.getByTestId('text-editor')).toHaveAttribute(
+        'placeholder',
+        'Follow up…'
+      );
+      const box = screen.getByTestId('composer-box');
+      expect(box).toContainElement(
+        screen.getByRole('button', { name: 'Add attachments' })
+      );
+      expect(box).toContainElement(
+        screen.getByRole('button', { name: 'Choose instruction' })
+      );
+      expect(box).toContainElement(screen.getByTestId('generate-button'));
+      expect(
+        screen.queryByTestId('generate-button-wrapper')
+      ).not.toBeInTheDocument();
+    });
+
+    test('a new chat starts grown, with its own placeholder', () => {
+      render(<Request blockId="block-1" />);
+      expect(screen.getByTestId('request-widget-container')).toHaveAttribute(
+        'data-composer-state',
+        'grown'
+      );
+      expect(screen.getByTestId('composer-box')).toHaveStyle({
+        height: '300px',
+      });
+      expect(screen.getByTestId('text-editor')).toHaveAttribute(
+        'placeholder',
+        'Ask anything'
+      );
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    test('focus grows the box and brings it to the top of the view', () => {
+      useBlocks(followUpBlocks());
+      render(<Request blockId="block-2" />);
+      fireEvent.focus(screen.getByTestId('text-editor'));
+
+      expect(screen.getByTestId('request-widget-container')).toHaveAttribute(
+        'data-composer-state',
+        'grown'
+      );
+      expect(screen.getByTestId('composer-box')).toHaveStyle({
+        height: '300px',
+      });
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+
+    test('a grown follow-up reserves a full view of space below its top', () => {
+      useBlocks(followUpBlocks());
+      const scroller = document.createElement('div');
+      scroller.style.overflowY = 'auto';
+      Object.defineProperty(scroller, 'clientHeight', { value: 640 });
+      document.body.appendChild(scroller);
+      render(<Request blockId="block-2" />, { container: scroller });
+
+      const composer = screen.getByTestId('request-widget-container');
+      expect(composer.style.minHeight).toBe('');
+      fireEvent.focus(screen.getByTestId('text-editor'));
+      expect(composer.style.minHeight).toBe('640px');
+
+      fireEvent.blur(screen.getByTestId('text-editor'));
+      expect(composer.style.minHeight).toBe('');
+      scroller.remove();
+    });
+
+    test('a sent follow-up leaves no reserved space under the prompt', () => {
+      useBlocks(followUpBlocks());
+      const scroller = document.createElement('div');
+      scroller.style.overflowY = 'auto';
+      Object.defineProperty(scroller, 'clientHeight', { value: 640 });
+      document.body.appendChild(scroller);
+      const { rerender } = render(<Request blockId="block-2" />, {
+        container: scroller,
+      });
+
+      fireEvent.focus(screen.getByTestId('text-editor'));
+      expect(
+        screen.getByTestId('request-widget-container').style.minHeight
+      ).toBe('640px');
+
+      const sent = followUpBlocks();
+      sent[1] = {
+        ...sent[1],
+        prompt: 'Make it shorter',
+        status: 'draft',
+        isLoading: true,
+      };
+      useBlocks(sent);
+      // A new prop gets the memoised widget to render the sent state
+      rerender(<Request blockId="block-2" data-testid="sent-request" />);
+
+      expect(screen.getByTestId('sent-request')).toHaveClass(
+        'resolvedRequestContainer'
+      );
+      expect(screen.getByTestId('sent-request').style.minHeight).toBe('');
+      scroller.remove();
+    });
+
+    test('blur returns an empty box to one line; a draft keeps it grown', () => {
+      useBlocks(followUpBlocks());
+      render(<Request blockId="block-2" />);
+      const editor = screen.getByTestId('text-editor');
+
+      fireEvent.focus(editor);
+      fireEvent.blur(editor);
+      expect(screen.getByTestId('request-widget-container')).toHaveAttribute(
+        'data-composer-state',
+        'idle'
+      );
+
+      fireEvent.focus(editor);
+      fireEvent.change(editor, { target: { value: 'Shorter please' } });
+      fireEvent.blur(editor);
+      expect(screen.getByTestId('request-widget-container')).toHaveAttribute(
+        'data-composer-state',
+        'grown'
+      );
+    });
+
+    test('moving focus to the box controls keeps it grown', () => {
+      useBlocks(followUpBlocks());
+      render(<Request blockId="block-2" />);
+      const editor = screen.getByTestId('text-editor');
+      const attach = screen.getByRole('button', { name: 'Add attachments' });
+
+      fireEvent.focus(editor);
+      fireEvent.blur(editor, { relatedTarget: attach });
+      expect(screen.getByTestId('request-widget-container')).toHaveAttribute(
+        'data-composer-state',
+        'grown'
+      );
+    });
+
+    test('a press on the empty part of the box puts the caret in the text', () => {
+      useBlocks(followUpBlocks());
+      render(<Request blockId="block-2" />);
+      fireEvent.mouseDown(screen.getByTestId('composer-box'));
+      expect(mockFocusEnd).toHaveBeenCalledTimes(1);
+
+      fireEvent.mouseDown(
+        screen.getByRole('button', { name: 'Add attachments' })
+      );
+      expect(mockFocusEnd).toHaveBeenCalledTimes(1);
+    });
+
+    test('Generate shows its tooltip, or why it is off', () => {
+      useBlocks(followUpBlocks('Ready'));
+      const { unmount } = render(<Request blockId="block-2" />);
+      const generate = screen.getByTestId('generate-button');
+      expect(generate).toHaveAccessibleName('Generate');
+      fireEvent.mouseEnter(generate.parentElement!);
+      expect(screen.getByRole('tooltip')).toHaveTextContent('Generate');
+      fireEvent.click(generate);
+      expect(mockGenerateResponsesStream).toHaveBeenCalledWith(
+        'block-2',
+        'Ready',
+        undefined,
+        undefined,
+        []
+      );
+      unmount();
+
+      mockUseAuth.mockReturnValue({
+        aiVendorAPIKeyStatusList: [{ isAPIKeyValid: false }],
+      });
+      render(<Request blockId="block-2" />);
+      const disabled = screen.getByTestId('generate-button');
+      expect(disabled).toBeDisabled();
+      fireEvent.mouseEnter(disabled.parentElement!);
+      expect(screen.getByRole('tooltip')).toHaveTextContent('No API keys set');
+    });
+
+    test('the attach button opens the file picker', () => {
+      useBlocks(followUpBlocks());
+      render(<Request blockId="block-2" />);
+      const input = screen.getByTestId('attachment-file-input');
+      const click = jest.spyOn(input, 'click');
+      fireEvent.click(screen.getByRole('button', { name: 'Add attachments' }));
+      expect(click).toHaveBeenCalled();
     });
   });
 });

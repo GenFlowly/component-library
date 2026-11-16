@@ -14,6 +14,7 @@ jest.mock('./ConversationWidgetContext', () => ({
   useConversationUI: jest.fn(),
   useConversationAuth: jest.fn(),
   useConversationServices: () => ({}),
+  useConversationComposer: () => ({}),
   useToast: () => ({ showToast: jest.fn() }),
 }));
 

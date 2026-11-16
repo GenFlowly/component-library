@@ -1,0 +1,122 @@
+@import '../../../styles/themes.scss';
+@import '../../../styles/mixins.scss';
+
+.bar {
+  position: relative;
+  z-index: 3; // Its dropdown overlays the conversation below
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 8px 0 14px;
+  border-bottom: 1px solid $color-border-light;
+  background-color: $color-background;
+  box-shadow: 0 6px 12px -8px rgba(0, 0, 0, 0.25);
+}
+
+.title {
+  @include ellipsis;
+  flex: 0 1 auto;
+  max-width: 220px;
+  font-size: 0.75rem;
+  color: $color-text-muted;
+}
+
+.separator {
+  color: $color-text-muted;
+}
+
+.crumbWrap {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 520px;
+  height: 28px;
+  padding: 0 8px 0 6px;
+  border: none;
+  border-radius: $radius-md;
+  background: transparent;
+  color: $color-text-primary;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba(127, 127, 127, 0.16);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 1px;
+  }
+}
+
+.crumbOpen {
+  background-color: rgba(127, 127, 127, 0.16);
+}
+
+.badge {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background-color: $color-button-primary;
+  color: #ffffff;
+  font-size: 0.65625rem;
+  font-weight: 700;
+}
+
+.prompt {
+  @include ellipsis;
+  min-width: 0;
+}
+
+.chevronDown {
+  flex: none;
+  color: $color-text-muted;
+  transform: rotate(90deg);
+}
+
+.chevronUp {
+  flex: none;
+  color: $color-text-muted;
+  transform: rotate(270deg);
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.counter {
+  flex: none;
+  padding: 0 2px;
+  font-size: 0.75rem;
+  color: $color-text-muted;
+  white-space: nowrap;
+}
+
+.divider {
+  flex: none;
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background-color: $color-border;
+}

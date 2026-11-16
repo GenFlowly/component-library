@@ -97,6 +97,31 @@
   -webkit-backdrop-filter: blur(6px);
 }
 
+// Tappable title: same text, plus a chevron, as one button
+.titleButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.titleChevron {
+  flex-shrink: 0;
+  color: $color-text-muted;
+  transform: rotate(90deg);
+
+  &.titleChevronUp {
+    transform: rotate(270deg);
+  }
+}
+
 .title {
   max-width: 100%;
   font-size: 0.95rem;

@@ -39,9 +39,11 @@ interface TextEditorCoreProps {
   'data-testid'?: string;
   readOnly?: boolean;
   maxLength?: number;
-  variant?: 'default' | 'seamless';
+  // 'composer': a bare text area for a host that draws its own box
+  variant?: 'default' | 'seamless' | 'composer';
   fullWidth?: boolean;
   compact?: boolean;
+  placeholder?: string;
 }
 
 /** Imperative surface the editor exposes to its host (via ref). */
@@ -65,6 +67,7 @@ const TextEditorCore = React.forwardRef<TextEditorHandle, TextEditorCoreProps>(
       variant = 'default',
       fullWidth = false,
       compact = false,
+      placeholder,
     }: TextEditorCoreProps,
     ref
   ): React.ReactElement {
@@ -95,7 +98,7 @@ const TextEditorCore = React.forwardRef<TextEditorHandle, TextEditorCoreProps>(
 
     return (
       <div
-        className={`${styles.container} ${variant === 'seamless' ? styles.seamless : ''} ${fullWidth ? styles.fullWidth : ''} ${compact ? styles.compact : ''} ${className}`}
+        className={`${styles.container} ${variant !== 'default' ? styles[variant] : ''} ${fullWidth ? styles.fullWidth : ''} ${compact ? styles.compact : ''} ${className}`}
         data-testid={testId}
         style={height === '100%' ? { height: '100%' } : {}}
       >
@@ -125,6 +128,7 @@ const TextEditorCore = React.forwardRef<TextEditorHandle, TextEditorCoreProps>(
                 visible={false}
                 enablePreview={false}
                 showToolbar={false}
+                placeholder={placeholder}
                 className={styles.markdownEditor}
                 extensions={
                   readOnly ? READONLY_EXTENSIONS : EDITABLE_EXTENSIONS

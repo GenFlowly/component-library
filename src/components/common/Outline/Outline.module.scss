@@ -1,0 +1,219 @@
+@import '../../../styles/themes.scss';
+@import '../../../styles/mixins.scss';
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: $radius-md;
+  background: transparent;
+  color: $color-text-secondary;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba(127, 127, 127, 0.14);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: -2px;
+  }
+}
+
+.current {
+  background-color: $color-background-selected;
+
+  .number {
+    background-color: $color-button-primary;
+    color: #ffffff;
+  }
+}
+
+.number {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $color-background-tertiary;
+  color: $color-text-muted;
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.prompt {
+  @include ellipsis;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: $color-text-primary;
+}
+
+.meta {
+  @include ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6875rem;
+  color: $color-text-muted;
+}
+
+// Same breathing dot the thinking steps use for a running step
+.pulse {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: $color-primary;
+  animation: outlinePulse 1.2s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes outlinePulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.count {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: $color-text-muted;
+}
+
+// Dropdown under the sub-bar's crumb
+.menu {
+  width: 560px;
+  max-width: calc(100vw - 2rem);
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  background-color: $color-background-secondary;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+}
+
+.menuHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px 8px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $color-text-muted;
+}
+
+// 📱 Bottom sheet
+.sheetLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 300; // Above the MobileHeader (50) and full-screen menus (100-200)
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 80svh;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 8px max(20px, env(safe-area-inset-bottom, 0px));
+  border-radius: 16px 16px 0 0;
+  background-color: $color-background-secondary;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.3);
+
+  .row {
+    min-height: 52px;
+  }
+
+  .prompt {
+    font-size: 0.90625rem;
+  }
+
+  .meta {
+    font-size: 0.71875rem;
+  }
+}
+
+.grabber {
+  flex: none;
+  width: 36px;
+  height: 4px;
+  margin: 0 auto 8px;
+  border-radius: 2px;
+  background-color: $color-text-muted;
+  opacity: 0.6;
+}
+
+.sheetHeader {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 4px 0 10px;
+}
+
+.sheetTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: $color-text-primary;
+}
+
+.headerSpacer {
+  flex: 1 1 auto;
+}
+
+.sheetClose {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: rgba(127, 127, 127, 0.18);
+  color: $color-text-primary;
+}
+
+.sheetBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}

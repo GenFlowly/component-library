@@ -95,6 +95,51 @@ describe('MobileHeader', () => {
     expect(onShare).not.toHaveBeenCalled();
   });
 
+  test('a tappable title fires onTitleClick, apart from the subtitle', () => {
+    const onTitleClick = jest.fn();
+    const onSubtitleClick = jest.fn();
+    render(
+      <MobileHeader
+        title="Water heater"
+        subtitle="Coding Buddy"
+        onTitleClick={onTitleClick}
+        titleActionLabel="Outline: Water heater"
+        onSubtitleClick={onSubtitleClick}
+        onMenuClick={jest.fn()}
+      />
+    );
+
+    const title = screen.getByRole('button', { name: 'Outline: Water heater' });
+    expect(title).toHaveAttribute('aria-haspopup', 'dialog');
+    expect(title).toHaveAttribute('aria-expanded', 'false');
+    expect(title).toHaveTextContent('Water heater');
+    fireEvent.click(title);
+    expect(onTitleClick).toHaveBeenCalledTimes(1);
+    expect(onSubtitleClick).not.toHaveBeenCalled();
+  });
+
+  test('titleExpanded marks the title expanded and turns its chevron up', () => {
+    const { container } = render(
+      <MobileHeader
+        title="Water heater"
+        onTitleClick={jest.fn()}
+        titleExpanded
+        onMenuClick={jest.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('mobile-header-title')).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    expect(container.querySelector('.titleChevronUp')).toBeInTheDocument();
+  });
+
+  test('the title is plain text without a click handler', () => {
+    render(<MobileHeader title="My Chat" onMenuClick={jest.fn()} />);
+    expect(screen.queryByTestId('mobile-header-title')).not.toBeInTheDocument();
+  });
+
   test('hides the kebab when there are no menu items', () => {
     render(<MobileHeader title="My Chat" onMenuClick={jest.fn()} />);
     expect(screen.queryByTestId('mobile-header-kebab')).not.toBeInTheDocument();

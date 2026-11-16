@@ -71,6 +71,25 @@ export { default as MenuSearchField } from './components/common/MenuSearchField/
 export type { MenuSearchFieldProps } from './components/common/MenuSearchField/MenuSearchField';
 export { default as SidebarCard } from './components/common/SidebarCard/SidebarCard';
 export type { SidebarCardProps } from './components/common/SidebarCard/SidebarCard';
+export { default as IconButton } from './components/common/IconButton/IconButton';
+export type { IconButtonProps } from './components/common/IconButton/IconButton';
+export { default as CollapseStrip } from './components/common/CollapseStrip/CollapseStrip';
+export type { CollapseStripProps } from './components/common/CollapseStrip/CollapseStrip';
+export { default as SidebarRail } from './components/common/SidebarRail/SidebarRail';
+export type {
+  SidebarRailProps,
+  SidebarRailItem,
+  SidebarRailTab,
+} from './components/common/SidebarRail/SidebarRail';
+export { default as Switch } from './components/common/Switch/Switch';
+export type { SwitchProps } from './components/common/Switch/Switch';
+export { default as ConversationSubBar } from './components/common/ConversationSubBar/ConversationSubBar';
+export type { ConversationSubBarProps } from './components/common/ConversationSubBar/ConversationSubBar';
+export { default as OutlineMenu } from './components/common/Outline/OutlineMenu';
+export type { OutlineMenuProps } from './components/common/Outline/OutlineMenu';
+export { default as OutlineSheet } from './components/common/Outline/OutlineSheet';
+export type { OutlineSheetProps } from './components/common/Outline/OutlineSheet';
+export type { OutlineItem } from './components/common/Outline/outline.models';
 export type {
   MobileHeaderProps,
   MobileHeaderMenuItem,
@@ -173,6 +192,7 @@ export {
   useConversationAuth,
   useConversationServices,
   useConversationLayout,
+  useConversationComposer,
 } from './components/widgets/ConversationWidget/ConversationWidgetContext';
 export type {
   ConversationWidgetContextValue,
@@ -181,6 +201,7 @@ export type {
   ConversationWidgetAuth,
   ConversationWidgetServices,
   ConversationWidgetLayout,
+  ConversationWidgetComposer,
   ConversationWidgetVendorKeyStatus,
 } from './components/widgets/ConversationWidget/ConversationWidgetContext';
 export type {
@@ -218,6 +239,11 @@ export {
   fallbackVendorDisplayName,
 } from './components/widgets/ConversationWidget/vendors';
 export { applyThinkingStep } from './components/widgets/ConversationWidget/thinkingStepUtils';
+export {
+  conversationUsageByVendor,
+  formatUsd,
+} from './components/widgets/ConversationWidget/conversationUsage';
+export type { VendorUsageTotals } from './components/widgets/ConversationWidget/conversationUsage';
 export {
   parseServerDate,
   formatServerTimestamp,

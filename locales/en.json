@@ -172,6 +172,7 @@
       "askSelection": "Ask",
       "copyCode": "Copy Code",
       "copyResponse": "Copy Response",
+      "copyPrompt": "Copy Prompt",
       "loadingContentRenderer": "Loading content renderer..."
     },
     "themeToggle": {
@@ -214,7 +215,10 @@
       "pastedFile": "The pasted file",
       "attachmentsUploading": "Images are still uploading",
       "removeAttachment": "Remove image",
-      "addImageAttachment": "Add image attachment"
+      "addImageAttachment": "Add image attachment",
+      "addAttachment": "Add attachments",
+      "placeholderNewChat": "Ask anything",
+      "placeholderFollowUp": "Follow up…"
     },
     "response": {
       "askSourceSwitched": "Asking from {{vendor}}'s response now — the follow-up will continue from it",
@@ -246,7 +250,22 @@
       "thinkingPrompt": "Prompt",
       "thinkingResponse": "Response",
       "memoryCoreLabel": "Core memories",
-      "memoryRecalledLabel": "Recalled for this message"
+      "memoryRecalledLabel": "Recalled for this message",
+      "regenerateHint": "Regenerate this response",
+      "followUpHint": "Ask a follow-up from this response"
+    },
+    "outline": {
+      "title": "Outline",
+      "turns_one": "{{count}} turn",
+      "turns_other": "{{count}} turns",
+      "close": "Close",
+      "responses_one": "{{count}} response",
+      "responses_other": "{{count}} responses",
+      "openFor": "Outline: {{title}}"
+    },
+    "subBar": {
+      "previousTurn": "Previous turn",
+      "nextTurn": "Next turn"
     }
   },
   "dbSettings": {

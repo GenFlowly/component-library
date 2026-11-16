@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import ConversationWidget from './ConversationWidget';
 import {
   useConversation,
+  useConversationComposer,
   useConversationUI,
 } from './ConversationWidgetContext';
 
@@ -11,6 +12,7 @@ import {
 jest.mock('./ConversationWidgetContext', () => ({
   useConversation: jest.fn(),
   useConversationUI: jest.fn(),
+  useConversationComposer: jest.fn(),
 }));
 jest.mock('./ConversationBlock', () => ({
   __esModule: true,
@@ -52,6 +54,7 @@ describe('ConversationWidget', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    (useConversationComposer as jest.Mock).mockReturnValue({});
     // setActiveViewportItem lives on the ConversationUI surface
     mockUseConversationUI.mockReturnValue({
       setActiveViewportItem: mockSetActiveViewportItem,
@@ -64,6 +67,86 @@ describe('ConversationWidget', () => {
 
   afterEach(() => {
     jest.useRealTimers();
+  });
+
+  describe('editor after the last finished turn', () => {
+    const resolved = (id: string) => ({
+      conversationBlockId: id,
+      prompt: 'Q',
+      responseMessages: [{ messageId: `m-${id}` }],
+      isLoading: false,
+      status: 'resolved',
+    });
+
+    test('adds one empty block after a finished last turn', () => {
+      const add = jest.fn();
+      mockUseConversation.mockReturnValue({
+        conversationBlockList: [resolved('b1')],
+        addNewConversationBlockWithId: add,
+      });
+      const { rerender } = render(<ConversationWidget />);
+      expect(add).toHaveBeenCalledTimes(1);
+      expect(add.mock.calls[0][0]).toMatch(/^conv-/);
+
+      // The same finished turn never gets a second one
+      rerender(<ConversationWidget />);
+      expect(add).toHaveBeenCalledTimes(1);
+    });
+
+    test('adds nothing while the last turn streams or is a draft', () => {
+      const add = jest.fn();
+      mockUseConversation.mockReturnValue({
+        conversationBlockList: [
+          resolved('b1'),
+          { ...resolved('b2'), isLoading: true },
+        ],
+        addNewConversationBlockWithId: add,
+      });
+      const { rerender } = render(<ConversationWidget />);
+      mockUseConversation.mockReturnValue({
+        conversationBlockList: [
+          resolved('b1'),
+          {
+            conversationBlockId: 'b2',
+            prompt: '',
+            responseMessages: [],
+            isLoading: false,
+            status: 'draft',
+          },
+        ],
+        addNewConversationBlockWithId: add,
+      });
+      rerender(<ConversationWidget />);
+      expect(add).not.toHaveBeenCalled();
+    });
+
+    test('adds the next one once a new turn finishes', () => {
+      const add = jest.fn();
+      mockUseConversation.mockReturnValue({
+        conversationBlockList: [resolved('b1')],
+        addNewConversationBlockWithId: add,
+      });
+      const { rerender } = render(<ConversationWidget />);
+      mockUseConversation.mockReturnValue({
+        conversationBlockList: [resolved('b1'), resolved('b2')],
+        addNewConversationBlockWithId: add,
+      });
+      rerender(<ConversationWidget />);
+      expect(add).toHaveBeenCalledTimes(2);
+    });
+
+    test('adds nothing for a viewer who cannot post', () => {
+      const add = jest.fn();
+      (useConversationComposer as jest.Mock).mockReturnValue({
+        canCompose: false,
+      });
+      mockUseConversation.mockReturnValue({
+        conversationBlockList: [resolved('b1')],
+        addNewConversationBlockWithId: add,
+      });
+      render(<ConversationWidget />);
+      expect(add).not.toHaveBeenCalled();
+    });
   });
 
   test('renders nothing when list is empty', () => {

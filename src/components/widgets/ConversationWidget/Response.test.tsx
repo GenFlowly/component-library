@@ -294,7 +294,7 @@ describe('Response Widget Component', () => {
     expect(screen.queryByTestId('follow-up-button')).not.toBeInTheDocument();
   });
 
-  test('renders token badge when input, output, total, and cache tokens are provided', () => {
+  test('shows no token or cost badges, even with usage data (the Tokens card carries them)', () => {
     const msgsWithTokens = [
       {
         messageId: 'msg-tokens',
@@ -304,7 +304,8 @@ describe('Response Widget Component', () => {
         inputTokens: 1234,
         outputTokens: 567,
         totalTokens: 1801,
-        tokensReadFromCache: 0,
+        tokensReadFromCache: 256,
+        costUsd: 0.0421,
       },
     ];
     render(
@@ -315,12 +316,44 @@ describe('Response Widget Component', () => {
       />
     );
 
-    // Check if all token counts are rendered
-    expect(screen.getByText('1,234')).toBeInTheDocument();
-    expect(screen.getByText('567')).toBeInTheDocument();
-    expect(screen.getByText('1,801')).toBeInTheDocument();
-    // "0" appears both as the cache-token count and the learned-facts count
-    expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Here is a response')).toBeInTheDocument();
+    expect(screen.queryByText('1,234')).not.toBeInTheDocument();
+    expect(screen.queryByText('567')).not.toBeInTheDocument();
+    expect(screen.queryByText('256')).not.toBeInTheDocument();
+    expect(screen.queryByText('1,801')).not.toBeInTheDocument();
+    expect(screen.queryByText('$0.0421')).not.toBeInTheDocument();
+  });
+
+  test('Regenerate and Follow up explain themselves on hover', () => {
+    render(
+      <Response
+        blockId="block-1"
+        responseMessages={[
+          {
+            messageId: 'msg-hints',
+            text: 'An answer',
+            aiVendor: AIVendor.OPENAI,
+            isLoading: false,
+          },
+        ]}
+        onFollowUp={jest.fn()}
+      />
+    );
+    fireEvent.mouseEnter(
+      screen.getByTestId('regenerate-button').closest('div')!.parentElement!
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      'Regenerate this response'
+    );
+    fireEvent.mouseLeave(
+      screen.getByTestId('regenerate-button').closest('div')!.parentElement!
+    );
+    fireEvent.mouseEnter(
+      screen.getByTestId('follow-up-button').closest('div')!.parentElement!
+    );
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      'Ask a follow-up from this response'
+    );
   });
 
   test('does not render token badge when tokens are null or undefined', () => {
