@@ -28,6 +28,15 @@ describe('UserAvatarButton Component', () => {
     expect(screen.queryByTestId('test-avatar-image')).not.toBeInTheDocument();
   });
 
+  test('the fallback icon is the size of a picture, so it fits a 24px bar', () => {
+    render(<UserAvatarButton {...defaultProps} />);
+
+    expect(screen.getByTestId('test-avatar-icon')).toHaveStyle({
+      width: '1.3rem',
+      height: '1.3rem',
+    });
+  });
+
   test('renders image when picture is provided', () => {
     render(
       <UserAvatarButton

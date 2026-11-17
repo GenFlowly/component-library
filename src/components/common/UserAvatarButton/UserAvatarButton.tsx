@@ -35,7 +35,7 @@ export const UserAvatarButton: React.FC<UserAvatarButtonProps> = ({
       ) : (
         <Icon
           src={ICONS.USER_CIRCLE}
-          size={40}
+          size="1.3rem"
           aria-hidden={true}
           data-testid={testId ? `${testId}-icon` : undefined}
         />
