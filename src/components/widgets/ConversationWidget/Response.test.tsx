@@ -1287,5 +1287,33 @@ describe('Response Widget Component', () => {
       render(<Response blockId="block-1" responseMessages={msg('')} />);
       expect(screen.queryByTestId('stop-reason')).not.toBeInTheDocument();
     });
+
+    test('a user Stop renders a stopped note under the partial answer', () => {
+      mockSelection = [AIVendor.OPENAI];
+      render(
+        <Response blockId="block-1" responseMessages={msg('cancelled')} />
+      );
+      const note = screen.getByTestId('stop-reason');
+      expect(note).toHaveAttribute('data-reason', 'cancelled');
+      expect(note.textContent).toMatch(/you stopped this response/i);
+      expect(screen.getAllByTestId('response-message')).toHaveLength(1);
+    });
+
+    test('a reply stopped before any text keeps its card and vendor', () => {
+      // Stopped while thinking: no text, no error — the stop reason alone
+      // keeps the card (and the vendor's pill) on screen.
+      mockSelection = [AIVendor.OPENAI];
+      render(
+        <Response blockId="block-1" responseMessages={msg('cancelled', '')} />
+      );
+      expect(screen.getAllByTestId('response-message')).toHaveLength(1);
+      expect(screen.getByTestId('stop-reason')).toHaveAttribute(
+        'data-reason',
+        'cancelled'
+      );
+      expect(
+        screen.queryByText('conversation.response.noResponsesGenerated')
+      ).not.toBeInTheDocument();
+    });
   });
 });

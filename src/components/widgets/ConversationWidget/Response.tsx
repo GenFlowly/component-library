@@ -87,13 +87,16 @@ const TRUNCATION_STOP_REASONS = new Set([
   'model_length',
   'max_output_tokens',
 ]);
+// Not a vendor reason: the host marks a reply the user stopped mid-generation.
+const CANCELLED_STOP_REASON = 'cancelled';
 
 /**
  * A note under the answer explaining why generation ended, from the vendor's
  * raw finish reason. Shown only when something noteworthy happened: a
  * refusal/block reads as a prominent warning (the card may otherwise be
- * blank), a length cap as a muted "cut off" line, and an unrecognized reason
- * as a quiet footnote. A normal completion renders nothing.
+ * blank), a length cap as a muted "cut off" line, a user Stop as a muted
+ * "stopped" line, and an unrecognized reason as a quiet footnote. A normal
+ * completion renders nothing.
  */
 function StopReasonNote({ reason }: { reason: string }) {
   const r = reason.trim().toLowerCase();
@@ -121,6 +124,17 @@ function StopReasonNote({ reason }: { reason: string }) {
       >
         The response was cut off because it reached the length limit (finish
         reason:&nbsp;<code>{r}</code>).
+      </div>
+    );
+  }
+  if (r === CANCELLED_STOP_REASON) {
+    return (
+      <div
+        className={styles.stopReasonStopped}
+        data-testid="stop-reason"
+        data-reason={r}
+      >
+        You stopped this response.
       </div>
     );
   }
