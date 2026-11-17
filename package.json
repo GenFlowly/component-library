@@ -137,5 +137,8 @@
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/@genflowly"
+  },
+  "overrides": {
+    "katex": "$katex"
   }
 }
