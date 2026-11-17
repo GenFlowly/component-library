@@ -1,0 +1,62 @@
+@import '../../../styles/themes.scss';
+
+.scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  color: var(--color-text-primary);
+
+  th,
+  td {
+    padding: 9px 12px;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  // Headers may wrap ("Requests, 30 days" over two lines) so wide tables
+  // still fit their card; figures never wrap.
+  th {
+    padding: 8px 12px;
+    white-space: normal;
+    vertical-align: bottom;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--sidebar-hairline, var(--color-border-light));
+  }
+
+  tbody tr + tr td {
+    border-top: 1px solid var(--sidebar-hairline, var(--color-border-light));
+  }
+
+  tfoot td {
+    font-weight: 500;
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+.numeric {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  color: var(--color-text-muted);
+  text-align: center !important;
+}
+
+.caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

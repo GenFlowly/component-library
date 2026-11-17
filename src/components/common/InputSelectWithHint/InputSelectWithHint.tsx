@@ -44,6 +44,12 @@ interface InputSelectWithHintProps {
    * @default false
    */
   iconOnlyHintOnMobile?: boolean;
+  /**
+   * 'stacked' puts the label above the value, for phone-width forms where a
+   * side label would squeeze the value.
+   * @default 'inline'
+   */
+  layout?: 'inline' | 'stacked';
   /** Base test id: applied to the `<select>`; container, icon, hint, placeholder and options get suffixed ids. */
   'data-testid'?: string;
 }
@@ -64,6 +70,7 @@ export const InputSelectWithHint: React.FC<InputSelectWithHintProps> = ({
   className = '',
   placeholder,
   iconOnlyHintOnMobile = false,
+  layout = 'inline',
   'data-testid': testId,
 }) => {
   const { t } = useTranslation();
@@ -84,7 +91,7 @@ export const InputSelectWithHint: React.FC<InputSelectWithHintProps> = ({
 
   return (
     <div
-      className={`${styles.container} ${iconOnlyHintOnMobile && icon ? styles.iconOnlyHintOnMobile : ''} ${className}`}
+      className={`${styles.container} ${iconOnlyHintOnMobile && icon ? styles.iconOnlyHintOnMobile : ''} ${layout === 'stacked' ? styles.stacked : ''} ${className}`}
       data-testid={testId ? `${testId}-container` : undefined}
     >
       <div className={styles.prefixArea}>

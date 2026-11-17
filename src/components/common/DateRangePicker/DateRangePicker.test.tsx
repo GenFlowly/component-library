@@ -157,4 +157,56 @@ describe('DateRangePicker', () => {
     expect(screen.getByText('Last 14 days')).toBeInTheDocument();
     expect(screen.queryByText('Last 30 days')).not.toBeInTheDocument();
   });
+
+  describe('toolbar variant', () => {
+    it('marks the active preset and applies another one on click', () => {
+      const onChange = jest.fn();
+      render(
+        <DateRangePicker
+          variant="toolbar"
+          value={{ from: '2026-10-19', to: '2026-11-17' }}
+          onChange={onChange}
+          maxDate="2026-11-17"
+          presetsAriaLabel="Date range presets"
+          data-testid="picker"
+        />
+      );
+      expect(screen.getByTestId('picker-preset-30d')).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
+      expect(screen.getByTestId('picker-preset-7d')).toHaveAttribute(
+        'aria-pressed',
+        'false'
+      );
+      fireEvent.click(screen.getByTestId('picker-preset-7d'));
+      expect(onChange).toHaveBeenCalledWith({
+        from: '2026-11-11',
+        to: '2026-11-17',
+      });
+      expect(
+        screen.getByRole('group', { name: 'Date range presets' })
+      ).toBeInTheDocument();
+    });
+
+    it('labels the date fields and keeps from no later than to', () => {
+      const onChange = jest.fn();
+      render(
+        <DateRangePicker
+          variant="toolbar"
+          value={{ from: '2026-10-19', to: '2026-11-01' }}
+          onChange={onChange}
+          maxDate="2026-11-17"
+          data-testid="picker"
+        />
+      );
+      fireEvent.change(screen.getByLabelText('From'), {
+        target: { value: '2026-11-05' },
+      });
+      expect(onChange).toHaveBeenCalledWith({
+        from: '2026-11-05',
+        to: '2026-11-05',
+      });
+    });
+  });
 });

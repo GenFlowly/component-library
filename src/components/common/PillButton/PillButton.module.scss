@@ -55,3 +55,15 @@
 
   @include interactive-danger-states;
 }
+
+.large {
+  height: 44px;
+  padding: 0 1.125rem;
+  font-size: 0.9375rem;
+}
+
+.small {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 0.75rem;
+}

@@ -101,6 +101,7 @@ export type { OutlineItem } from './components/common/Outline/outline.models';
 export type {
   MobileHeaderProps,
   MobileHeaderMenuItem,
+  MobileHeaderTrailingAction,
 } from './components/common/MobileHeader/MobileHeader';
 
 // Branding
@@ -184,6 +185,60 @@ export type {
   CredentialStatusPillKind,
 } from './components/common/CredentialCard/CredentialCard';
 export { default as VendorApiKeysManager } from './components/widgets/VendorApiKeysManager/VendorApiKeysManager';
+export { default as StatusPill } from './components/common/StatusPill/StatusPill';
+export type {
+  StatusPillProps,
+  StatusPillKind,
+} from './components/common/StatusPill/StatusPill';
+export { default as SettingsCard } from './components/common/SettingsCard/SettingsCard';
+export type { SettingsCardProps } from './components/common/SettingsCard/SettingsCard';
+export { default as SettingsRow } from './components/common/SettingsCard/SettingsRow';
+export type { SettingsRowProps } from './components/common/SettingsCard/SettingsRow';
+export { default as ToggleRow } from './components/common/ToggleRow/ToggleRow';
+export type { ToggleRowProps } from './components/common/ToggleRow/ToggleRow';
+export { default as KnowledgeStrip } from './components/common/KnowledgeStrip/KnowledgeStrip';
+export type {
+  KnowledgeStripProps,
+  KnowledgeItem,
+} from './components/common/KnowledgeStrip/KnowledgeStrip';
+export { default as StatTile } from './components/common/StatTile/StatTile';
+export type { StatTileProps } from './components/common/StatTile/StatTile';
+export { default as DataTable } from './components/common/DataTable/DataTable';
+export type {
+  DataTableProps,
+  DataTableColumn,
+} from './components/common/DataTable/DataTable';
+export { default as TypedConfirmDialog } from './components/common/TypedConfirmDialog/TypedConfirmDialog';
+export type { TypedConfirmDialogProps } from './components/common/TypedConfirmDialog/TypedConfirmDialog';
+export { default as TreeMenu } from './components/common/TreeMenu/TreeMenu';
+export type {
+  TreeMenuProps,
+  TreeMenuItem,
+  TreeMenuLeaf,
+  TreeMenuSearchHit,
+} from './components/common/TreeMenu/TreeMenu';
+export { default as SlideOverPanel } from './components/common/SlideOverPanel/SlideOverPanel';
+export type { SlideOverPanelProps } from './components/common/SlideOverPanel/SlideOverPanel';
+export { default as InfoDrawer } from './components/common/InfoDrawer/InfoDrawer';
+export type { InfoDrawerProps } from './components/common/InfoDrawer/InfoDrawer';
+export { default as SettingsPageLayout } from './components/common/SettingsPageLayout/SettingsPageLayout';
+export type {
+  SettingsPageLayoutProps,
+  SettingsPageLayoutStrings,
+} from './components/common/SettingsPageLayout/SettingsPageLayout';
+export { default as BarChart } from './components/common/BarChart/BarChart';
+export type {
+  BarChartProps,
+  BarChartPoint,
+} from './components/common/BarChart/BarChart';
+export { formatCount, formatCompactCount } from './utils/numberFormat';
+export { bucketDailySeries } from './utils/dailySeries';
+export type {
+  DailyValue,
+  SeriesBucket,
+  BucketedSeries,
+} from './utils/dailySeries';
+
 export type {
   VendorApiKeysManagerProps,
   VendorApiKeyRowData,

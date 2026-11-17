@@ -11,6 +11,16 @@ export interface MobileHeaderMenuItem {
   'data-testid'?: string;
 }
 
+/** A round icon button at the header's right end, e.g. a page's info button. */
+export interface MobileHeaderTrailingAction {
+  /** Icon asset URL. */
+  icon: string;
+  /** Accessible name of the button. */
+  label: string;
+  onClick: () => void;
+  'data-testid'?: string;
+}
+
 export interface MobileHeaderProps {
   title: string;
   /** Second line under the title (e.g. the loaded instruction persona). */
@@ -25,6 +35,8 @@ export interface MobileHeaderProps {
   titleExpanded?: boolean;
   /** Entries of the kebab (3-dot) menu on the right; omit to hide the kebab. */
   menuItems?: MobileHeaderMenuItem[];
+  /** A round icon button on the right, shown when there is no kebab menu. */
+  trailingAction?: MobileHeaderTrailingAction;
   /** Fired by the hamburger button; the app decides what menu it opens. */
   onMenuClick: () => void;
   children?: React.ReactNode;
@@ -46,6 +58,7 @@ export default function MobileHeader({
   titleActionLabel,
   titleExpanded = false,
   menuItems = [],
+  trailingAction,
   onMenuClick,
   children,
 }: MobileHeaderProps): React.ReactElement {
@@ -161,6 +174,18 @@ export default function MobileHeader({
               </div>
             )}
           </div>
+        ) : trailingAction ? (
+          <button
+            type="button"
+            onClick={trailingAction.onClick}
+            className={styles.circleButton}
+            aria-label={trailingAction.label}
+            data-testid={
+              trailingAction['data-testid'] ?? 'mobile-header-trailing'
+            }
+          >
+            <Icon src={trailingAction.icon} size={22} />
+          </button>
         ) : (
           // Keeps the center column truly centered when there is no kebab
           <div className={styles.circlePlaceholder} aria-hidden="true" />

@@ -34,6 +34,12 @@ export interface DateRangePickerProps {
    * has a meaningful future range).
    */
   maxDate?: string;
+  /**
+   * 'toolbar': one compact row (segmented presets, then label-prefixed From
+   * and To fields) that stacks when its container is under 480px, for a
+   * settings card. @default 'default'
+   */
+  variant?: 'default' | 'toolbar';
   className?: string;
   'data-testid'?: string;
 }
@@ -73,6 +79,7 @@ export default function DateRangePicker({
   toLabel = 'To',
   presetsAriaLabel,
   maxDate,
+  variant = 'default',
   className = '',
   'data-testid': testId,
 }: DateRangePickerProps): React.ReactElement {
@@ -106,6 +113,60 @@ export default function DateRangePicker({
     if (!nextTo) return;
     onChange({ from: nextTo < value.from ? nextTo : value.from, to: nextTo });
   };
+
+  if (variant === 'toolbar') {
+    return (
+      <div className={`${styles.toolbar} ${className}`} data-testid={testId}>
+        {presets.length > 0 && (
+          <div
+            role="group"
+            aria-label={presetsAriaLabel}
+            className={styles.segmented}
+            data-testid={testId ? `${testId}-presets` : undefined}
+          >
+            {presets.map(preset => (
+              <button
+                key={preset.id}
+                type="button"
+                aria-pressed={preset.id === activePresetId}
+                className={preset.id === activePresetId ? styles.segmentOn : ''}
+                onClick={() => handlePresetChange([preset.id])}
+                data-testid={
+                  testId ? `${testId}-preset-${preset.id}` : undefined
+                }
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <span className={styles.spacer} aria-hidden="true" />
+        <label className={styles.prefixedField}>
+          <span className={styles.prefix}>{fromLabel}</span>
+          <input
+            type="date"
+            className={styles.prefixedInput}
+            value={value.from}
+            max={value.to}
+            onChange={handleFromChange}
+            data-testid={testId ? `${testId}-from` : undefined}
+          />
+        </label>
+        <label className={styles.prefixedField}>
+          <span className={styles.prefix}>{toLabel}</span>
+          <input
+            type="date"
+            className={styles.prefixedInput}
+            value={value.to}
+            min={value.from}
+            max={effectiveMax}
+            onChange={handleToChange}
+            data-testid={testId ? `${testId}-to` : undefined}
+          />
+        </label>
+      </div>
+    );
+  }
 
   return (
     <div className={`${styles.container} ${className}`} data-testid={testId}>

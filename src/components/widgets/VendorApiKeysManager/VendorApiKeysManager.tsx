@@ -28,6 +28,12 @@ export interface VendorApiKeyRowData {
   models?: string[];
   /** Renders the model dropdown in a loading state. */
   modelsLoading?: boolean;
+  /** More status pills after the key pill, e.g. "Used by your embedding model". */
+  pills?: React.ReactNode;
+  /** Short muted note at the end of the card header, e.g. "Optional". */
+  hint?: React.ReactNode;
+  /** This vendor's empty-field placeholder (e.g. "pa-…"), in place of `strings.keyPlaceholder`. */
+  keyPlaceholder?: string;
 }
 
 export interface VendorKeySaveResult {
@@ -123,6 +129,11 @@ export interface VendorApiKeysManagerProps {
   ) => Promise<void>;
   /** Overrides for the built-in English strings (i18n hook-in point). */
   strings?: Partial<VendorApiKeysManagerStrings>;
+  /**
+   * Phone-width layout: labels above values, fields full width and 44 px
+   * buttons.
+   */
+  narrow?: boolean;
   /** Base test id; rows derive `-<vendor>-…` suffixed ids. */
   'data-testid'?: string;
 }
@@ -162,8 +173,11 @@ export default function VendorApiKeysManager({
   onDeleteKey,
   onSaveConfig,
   strings: stringOverrides,
+  narrow = false,
   'data-testid': testId = 'vendor-api-keys',
 }: VendorApiKeysManagerProps) {
+  const layout = narrow ? 'stacked' : 'inline';
+  const size = narrow ? 'lg' : 'md';
   const strings = { ...DEFAULT_STRINGS, ...stringOverrides };
   const [rowStates, setRowStates] = useState<Record<string, RowState>>({});
 
@@ -313,6 +327,12 @@ export default function VendorApiKeysManager({
             label={row.label}
             pills={
               <>
+                <CredentialStatusPill
+                  kind={row.keySet ? 'ok' : 'unset'}
+                  data-testid={`${rowId}-status-pill`}
+                >
+                  {row.keySet ? strings.keySetPill : strings.keyNotSetPill}
+                </CredentialStatusPill>
                 {row.keySet && row.savedPriority != null && (
                   <CredentialStatusPill
                     kind="neutral"
@@ -321,25 +341,21 @@ export default function VendorApiKeysManager({
                     {strings.priorityPill(row.savedPriority)}
                   </CredentialStatusPill>
                 )}
-                <CredentialStatusPill
-                  kind={row.keySet ? 'ok' : 'unset'}
-                  data-testid={`${rowId}-status-pill`}
-                >
-                  {row.keySet ? strings.keySetPill : strings.keyNotSetPill}
-                </CredentialStatusPill>
+                {row.pills}
               </>
             }
+            hint={row.hint}
             message={state.message}
             messageKind={state.messageKind}
           >
-            <div className={styles.keyRow}>
+            <div className={`${styles.keyRow} ${narrow ? styles.stacked : ''}`}>
               <InputTextWithHint
                 hint={strings.keyHint}
                 type="password"
                 placeholder={
                   row.keySet
                     ? strings.keyReplacePlaceholder
-                    : strings.keyPlaceholder
+                    : (row.keyPlaceholder ?? strings.keyPlaceholder)
                 }
                 value={state.keyInput}
                 disabled={state.busy}
@@ -347,12 +363,14 @@ export default function VendorApiKeysManager({
                   updateRow(row.vendor, { keyInput: e.target.value })
                 }
                 className={styles.keyInput}
+                layout={layout}
                 data-testid={`${rowId}-key-input`}
               />
               <PillButton
                 label={state.busy ? strings.saving : strings.saveKey}
                 disabled={state.busy || !state.keyInput.trim()}
                 onClick={() => void handleSaveKey(row.vendor)}
+                size={size}
                 data-testid={`${rowId}-save-key`}
               />
               {row.keySet && onDeleteKey && (
@@ -361,13 +379,17 @@ export default function VendorApiKeysManager({
                   variant="danger"
                   disabled={state.busy}
                   onClick={() => void handleDeleteKey(row.vendor)}
+                  size={size}
                   data-testid={`${rowId}-remove-key`}
                 />
               )}
             </div>
 
             {row.keySet && onSaveConfig && (
-              <div className={styles.configRow} data-testid={`${rowId}-config`}>
+              <div
+                className={`${styles.configRow} ${narrow ? styles.stacked : ''}`}
+                data-testid={`${rowId}-config`}
+              >
                 <InputSelectWithHint
                   hint={strings.modelHint}
                   placeholder={
@@ -381,6 +403,7 @@ export default function VendorApiKeysManager({
                   }
                   options={modelOptions}
                   className={styles.modelSelect}
+                  layout={layout}
                   data-testid={`${rowId}-model`}
                 />
                 <InputSelectWithHint
@@ -398,6 +421,7 @@ export default function VendorApiKeysManager({
                     { label: strings.reasoningHigh, value: 'high' },
                   ]}
                   className={styles.modelSelect}
+                  layout={layout}
                   data-testid={`${rowId}-thinking`}
                 />
                 <InputSelectWithHint
@@ -407,6 +431,7 @@ export default function VendorApiKeysManager({
                   onChange={value => updateRow(row.vendor, { priority: value })}
                   options={priorityOptions}
                   className={styles.prioritySelect}
+                  layout={layout}
                   data-testid={`${rowId}-priority`}
                 />
                 <PillButton
@@ -420,6 +445,7 @@ export default function VendorApiKeysManager({
                     !configDirty
                   }
                   onClick={() => void handleSaveConfig(row.vendor)}
+                  size={size}
                   data-testid={`${rowId}-save-config`}
                 />
               </div>

@@ -36,3 +36,7 @@
   @include input-with-hint-element;
   width: 100%; // Keeping component specific override if any
 }
+
+.stacked {
+  @include input-with-hint-stacked;
+}

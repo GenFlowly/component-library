@@ -1,6 +1,4 @@
 @import '../../../styles/variables.scss';
-
-@import '../../../styles/variables.scss';
 @import '../../../styles/mixins.scss';
 
 .container {
@@ -19,4 +17,16 @@
   color: #0064b6;
   /* From SVG icon fill */
   background-color: #0064b6 !important;
+}
+
+.stacked {
+  @include input-with-hint-stacked;
+}
+
+.readOnly {
+  background-color: var(--color-background-tertiary);
+
+  .inputElement {
+    color: var(--color-text-secondary);
+  }
 }

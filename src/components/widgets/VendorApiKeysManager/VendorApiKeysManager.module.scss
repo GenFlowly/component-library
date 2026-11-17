@@ -7,7 +7,7 @@
 .vendorList {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 14px;
 }
 
 .keyRow {
@@ -36,4 +36,17 @@
 .prioritySelect {
   flex: 1 1 280px;
   min-width: 280px;
+}
+
+// Phone width: one field per line, buttons full width
+.stacked {
+  flex-direction: column;
+  align-items: stretch;
+
+  .keyInput,
+  .modelSelect,
+  .prioritySelect {
+    flex: none;
+    min-width: 0;
+  }
 }

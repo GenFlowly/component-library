@@ -1,0 +1,60 @@
+@import '../../../styles/themes.scss';
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.row + .row {
+  padding-top: 10px;
+  border-top: 1px solid var(--sidebar-hairline, var(--color-border-light));
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.description {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.text ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.action {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@container (max-width: 480px) {
+  .stack {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .stack .action > * {
+    flex: 1 1 auto;
+  }
+}

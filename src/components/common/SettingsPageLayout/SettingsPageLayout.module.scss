@@ -1,0 +1,63 @@
+@import '../../../styles/themes.scss';
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.crumb {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.separator {
+  color: var(--color-text-muted);
+}
+
+.current {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 880px;
+  padding: 24px 32px 32px;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--color-text-primary);
+}
+
+.narrow {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px var(--mobile-content-inset, 12px) 20px;
+}

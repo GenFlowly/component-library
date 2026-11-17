@@ -1,0 +1,95 @@
+@import '../../../styles/themes.scss';
+@import '../../../styles/sidebar-card.scss';
+
+.card {
+  @include sidebar-card-props;
+  @include sidebar-card-chrome;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+:global([data-theme='dark']) .card {
+  @include sidebar-card-props-dark;
+  @include sidebar-card-chrome-dark;
+}
+
+.danger {
+  border-color: var(--color-button-danger);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--sidebar-hairline);
+}
+
+.icon {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.title {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-text-secondary);
+}
+
+.danger .title,
+.danger .icon {
+  color: var(--color-error);
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.hint {
+  margin-left: auto;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.flush {
+  padding: 0;
+  gap: 0;
+}
+
+@container (max-width: 480px) {
+  .hint {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+
+  .header {
+    padding: 8px 14px;
+  }
+
+  .body {
+    padding: 12px 14px;
+  }
+
+  .flush {
+    padding: 0;
+  }
+}

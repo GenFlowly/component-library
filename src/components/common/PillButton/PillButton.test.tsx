@@ -78,4 +78,9 @@ describe('PillButton Component', () => {
 
     expect(button).not.toHaveFocus();
   });
+
+  it('renders the small size for table rows', () => {
+    render(<PillButton label="Revoke" size="sm" data-testid="pill" />);
+    expect(screen.getByTestId('pill')).toHaveClass('small');
+  });
 });

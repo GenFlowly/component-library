@@ -1,0 +1,84 @@
+@import '../../../styles/themes.scss';
+
+.chart {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.svg {
+  display: block;
+  overflow: visible;
+  font-family: inherit;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-border-focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.grid {
+  stroke: var(--sidebar-hairline, var(--color-border-light));
+  stroke-width: 1;
+}
+
+.baseline {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.axis {
+  fill: var(--color-text-muted);
+  font-size: 10px;
+}
+
+.label {
+  fill: var(--color-text-primary);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.hit {
+  fill: transparent;
+}
+
+.bar {
+  fill: var(--color-primary);
+  transition: fill $transition-fast;
+}
+
+.barActive {
+  fill: var(--color-primary-pressed);
+}
+
+:global([data-theme='dark']) .barActive {
+  fill: #5ab0ff;
+}
+
+.tooltip {
+  rect {
+    fill: var(--color-background-secondary);
+    stroke: var(--color-border);
+  }
+}
+
+.tooltipTitle {
+  fill: var(--color-text-primary);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.tooltipDetail {
+  fill: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

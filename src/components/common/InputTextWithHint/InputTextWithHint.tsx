@@ -14,6 +14,14 @@ interface InputTextWithHintProps {
   type?: string;
   'data-testid'?: string;
   disabled?: boolean;
+  /** Shown but not editable, e.g. a locked choice. */
+  readOnly?: boolean;
+  /**
+   * 'stacked' puts the label above the value, for phone-width forms where a
+   * side label would squeeze the value.
+   * @default 'inline'
+   */
+  layout?: 'inline' | 'stacked';
 }
 
 export const InputTextWithHint: React.FC<InputTextWithHintProps> = ({
@@ -27,10 +35,12 @@ export const InputTextWithHint: React.FC<InputTextWithHintProps> = ({
   type = 'text',
   'data-testid': testId,
   disabled = false,
+  readOnly = false,
+  layout = 'inline',
 }) => {
   return (
     <div
-      className={`${styles.container} ${className}`}
+      className={`${styles.container} ${layout === 'stacked' ? styles.stacked : ''} ${readOnly ? styles.readOnly : ''} ${className}`}
       data-testid={testId ? `${testId}-container` : undefined}
     >
       {(icon || hint) && (
@@ -62,6 +72,7 @@ export const InputTextWithHint: React.FC<InputTextWithHintProps> = ({
         autoFocus={autoFocus}
         data-testid={testId}
         disabled={disabled}
+        readOnly={readOnly}
       />
     </div>
   );

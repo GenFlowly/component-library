@@ -1,0 +1,45 @@
+@import '../../../styles/themes.scss';
+
+.strip {
+  display: flex;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border-light);
+  border-radius: $widget-radius;
+  background: var(--color-background-secondary);
+}
+
+.row {
+  gap: 14px;
+}
+
+.stack {
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.title {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.text {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.stack .title,
+.stack .text {
+  font-size: 0.875rem;
+}

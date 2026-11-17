@@ -25,6 +25,12 @@ export interface PillButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
    */
   variant?: 'primary' | 'secondary' | 'danger';
   /**
+   * 'sm' is 26 px tall, for actions inside table rows; 'lg' is 44 px tall,
+   * a full finger target for phone layouts.
+   * @default 'md'
+   */
+  size?: 'sm' | 'md' | 'lg';
+  /**
    * Test id applied to the root `<button>`. Also derives `-icon` and
    * `-text` suffixed ids for the icon and string-label span.
    */
@@ -44,6 +50,7 @@ export default function PillButton({
   iconSize = 16,
   className = '',
   variant = 'primary',
+  size = 'md',
   type = 'button',
   'data-testid': testId,
   ...props
@@ -57,7 +64,7 @@ export default function PillButton({
 
   return (
     <button
-      className={`${styles.pillButton} ${variantClass} ${className}`}
+      className={`${styles.pillButton} ${variantClass} ${size === 'lg' ? styles.large : size === 'sm' ? styles.small : ''} ${className}`}
       type={type}
       data-testid={testId}
       {...props}
