@@ -47,4 +47,24 @@ describe('MenuSearchField', () => {
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(input).not.toHaveFocus();
   });
+
+  test('the clear button shows its name as a tooltip', () => {
+    renderField('tax');
+    const clear = screen.getByRole('button', { name: 'Clear search' });
+    fireEvent.mouseEnter(clear.parentElement!);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Clear search');
+  });
+
+  test('the sidebar variant is the smaller field', () => {
+    const { container } = render(
+      <MenuSearchField
+        value=""
+        onChange={onChange}
+        placeholder="Search chats"
+        clearLabel="Clear search"
+        variant="sidebar"
+      />
+    );
+    expect(container.firstChild).toHaveClass('field', 'sidebar');
+  });
 });

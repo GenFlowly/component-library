@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Tooltip from './Tooltip';
 import '@testing-library/jest-dom';
@@ -203,5 +203,59 @@ describe('Tooltip Component', () => {
         screen.queryByTestId('test-tooltip-content')
       ).not.toBeInTheDocument();
     });
+  });
+
+  test('puts the given class on the wrapper', () => {
+    render(
+      <Tooltip {...defaultProps} className="grow">
+        <button>Trigger</button>
+      </Tooltip>
+    );
+    expect(screen.getByTestId('test-tooltip')).toHaveClass('grow');
+  });
+
+  test('a tap shows no tooltip from the hover and focus the browser emulates', () => {
+    const now = jest.spyOn(Date, 'now').mockReturnValue(10_000);
+    try {
+      render(
+        <Tooltip {...defaultProps}>
+          <button>Trigger</button>
+        </Tooltip>
+      );
+      const trigger = screen.getByTestId('test-tooltip');
+      fireEvent.touchStart(trigger);
+      fireEvent.touchEnd(trigger);
+      fireEvent.mouseEnter(trigger);
+      fireEvent.focus(screen.getByText('Trigger'));
+      expect(
+        screen.queryByTestId('test-tooltip-content')
+      ).not.toBeInTheDocument();
+
+      // A real hover long after the tap still shows it
+      now.mockReturnValue(20_000);
+      fireEvent.mouseEnter(trigger);
+      expect(screen.getByTestId('test-tooltip-content')).toBeInTheDocument();
+
+      // A touch hides a tooltip that is showing
+      fireEvent.touchStart(trigger);
+      expect(
+        screen.queryByTestId('test-tooltip-content')
+      ).not.toBeInTheDocument();
+    } finally {
+      now.mockRestore();
+    }
+  });
+  test('showOnFocus off: focus shows nothing, hover still does', () => {
+    render(
+      <Tooltip {...defaultProps} showOnFocus={false}>
+        <input aria-label="Search" />
+      </Tooltip>
+    );
+    fireEvent.focus(screen.getByLabelText('Search'));
+    expect(
+      screen.queryByTestId('test-tooltip-content')
+    ).not.toBeInTheDocument();
+    fireEvent.mouseEnter(screen.getByTestId('test-tooltip'));
+    expect(screen.getByTestId('test-tooltip-content')).toBeInTheDocument();
   });
 });

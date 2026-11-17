@@ -17,22 +17,32 @@
   height: auto;
 }
 
-// Each pane is its own floating sidebar card, matching ResizableSidebar's
-// material so a stacked split reads as two sibling sidebars
 .pane {
-  @include sidebar-card-props;
-  @include sidebar-card-chrome;
   display: flex;
   flex-direction: column;
   flex: 0 1 auto; // Top pane: height driven by the inline flex-basis fraction
   min-height: 0;
 }
 
-@include sidebar-card-scrollbars('.pane');
+// Unless bare, each pane is its own floating sidebar card, matching
+// ResizableSidebar's material so a stacked split reads as two sibling sidebars
+.cardPane {
+  @include sidebar-card-props;
+  @include sidebar-card-chrome;
+}
 
-:global([data-theme='dark']) .pane {
+@include sidebar-card-scrollbars('.cardPane');
+
+:global([data-theme='dark']) .cardPane {
   @include sidebar-card-props-dark;
   @include sidebar-card-chrome-dark;
+}
+
+// Bare panes hold a SidebarWidget each, which fills its pane (and hugs its
+// header once the pane hugs too)
+.bare > .pane > * {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .paneFill {
@@ -84,6 +94,34 @@
   &:active .dividerGrip {
     opacity: 1;
   }
+}
+
+// Between two widgets the divider is the same gap the dock leaves between
+// its cards; the grip shows on hover, drag and keyboard focus
+.bare .divider {
+  width: 100%;
+  height: 8px;
+
+  &::before {
+    top: -2px;
+    bottom: -2px;
+  }
+}
+
+.bare .dividerTouch {
+  height: 0.75rem;
+
+  &::before {
+    top: -20px;
+    bottom: -12px;
+  }
+}
+
+// The tooltip wraps the divider, so the wrapper takes the divider's place in
+// the column
+.dividerTip {
+  display: flex;
+  flex: 0 0 auto;
 }
 
 .dividerGrip {

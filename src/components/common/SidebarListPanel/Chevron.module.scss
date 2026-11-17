@@ -1,0 +1,14 @@
+@import '../../../styles/themes.scss';
+
+.chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: $color-text-muted;
+  transition: transform $transition-fast;
+}
+
+.expanded {
+  transform: rotate(90deg);
+}

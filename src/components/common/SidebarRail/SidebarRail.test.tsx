@@ -60,6 +60,13 @@ describe('SidebarRail', () => {
     ).toHaveAttribute('aria-expanded', 'false');
   });
 
+  test('tabs show their name as a tooltip, to the side away from the edge', () => {
+    setup();
+    const tab = screen.getByRole('button', { name: 'Projects' });
+    fireEvent.mouseEnter(tab.parentElement!);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Projects');
+  });
+
   test('routes clicks to the matching callbacks', () => {
     const { onNewChat, onChats, onExpand } = setup();
     fireEvent.click(screen.getByTestId('rail-new'));

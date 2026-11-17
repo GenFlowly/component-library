@@ -1,5 +1,6 @@
 import React from 'react';
 import IconButton from '../IconButton/IconButton';
+import Tooltip from '../Tooltip/Tooltip';
 import { ICONS } from '../../../constants/icons';
 import styles from './SidebarRail.module.scss';
 
@@ -68,16 +69,17 @@ export default function SidebarRail({
       {tabs.length > 0 && (
         <div className={styles.tabs}>
           {tabs.map(tab => (
-            <button
-              key={tab.id}
-              type="button"
-              className={`${styles.tab} ${tab.active ? styles.activeTab : ''}`}
-              onClick={tab.onClick}
-              aria-current={tab.active ? 'true' : undefined}
-              data-testid={tab.testId}
-            >
-              {tab.label}
-            </button>
+            <Tooltip key={tab.id} content={tab.label} position={tooltipSide}>
+              <button
+                type="button"
+                className={`${styles.tab} ${tab.active ? styles.activeTab : ''}`}
+                onClick={tab.onClick}
+                aria-current={tab.active ? 'true' : undefined}
+                data-testid={tab.testId}
+              >
+                {tab.label}
+              </button>
+            </Tooltip>
           ))}
         </div>
       )}

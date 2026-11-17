@@ -1,4 +1,5 @@
 import React, {
+  createContext,
   ReactNode,
   useContext,
   useEffect,
@@ -7,6 +8,9 @@ import React, {
   useState,
 } from 'react';
 import ScrollArea from '../ScrollArea/ScrollArea';
+import Tooltip from '../Tooltip/Tooltip';
+import ActionMenu from '../ActionMenu/ActionMenu';
+import Chevron from './Chevron';
 import SwipeableRow, { SwipeRowsContext } from './SwipeableRow';
 import styles from './SidebarListPanel.module.scss';
 
@@ -22,6 +26,9 @@ export interface SidebarListItemAction {
   revealOnHover?: boolean;
   // Fill of the action in a swipe tray; ignored on inline buttons
   tone?: 'neutral' | 'primary' | 'muted';
+  // Which swipe tray holds this action on a touch row: 'trailing' (swipe
+  // left, the default) or 'leading' (swipe right). Read for menuActions only.
+  swipe?: 'leading' | 'trailing';
   testId?: string;
 }
 
@@ -40,6 +47,9 @@ export interface SidebarListItem {
   action?: SidebarListItemAction;
   // Trailing buttons shown at the row's right edge, in order
   actions?: SidebarListItemAction[];
+  // Actions behind the row's More actions button. On touch rows of the menu
+  // variant they move into the swipe trays instead (see `swipe`).
+  menuActions?: SidebarListItemAction[];
   // Child items (e.g. conversations forked off this one), rendered indented
   // under the row behind a connecting tree guide; recursive
   children?: SidebarListItem[];
@@ -69,6 +79,9 @@ export interface SidebarListGroup {
   // sibling buttons (clicking one never toggles expansion), honoring
   // revealOnHover like item actions.
   actions?: SidebarListItemAction[];
+  // A collapsible row's actions behind its More actions button, or in its
+  // swipe trays on touch rows of the menu variant
+  menuActions?: SidebarListItemAction[];
   testId?: string;
 }
 
@@ -88,6 +101,11 @@ export interface SidebarListPanelProps {
   // 'menu': the full-screen mobile menu. Touch sizing at every width it shows
   // at, and on touch devices item actions move into a swipe tray.
   variant?: 'default' | 'menu';
+  // 'card': the list sits inside a SidebarWidget and shows the card's
+  // material instead of painting its own sidebar background.
+  surface?: 'panel' | 'card';
+  // Accessible name and tooltip of the button that opens a row's menuActions
+  moreActionsLabel?: string;
   // Infinite scroll: called when the end of the scrolling list comes within
   // ~120px of view — including right after a load that still doesn't fill
   // the viewport. Pass it only while another page can actually be fetched
@@ -104,6 +122,8 @@ export interface SidebarListPanelProps {
     endSentinel?: string;
   };
 }
+
+const MoreActionsLabelContext = createContext('More actions');
 
 // Styled pagination button for the panel's footer slot
 export function SidebarListLoadMore({
@@ -129,11 +149,96 @@ export function SidebarListLoadMore({
   );
 }
 
+function ActionButton({
+  action,
+  className,
+}: {
+  action: SidebarListItemAction;
+  className: string;
+}) {
+  return (
+    <Tooltip content={action.label} position="bottom">
+      <button
+        type="button"
+        className={`${className} ${action.revealOnHover ? styles.hoverReveal : ''}`}
+        onClick={action.onClick}
+        aria-label={action.label}
+        data-testid={action.testId}
+      >
+        {action.icon}
+      </button>
+    </Tooltip>
+  );
+}
+
+// Inline buttons, then the More actions button when the row has a menu
+function RowActions({
+  inline,
+  menu,
+  testId,
+}: {
+  inline: SidebarListItemAction[];
+  menu: SidebarListItemAction[];
+  testId?: string;
+}) {
+  const moreActionsLabel = useContext(MoreActionsLabelContext);
+  if (inline.length === 0 && menu.length === 0) return null;
+  return (
+    <div className={styles.actionsWrap}>
+      {inline.map((action, index) => (
+        <ActionButton
+          key={index}
+          action={action}
+          className={styles.actionBtn}
+        />
+      ))}
+      {menu.length > 0 && (
+        <ActionMenu
+          label={moreActionsLabel}
+          items={menu.map(action => ({
+            icon: action.icon,
+            label: action.label,
+            onClick: action.onClick,
+            testId: action.testId,
+          }))}
+          className={`${styles.actionBtn} ${styles.moreBtn} ${styles.hoverReveal}`}
+          data-testid={testId ? `${testId}-more` : undefined}
+          menuTestId={testId ? `${testId}-menu` : undefined}
+        />
+      )}
+    </div>
+  );
+}
+
+// On a touch row, menu actions split into the two trays by their side, and
+// inline actions join the trailing tray (they have nowhere to sit otherwise)
+function swipeTrays(
+  inline: SidebarListItemAction[],
+  menu: SidebarListItemAction[]
+) {
+  return {
+    leading: menu.filter(action => action.swipe === 'leading'),
+    trailing: [
+      ...inline,
+      ...menu.filter(action => (action.swipe ?? 'trailing') === 'trailing'),
+    ],
+  };
+}
+
+function rowActionsClass(count: number): string {
+  if (count === 0) return styles.noActions;
+  return count > 1 ? styles.multiAction : '';
+}
+
 function ItemRow({ item }: { item: SidebarListItem }) {
   const { swipeRows } = useContext(SwipeRowsContext);
-  const itemActions = item.actions ?? (item.action ? [item.action] : []);
+  const inline = item.actions ?? (item.action ? [item.action] : []);
+  const menu = item.menuActions ?? [];
   const children = item.children ?? [];
-  const swipeable = swipeRows && itemActions.length > 0;
+  const trays = swipeRows ? swipeTrays(inline, menu) : null;
+  const swipeable =
+    trays != null && trays.leading.length + trays.trailing.length > 0;
+  const buttonCount = swipeable ? 0 : inline.length + (menu.length > 0 ? 1 : 0);
   const rowButton = (
     <button
       className={`${styles.item} ${item.isActive ? styles.active : ''}`}
@@ -156,32 +261,19 @@ function ItemRow({ item }: { item: SidebarListItem }) {
     // The row itself is a div inside the li so hover-reveal and the action
     // overlay stay scoped to this row, not the nested children below it
     <li className={styles.itemLi}>
-      <div
-        className={`${styles.itemRow} ${!swipeable && itemActions.length > 1 ? styles.multiAction : ''} ${itemActions.length === 0 ? styles.noActions : ''}`}
-      >
+      <div className={`${styles.itemRow} ${rowActionsClass(buttonCount)}`}>
         {swipeable ? (
-          <SwipeableRow rowId={item.id} actions={itemActions}>
+          <SwipeableRow
+            rowId={item.id}
+            leadingActions={trays.leading}
+            trailingActions={trays.trailing}
+          >
             {rowButton}
           </SwipeableRow>
         ) : (
           <>
             {rowButton}
-            {itemActions.length > 0 && (
-              <div className={styles.actionsWrap}>
-                {itemActions.map((action, index) => (
-                  <button
-                    key={index}
-                    className={`${styles.actionBtn} ${action.revealOnHover ? styles.hoverReveal : ''}`}
-                    onClick={action.onClick}
-                    title={action.label}
-                    aria-label={action.label}
-                    data-testid={action.testId}
-                  >
-                    {action.icon}
-                  </button>
-                ))}
-              </div>
-            )}
+            <RowActions inline={inline} menu={menu} testId={item.testId} />
           </>
         )}
       </div>
@@ -196,28 +288,6 @@ function ItemRow({ item }: { item: SidebarListItem }) {
   );
 }
 
-function Chevron({ expanded }: { expanded: boolean }) {
-  return (
-    <span
-      className={`${styles.chevron} ${expanded ? styles.chevronExpanded : ''}`}
-      aria-hidden="true"
-    >
-      <svg
-        viewBox="0 0 16 16"
-        width="12"
-        height="12"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M6 4l4 4-4 4" />
-      </svg>
-    </span>
-  );
-}
-
 function GroupSection({
   group,
   // Top-level section headings (Projects, Pinned, Recents) stick to the top
@@ -228,6 +298,7 @@ function GroupSection({
   group: SidebarListGroup;
   isTopLevel?: boolean;
 }) {
+  const { swipeRows } = useContext(SwipeRowsContext);
   const [expanded, setExpanded] = useState(group.defaultExpanded ?? false);
   const headerRef = useRef<HTMLButtonElement>(null);
   // Tracks the PREVIOUS render's expanded value so the scroll-into-view
@@ -283,16 +354,11 @@ function GroupSection({
             {headerActions.length > 0 && (
               <span className={styles.groupHeaderActions}>
                 {headerActions.map((action, index) => (
-                  <button
+                  <ActionButton
                     key={index}
+                    action={action}
                     className={styles.groupHeaderBtn}
-                    onClick={action.onClick}
-                    title={action.label}
-                    aria-label={action.label}
-                    data-testid={action.testId}
-                  >
-                    {action.icon}
-                  </button>
+                  />
                 ))}
               </span>
             )}
@@ -304,7 +370,12 @@ function GroupSection({
   }
 
   const contentId = `sidebar-list-group-${group.id}`;
-  const headerActions = group.actions ?? [];
+  const inline = group.actions ?? [];
+  const menu = group.menuActions ?? [];
+  const trays = swipeRows ? swipeTrays([], menu) : null;
+  const swipeable =
+    trays != null && trays.leading.length + trays.trailing.length > 0;
+  const buttonCount = inline.length + (!swipeable && menu.length > 0 ? 1 : 0);
   const handleToggle = () => {
     const next = !expanded;
     setExpanded(next);
@@ -321,47 +392,51 @@ function GroupSection({
     ? styles.groupHeaderLabel
     : styles.collapsibleLabel;
 
+  const header = (
+    <button
+      ref={headerRef}
+      className={headerClassName}
+      onClick={hasChildren ? handleToggle : undefined}
+      aria-expanded={hasChildren ? expanded : undefined}
+      aria-controls={hasChildren && expanded ? contentId : undefined}
+      title={group.label}
+      data-testid={group.testId}
+    >
+      {hasChildren ? (
+        <Chevron expanded={expanded} />
+      ) : (
+        // Same footprint as the chevron so the row's icon and label stay
+        // aligned with expandable siblings
+        <span className={styles.chevronSpacer} aria-hidden="true" />
+      )}
+      {group.icon != null && (
+        <span className={styles.groupIcon}>{group.icon}</span>
+      )}
+      <span className={labelClassName}>{group.label}</span>
+    </button>
+  );
+
   return (
     <div className={styles.group}>
       <div
-        className={`${styles.collapsibleHeaderRow} ${isTopLevel ? styles.stickyHeader : ''} ${headerActions.length > 0 ? styles.hasActions : ''} ${headerActions.length > 1 ? styles.multiAction : ''}`}
+        className={`${styles.collapsibleHeaderRow} ${isTopLevel ? styles.stickyHeader : ''} ${buttonCount > 0 ? styles.hasActions : ''} ${buttonCount > 1 ? styles.multiAction : ''}`}
       >
-        <button
-          ref={headerRef}
-          className={headerClassName}
-          onClick={hasChildren ? handleToggle : undefined}
-          aria-expanded={hasChildren ? expanded : undefined}
-          aria-controls={hasChildren && expanded ? contentId : undefined}
-          title={group.label}
-          data-testid={group.testId}
-        >
-          {hasChildren ? (
-            <Chevron expanded={expanded} />
-          ) : (
-            // Same footprint as the chevron so the row's icon and label stay
-            // aligned with expandable siblings
-            <span className={styles.chevronSpacer} aria-hidden="true" />
-          )}
-          {group.icon != null && (
-            <span className={styles.groupIcon}>{group.icon}</span>
-          )}
-          <span className={labelClassName}>{group.label}</span>
-        </button>
-        {headerActions.length > 0 && (
-          <div className={styles.actionsWrap}>
-            {headerActions.map((action, index) => (
-              <button
-                key={index}
-                className={`${styles.actionBtn} ${action.revealOnHover ? styles.hoverReveal : ''}`}
-                onClick={action.onClick}
-                title={action.label}
-                aria-label={action.label}
-                data-testid={action.testId}
-              >
-                {action.icon}
-              </button>
-            ))}
-          </div>
+        {swipeable ? (
+          <SwipeableRow
+            rowId={group.id}
+            leadingActions={trays.leading}
+            trailingActions={trays.trailing}
+          >
+            <div className={styles.collapsibleHeaderInner}>
+              {header}
+              <RowActions inline={inline} menu={[]} testId={group.testId} />
+            </div>
+          </SwipeableRow>
+        ) : (
+          <>
+            {header}
+            <RowActions inline={inline} menu={menu} testId={group.testId} />
+          </>
         )}
       </div>
       {hasChildren && expanded && (
@@ -407,6 +482,8 @@ export default function SidebarListPanel({
   emptyText,
   listAriaLabel,
   variant = 'default',
+  surface = 'panel',
+  moreActionsLabel = 'More actions',
   onEndReached,
   footer,
   'data-testid': testId,
@@ -448,65 +525,67 @@ export default function SidebarListPanel({
 
   return (
     <div
-      className={`${styles.container} ${variant === 'menu' ? styles.menuVariant : ''}`}
+      className={`${styles.container} ${variant === 'menu' ? styles.menuVariant : ''} ${surface === 'card' ? styles.surfaceCard : ''}`}
       data-testid={testId}
     >
-      <SwipeRowsContext.Provider value={swipeContext}>
-        {title && <div className={styles.header}>{title}</div>}
+      <MoreActionsLabelContext.Provider value={moreActionsLabel}>
+        <SwipeRowsContext.Provider value={swipeContext}>
+          {title && <div className={styles.header}>{title}</div>}
 
-        {isLoading && isEmpty ? (
-          <div className={styles.skeleton} data-testid={testIds?.loading}>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className={styles.skeletonItem}
-                style={{ width: `${70 + (i % 3) * 10}%` }}
-              />
-            ))}
-          </div>
-        ) : hasError && isEmpty ? (
-          // A failed background refresh keeps showing the stale list;
-          // the error state is only for having nothing at all to show
-          <div className={styles.emptyState} data-testid={testIds?.error}>
-            {errorText}
-          </div>
-        ) : isEmpty ? (
-          <div className={styles.emptyState} data-testid={testIds?.empty}>
-            {emptyText}
-          </div>
-        ) : (
-          <>
-            {hasContent(fixed) && (
-              <div className={styles.fixedSection}>
-                {fixed.map(group => (
+          {isLoading && isEmpty ? (
+            <div className={styles.skeleton} data-testid={testIds?.loading}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={styles.skeletonItem}
+                  style={{ width: `${70 + (i % 3) * 10}%` }}
+                />
+              ))}
+            </div>
+          ) : hasError && isEmpty ? (
+            // A failed background refresh keeps showing the stale list;
+            // the error state is only for having nothing at all to show
+            <div className={styles.emptyState} data-testid={testIds?.error}>
+              {errorText}
+            </div>
+          ) : isEmpty ? (
+            <div className={styles.emptyState} data-testid={testIds?.empty}>
+              {emptyText}
+            </div>
+          ) : (
+            <>
+              {hasContent(fixed) && (
+                <div className={styles.fixedSection}>
+                  {fixed.map(group => (
+                    <GroupSection key={group.id} group={group} isTopLevel />
+                  ))}
+                </div>
+              )}
+              <ScrollArea
+                ref={listRef}
+                className={styles.list}
+                aria-label={listAriaLabel}
+                data-testid={testIds?.list}
+                onScroll={openRowId ? () => setOpenRowId(null) : undefined}
+              >
+                {groups.map(group => (
                   <GroupSection key={group.id} group={group} isTopLevel />
                 ))}
-              </div>
-            )}
-            <ScrollArea
-              ref={listRef}
-              className={styles.list}
-              aria-label={listAriaLabel}
-              data-testid={testIds?.list}
-              onScroll={openRowId ? () => setOpenRowId(null) : undefined}
-            >
-              {groups.map(group => (
-                <GroupSection key={group.id} group={group} isTopLevel />
-              ))}
-              {onEndReached != null && (
-                <div
-                  ref={endSentinelRef}
-                  className={styles.endSentinel}
-                  aria-hidden="true"
-                  data-testid={testIds?.endSentinel}
-                />
-              )}
-            </ScrollArea>
-          </>
-        )}
+                {onEndReached != null && (
+                  <div
+                    ref={endSentinelRef}
+                    className={styles.endSentinel}
+                    aria-hidden="true"
+                    data-testid={testIds?.endSentinel}
+                  />
+                )}
+              </ScrollArea>
+            </>
+          )}
 
-        {footer}
-      </SwipeRowsContext.Provider>
+          {footer}
+        </SwipeRowsContext.Provider>
+      </MoreActionsLabelContext.Provider>
     </div>
   );
 }

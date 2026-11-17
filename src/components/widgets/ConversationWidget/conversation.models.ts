@@ -290,6 +290,11 @@ export interface IConversationContext {
   pendingProjectId?: string | null;
   /** Reset to a fresh conversation that will be born inside [projectId]. */
   startConversationInProject?: (projectId: string) => void;
+  /**
+   * Drop the pending project and keep the draft: the next conversation is
+   * born outside any project (its project was deleted meanwhile).
+   */
+  clearPendingProject?: () => void;
 
   /** Active Instruction Management */
   selectedInstructionId: string | null;

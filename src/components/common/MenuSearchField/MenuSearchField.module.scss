@@ -64,3 +64,24 @@
     outline-offset: -2px;
   }
 }
+
+// 🖥️ Under a desktop sidebar's New Chat button: as tall as the button, a
+// bordered field on the page's input surface
+.sidebar {
+  height: 34px;
+  gap: 0.5rem;
+  padding-left: 0.75rem;
+  border: 1px solid $color-border;
+  border-radius: 17px;
+  background-color: $color-background-secondary;
+
+  .input {
+    padding-right: 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .clear {
+    width: 32px;
+    height: 32px;
+  }
+}

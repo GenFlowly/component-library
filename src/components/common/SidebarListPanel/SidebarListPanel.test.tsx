@@ -465,9 +465,12 @@ describe('SidebarListPanel nested groups', () => {
 
     const row = screen.getByTestId('project-row');
     const btn = screen.getByTestId('project-new-conv-btn');
-    expect(btn).toHaveAttribute('title', 'New conversation');
     expect(btn).toHaveAttribute('aria-label', 'New conversation');
+    expect(btn).not.toHaveAttribute('title');
     expect(btn.className).toContain('hoverReveal');
+    fireEvent.mouseEnter(btn.parentElement!);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('New conversation');
+    fireEvent.mouseLeave(btn.parentElement!);
 
     await userEvent.click(btn);
     expect(onNewConversation).toHaveBeenCalledTimes(1);
@@ -592,8 +595,10 @@ describe('SidebarListPanel nested groups', () => {
     );
 
     const btn = screen.getByTestId('new-project-btn');
-    expect(btn).toHaveAttribute('title', 'New project');
     expect(btn).toHaveAttribute('aria-label', 'New project');
+    fireEvent.mouseEnter(btn.parentElement!);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('New project');
+    fireEvent.mouseLeave(btn.parentElement!);
     await userEvent.click(btn);
     expect(onNew).toHaveBeenCalledTimes(1);
   });
@@ -781,8 +786,13 @@ describe('SidebarListPanel menu variant', () => {
     fireEvent.click(row);
   };
 
-  const contentOf = (id: string) =>
-    screen.getByTestId(`row-${id}`).parentElement as HTMLElement;
+  const trayWidth = (id: string, side: 'leading' | 'trailing') =>
+    (
+      screen
+        .getByTestId(`row-${id}`)
+        .closest('[class*="swipeRow"]')!
+        .querySelector(`[data-swipe-tray="${side}"]`) as HTMLElement
+    ).style.width;
 
   beforeEach(() => {
     archive.mockClear();
@@ -792,25 +802,30 @@ describe('SidebarListPanel menu variant', () => {
   it('keeps inline buttons on a device with hover', () => {
     useTouchDevice(false);
     renderMenuPanel();
-    expect(contentOf('one').style.transform).toBe('');
+    const row = screen.getByTestId('row-one');
+    expect(row.closest('[class*="swipeRow"]')).toBeNull();
     expect(screen.getByTestId('archive-one')).toBeInTheDocument();
   });
 
   it('opens a row on a left swipe without selecting it', () => {
     useTouchDevice(true);
     renderMenuPanel();
+    expect(trayWidth('one', 'trailing')).toBe('0px');
     swipe(screen.getByTestId('row-one'), 200, 120);
-    expect(contentOf('one').style.transform).toBe('translateX(-48px)');
+    expect(trayWidth('one', 'trailing')).toBe('56px');
     expect(select).not.toHaveBeenCalled();
   });
 
-  it('stays closed when the swipe is too short or mostly vertical', () => {
+  it('stays closed when the swipe is too short, mostly vertical, or toward a side without actions', () => {
     useTouchDevice(true);
     renderMenuPanel();
     swipe(screen.getByTestId('row-one'), 200, 185);
-    expect(contentOf('one').style.transform).toBe('translateX(0px)');
+    expect(trayWidth('one', 'trailing')).toBe('0px');
     swipe(screen.getByTestId('row-two'), 200, 150, 90);
-    expect(contentOf('two').style.transform).toBe('translateX(0px)');
+    expect(trayWidth('two', 'trailing')).toBe('0px');
+    // No leading actions: a right swipe has nothing to show
+    swipe(screen.getByTestId('row-two'), 120, 220);
+    expect(trayWidth('two', 'trailing')).toBe('0px');
   });
 
   it('keeps one row open at a time and closes on an outside press', () => {
@@ -818,11 +833,11 @@ describe('SidebarListPanel menu variant', () => {
     renderMenuPanel();
     swipe(screen.getByTestId('row-one'), 200, 120);
     swipe(screen.getByTestId('row-two'), 200, 120);
-    expect(contentOf('one').style.transform).toBe('translateX(0px)');
-    expect(contentOf('two').style.transform).toBe('translateX(-48px)');
+    expect(trayWidth('one', 'trailing')).toBe('0px');
+    expect(trayWidth('two', 'trailing')).toBe('56px');
 
     fireEvent.pointerDown(document.body);
-    expect(contentOf('two').style.transform).toBe('translateX(0px)');
+    expect(trayWidth('two', 'trailing')).toBe('0px');
   });
 
   it('closes an open row on tap instead of selecting it', () => {
@@ -834,7 +849,7 @@ describe('SidebarListPanel menu variant', () => {
     fireEvent.pointerUp(row, { clientX: 100, clientY: 100 });
     fireEvent.click(row);
     expect(select).not.toHaveBeenCalled();
-    expect(contentOf('one').style.transform).toBe('translateX(0px)');
+    expect(trayWidth('one', 'trailing')).toBe('0px');
 
     fireEvent.click(row);
     expect(select).toHaveBeenCalledTimes(1);
@@ -845,11 +860,215 @@ describe('SidebarListPanel menu variant', () => {
     renderMenuPanel();
     const action = screen.getByTestId('archive-one');
     fireEvent.focus(action);
-    expect(contentOf('one').style.transform).toBe('translateX(-48px)');
+    expect(trayWidth('one', 'trailing')).toBe('56px');
 
     fireEvent.click(action);
     expect(archive).toHaveBeenCalledTimes(1);
-    expect(contentOf('one').style.transform).toBe('translateX(0px)');
+    expect(trayWidth('one', 'trailing')).toBe('0px');
+  });
+
+  describe('menu actions', () => {
+    const move = jest.fn();
+    const pin = jest.fn();
+    const remove = jest.fn();
+    const rename = jest.fn();
+    const newChat = jest.fn();
+
+    const menuActions = (id: string) => [
+      {
+        icon: <span />,
+        label: 'Move to project',
+        onClick: move,
+        testId: `move-${id}`,
+      },
+      {
+        icon: <span />,
+        label: 'Pin',
+        onClick: pin,
+        tone: 'primary' as const,
+        swipe: 'leading' as const,
+        testId: `pin-${id}`,
+      },
+      {
+        icon: <span />,
+        label: 'Delete',
+        onClick: remove,
+        tone: 'muted' as const,
+        testId: `delete-${id}`,
+      },
+    ];
+
+    const renderChats = (props: Record<string, unknown> = {}) =>
+      render(
+        <SidebarListPanel
+          {...baseProps}
+          title={undefined}
+          variant="menu"
+          surface="card"
+          moreActionsLabel="More actions"
+          data-testid="panel"
+          groups={[
+            {
+              id: 'wrapper',
+              label: '',
+              groups: [
+                {
+                  id: 'project-p1',
+                  label: 'Startup',
+                  collapsible: true,
+                  testId: 'project-p1',
+                  actions: [
+                    {
+                      icon: <span />,
+                      label: 'New conversation',
+                      onClick: newChat,
+                      testId: 'new-chat-p1',
+                    },
+                  ],
+                  menuActions: [
+                    {
+                      icon: <span />,
+                      label: 'Rename project',
+                      onClick: rename,
+                      testId: 'rename-p1',
+                    },
+                    {
+                      icon: <span />,
+                      label: 'Delete project',
+                      onClick: remove,
+                      tone: 'muted' as const,
+                      testId: 'delete-p1',
+                    },
+                  ],
+                  items: [{ id: 'inner', label: 'Inside', onSelect: select }],
+                },
+              ],
+            },
+            {
+              id: 'recents',
+              label: 'Recents',
+              items: ['one', 'two'].map(id => ({
+                id,
+                label: `Chat ${id}`,
+                onSelect: select,
+                testId: `row-${id}`,
+                menuActions: menuActions(id),
+              })),
+            },
+          ]}
+          {...props}
+        />
+      );
+
+    beforeEach(() => {
+      [move, pin, remove, rename, newChat].forEach(fn => fn.mockClear());
+    });
+
+    it('puts them behind one More actions button on a device with hover', () => {
+      useTouchDevice(false);
+      renderChats();
+      expect(screen.getByTestId('panel')).toHaveClass(
+        'surfaceCard',
+        'menuVariant'
+      );
+      expect(screen.queryByTestId('move-one')).not.toBeInTheDocument();
+
+      const more = screen.getByTestId('row-one-more');
+      expect(more).toHaveAccessibleName('More actions');
+      expect(more).toHaveClass('actionBtn', 'moreBtn', 'hoverReveal');
+      fireEvent.click(more);
+      expect(screen.getByTestId('row-one-menu')).toBeInTheDocument();
+      expect(
+        screen.getAllByRole('menuitem').map(item => item.textContent)
+      ).toEqual(['Move to project', 'Pin', 'Delete']);
+
+      fireEvent.click(screen.getByTestId('pin-one'));
+      expect(pin).toHaveBeenCalledTimes(1);
+      expect(select).not.toHaveBeenCalled();
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    });
+
+    it('a collapsible row keeps its inline buttons and adds the More actions button; neither toggles it', () => {
+      useTouchDevice(false);
+      renderChats();
+      const row = screen.getByTestId('project-p1');
+      fireEvent.click(screen.getByTestId('new-chat-p1'));
+      expect(newChat).toHaveBeenCalledTimes(1);
+      fireEvent.click(screen.getByTestId('project-p1-more'));
+      fireEvent.click(screen.getByTestId('rename-p1'));
+      expect(rename).toHaveBeenCalledTimes(1);
+      expect(row).toHaveAttribute('aria-expanded', 'false');
+      expect(row.closest('[class*="collapsibleHeaderRow"]')).toHaveClass(
+        'hasActions',
+        'multiAction'
+      );
+    });
+
+    it('the label of the More actions button can be set', () => {
+      useTouchDevice(false);
+      renderChats({ moreActionsLabel: 'Row actions' });
+      expect(screen.getByTestId('row-two-more')).toHaveAccessibleName(
+        'Row actions'
+      );
+    });
+
+    it('on touch rows they move into the trays: Pin swipes right, the rest swipe left', () => {
+      useTouchDevice(true);
+      renderChats();
+      expect(screen.queryByTestId('row-one-more')).not.toBeInTheDocument();
+
+      swipe(screen.getByTestId('row-one'), 120, 220);
+      expect(trayWidth('one', 'leading')).toBe('56px');
+      expect(trayWidth('one', 'trailing')).toBe('0px');
+      fireEvent.click(screen.getByTestId('pin-one'));
+      expect(pin).toHaveBeenCalledTimes(1);
+      expect(trayWidth('one', 'leading')).toBe('0px');
+
+      swipe(screen.getByTestId('row-one'), 220, 60);
+      expect(trayWidth('one', 'trailing')).toBe('112px');
+      expect(trayWidth('one', 'leading')).toBe('0px');
+      fireEvent.click(screen.getByTestId('delete-one'));
+      expect(remove).toHaveBeenCalledTimes(1);
+      expect(select).not.toHaveBeenCalled();
+    });
+
+    it('a right swipe that starts at the screen edge is left to the edge swipe', () => {
+      useTouchDevice(true);
+      renderChats();
+      swipe(screen.getByTestId('row-two'), 10, 140);
+      expect(trayWidth('two', 'leading')).toBe('0px');
+    });
+
+    it('an open row swipes straight across to the other tray', () => {
+      useTouchDevice(true);
+      renderChats();
+      swipe(screen.getByTestId('row-two'), 120, 220);
+      expect(trayWidth('two', 'leading')).toBe('56px');
+      swipe(screen.getByTestId('row-two'), 220, 40);
+      expect(trayWidth('two', 'trailing')).toBe('112px');
+      expect(trayWidth('two', 'leading')).toBe('0px');
+    });
+
+    it('a touch project row keeps its plus inline and swipes left for its menu actions', () => {
+      useTouchDevice(true);
+      renderChats();
+      const plus = screen.getByTestId('new-chat-p1');
+      expect(plus.closest('[class*="swipeContent"]')).not.toBeNull();
+      const header = screen.getByTestId('project-p1');
+      const tray = header
+        .closest('[class*="swipeRow"]')!
+        .querySelector('[data-swipe-tray="trailing"]') as HTMLElement;
+      expect(tray.style.width).toBe('0px');
+
+      swipe(header, 220, 100);
+      expect(tray.style.width).toBe('112px');
+      expect(header).toHaveAttribute('aria-expanded', 'false');
+      fireEvent.click(screen.getByTestId('rename-p1'));
+      expect(rename).toHaveBeenCalledTimes(1);
+
+      fireEvent.click(plus);
+      expect(newChat).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('renders an icon and extra content in a static header', () => {

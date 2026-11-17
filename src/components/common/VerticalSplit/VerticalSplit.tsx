@@ -1,4 +1,5 @@
 import React, { ReactNode, useCallback, useRef, useState } from 'react';
+import Tooltip from '../Tooltip/Tooltip';
 import styles from './VerticalSplit.module.scss';
 
 const DEFAULT_FRACTION = 0.4;
@@ -43,6 +44,12 @@ export interface VerticalSplitProps {
    * for layouts used by touch where nothing else shows the panes can be resized.
    */
   showGrip?: boolean;
+  /**
+   * Panes draw no card of their own: each holds a SidebarWidget, which fills
+   * it. The divider becomes a gap the width of the space between stacked
+   * cards, and shows its label as a tooltip.
+   */
+  bare?: boolean;
   'data-testid'?: string;
   handleTestId?: string;
   topTestId?: string;
@@ -66,6 +73,7 @@ export default function VerticalSplit({
   topCollapsed = false,
   bottomCollapsed = false,
   showGrip = false,
+  bare = false,
   'data-testid': testId,
   handleTestId,
   topTestId,
@@ -158,14 +166,16 @@ export default function VerticalSplit({
     [fraction, clampFraction, minFraction, maxFraction, saveFraction]
   );
 
+  const paneClass = `${styles.pane} ${bare ? '' : styles.cardPane}`;
+
   if (top == null) {
     return (
       <div
-        className={`${styles.split} ${bottomCollapsed ? styles.splitCollapsed : ''}`}
+        className={`${styles.split} ${bare ? styles.bare : ''} ${bottomCollapsed ? styles.splitCollapsed : ''}`}
         data-testid={testId}
       >
         <div
-          className={`${styles.pane} ${styles.paneFill} ${bottomCollapsed ? styles.paneFillCollapsed : ''}`}
+          className={`${paneClass} ${styles.paneFill} ${bottomCollapsed ? styles.paneFillCollapsed : ''}`}
           data-testid={bottomTestId}
         >
           {bottom}
@@ -182,14 +192,35 @@ export default function VerticalSplit({
   const eitherCollapsed = topCollapsed || bottomCollapsed;
   const bothCollapsed = topCollapsed && bottomCollapsed;
 
+  const divider = (
+    <div
+      role="separator"
+      aria-orientation="horizontal"
+      aria-label={separatorLabel}
+      aria-valuenow={Math.round(fraction * 100)}
+      aria-valuemin={Math.round(minFraction * 100)}
+      aria-valuemax={Math.round(maxFraction * 100)}
+      tabIndex={eitherCollapsed ? -1 : 0}
+      aria-hidden={eitherCollapsed || undefined}
+      className={`${styles.divider} ${showGrip ? styles.dividerTouch : ''}`}
+      onPointerDown={eitherCollapsed ? undefined : handleDragStart}
+      onKeyDown={eitherCollapsed ? undefined : handleKeyDown}
+      data-testid={handleTestId}
+    >
+      {!(showGrip && eitherCollapsed) && (
+        <span className={styles.dividerGrip} aria-hidden="true" />
+      )}
+    </div>
+  );
+
   return (
     <div
-      className={`${styles.split} ${bothCollapsed ? styles.splitCollapsed : ''}`}
+      className={`${styles.split} ${bare ? styles.bare : ''} ${bothCollapsed ? styles.splitCollapsed : ''}`}
       ref={containerRef}
       data-testid={testId}
     >
       <div
-        className={`${styles.pane} ${!topCollapsed && bottomCollapsed ? styles.paneFill : ''}`}
+        className={`${paneClass} ${!topCollapsed && bottomCollapsed ? styles.paneFill : ''}`}
         style={
           eitherCollapsed ? undefined : { flexBasis: `${fraction * 100}%` }
         }
@@ -197,26 +228,19 @@ export default function VerticalSplit({
       >
         {top}
       </div>
+      {bare && !eitherCollapsed ? (
+        <Tooltip
+          content={separatorLabel}
+          position="top"
+          className={styles.dividerTip}
+        >
+          {divider}
+        </Tooltip>
+      ) : (
+        divider
+      )}
       <div
-        role="separator"
-        aria-orientation="horizontal"
-        aria-label={separatorLabel}
-        aria-valuenow={Math.round(fraction * 100)}
-        aria-valuemin={Math.round(minFraction * 100)}
-        aria-valuemax={Math.round(maxFraction * 100)}
-        tabIndex={eitherCollapsed ? -1 : 0}
-        aria-hidden={eitherCollapsed || undefined}
-        className={`${styles.divider} ${showGrip ? styles.dividerTouch : ''}`}
-        onPointerDown={eitherCollapsed ? undefined : handleDragStart}
-        onKeyDown={eitherCollapsed ? undefined : handleKeyDown}
-        data-testid={handleTestId}
-      >
-        {!(showGrip && eitherCollapsed) && (
-          <span className={styles.dividerGrip} aria-hidden="true" />
-        )}
-      </div>
-      <div
-        className={`${styles.pane} ${styles.paneFill} ${bottomCollapsed ? styles.paneFillCollapsed : ''}`}
+        className={`${paneClass} ${styles.paneFill} ${bottomCollapsed ? styles.paneFillCollapsed : ''}`}
         data-testid={bottomTestId}
       >
         {bottom}

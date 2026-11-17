@@ -7,6 +7,10 @@ import styles from './Tooltip.module.scss';
  *  from the trigger into the tooltip content without it closing. */
 const INTERACTIVE_CLOSE_DELAY_MS = 150;
 
+/** How long after a touch the browser's emulated hover and focus are ignored:
+ *  a tap would otherwise open a tooltip that stays up until the next tap. */
+const TOUCH_SUPPRESS_MS = 800;
+
 interface TooltipProps {
   /** Tooltip body. Plain strings render as before; interactive tooltips
    *  typically pass rich content (lists, buttons, …). */
@@ -21,6 +25,13 @@ interface TooltipProps {
    * left and its content ignores pointer events (previous behavior).
    */
   interactive?: boolean;
+  /** Class for the wrapper around the trigger, e.g. to let it grow in a flex row. */
+  className?: string;
+  /**
+   * Also show while the trigger has keyboard focus. Off for a text field,
+   * whose focus lasts the whole time it is typed in. @default true
+   */
+  showOnFocus?: boolean;
   'data-testid'?: string;
 }
 
@@ -30,6 +41,8 @@ export default function Tooltip({
   position = 'right',
   fullWidth = false,
   interactive = false,
+  className = '',
+  showOnFocus = true,
   'data-testid': testId,
 }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
@@ -39,6 +52,7 @@ export default function Tooltip({
   const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchedAtRef = useRef(-Infinity);
 
   // Never leave a pending hide timer behind after unmount
   useEffect(
@@ -48,7 +62,15 @@ export default function Tooltip({
     []
   );
 
+  const markTouch = () => {
+    touchedAtRef.current = Date.now();
+    if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    hideTimeoutRef.current = null;
+    setIsVisible(false);
+  };
+
   const show = () => {
+    if (Date.now() - touchedAtRef.current < TOUCH_SUPPRESS_MS) return;
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
       hideTimeoutRef.current = null;
@@ -88,11 +110,13 @@ export default function Tooltip({
     <>
       <div
         ref={containerRef}
-        className={`${styles.tooltipContainer} ${fullWidth ? styles.fullWidth : ''}`}
+        className={`${styles.tooltipContainer} ${fullWidth ? styles.fullWidth : ''} ${className}`}
         onMouseEnter={show}
         onMouseLeave={hide}
-        onFocus={show}
-        onBlur={hide}
+        onFocus={showOnFocus ? show : undefined}
+        onBlur={showOnFocus ? hide : undefined}
+        onTouchStart={markTouch}
+        onTouchEnd={markTouch}
         data-testid={testId}
       >
         {children}

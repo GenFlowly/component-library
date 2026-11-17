@@ -69,8 +69,16 @@ export type {
 } from './components/common/MobileMenu/MobileMenu';
 export { default as MenuSearchField } from './components/common/MenuSearchField/MenuSearchField';
 export type { MenuSearchFieldProps } from './components/common/MenuSearchField/MenuSearchField';
+export { default as SidebarWidget } from './components/common/SidebarWidget/SidebarWidget';
+export type { SidebarWidgetProps } from './components/common/SidebarWidget/SidebarWidget';
+/** @deprecated Use SidebarWidget. */
 export { default as SidebarCard } from './components/common/SidebarCard/SidebarCard';
 export type { SidebarCardProps } from './components/common/SidebarCard/SidebarCard';
+export { default as ActionMenu } from './components/common/ActionMenu/ActionMenu';
+export type {
+  ActionMenuProps,
+  ActionMenuItem,
+} from './components/common/ActionMenu/ActionMenu';
 export { default as IconButton } from './components/common/IconButton/IconButton';
 export type { IconButtonProps } from './components/common/IconButton/IconButton';
 export { default as CollapseStrip } from './components/common/CollapseStrip/CollapseStrip';

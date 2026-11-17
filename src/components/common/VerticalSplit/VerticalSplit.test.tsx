@@ -254,4 +254,42 @@ describe('VerticalSplit', () => {
     const inertGrip = screen.getByTestId('split-handle').querySelector('span');
     expect(inertGrip).not.toBeInTheDocument();
   });
+
+  test('panes are cards unless bare', () => {
+    const { unmount } = renderSplit();
+    expect(screen.getByTestId('split-top')).toHaveClass('pane', 'cardPane');
+    expect(screen.getByTestId('split-bottom')).toHaveClass('cardPane');
+    unmount();
+
+    renderSplit({ bare: true });
+    expect(screen.getByTestId('split')).toHaveClass('bare');
+    expect(screen.getByTestId('split-top')).not.toHaveClass('cardPane');
+    expect(screen.getByTestId('split-bottom')).not.toHaveClass('cardPane');
+  });
+
+  test('bare: the divider shows its label as a tooltip while it can be dragged', () => {
+    renderSplit({ bare: true, separatorLabel: 'Resize panels' });
+    const handle = screen.getByRole('separator', { name: 'Resize panels' });
+    fireEvent.mouseEnter(handle.parentElement!);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Resize panels');
+    fireEvent.mouseLeave(handle.parentElement!);
+  });
+
+  test('bare: an inert divider keeps the gap but has no tooltip', () => {
+    renderSplit({
+      bare: true,
+      topCollapsed: true,
+      separatorLabel: 'Resize panels',
+    });
+    const handle = screen.getByTestId('split-handle');
+    expect(handle).toHaveAttribute('aria-hidden', 'true');
+    fireEvent.mouseEnter(handle.parentElement!);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  test('bare with a single pane', () => {
+    renderSplit({ bare: true, top: null });
+    expect(screen.getByTestId('split-bottom')).not.toHaveClass('cardPane');
+    expect(screen.getByTestId('split')).toHaveClass('bare');
+  });
 });

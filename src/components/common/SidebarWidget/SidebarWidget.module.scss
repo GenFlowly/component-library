@@ -1,0 +1,130 @@
+@import '../../../styles/themes.scss';
+@import '../../../styles/sidebar-card.scss';
+
+.widget {
+  @include sidebar-card-props;
+  @include sidebar-card-chrome;
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+:global([data-theme='dark']) .widget {
+  @include sidebar-card-props-dark;
+  @include sidebar-card-chrome-dark;
+}
+
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 6px 0 10px;
+  border-bottom: 1px solid var(--sidebar-hairline);
+  color: $color-text-secondary;
+}
+
+// A collapsed card is its header; a hairline there would double the border
+.collapsed .header {
+  border-bottom-color: transparent;
+}
+
+// The toggle runs from the card's left edge, so its hover and focus cover
+// the chevron too
+.toggleHeader {
+  padding-left: 0;
+}
+
+.headerIcon {
+  color: $color-text-secondary;
+}
+
+.title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.heading {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  margin: 0;
+  font: inherit;
+}
+
+// The tooltip's wrapper is the flex item: it has to stretch for the toggle to
+.toggleTip {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  justify-content: flex-start;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0 0 0 8px;
+  border: none;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover .title {
+    color: $color-text-primary;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: -2px;
+  }
+}
+
+.actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+// 📱 Header buttons keep their look and get a finger-wide hit area that
+// stays inside the header, so it never takes taps meant for the first row
+.menu .actions :where(button) {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    left: -8px;
+    right: -8px;
+  }
+}

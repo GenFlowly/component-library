@@ -200,19 +200,6 @@
   }
 }
 
-.chevron {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: $color-text-muted;
-  transition: transform $transition-fast;
-}
-
-.chevronExpanded {
-  transform: rotate(90deg);
-}
-
 // Chevron-sized placeholder on headers with nothing to expand, so their icon
 // and label line up with expandable siblings
 .chevronSpacer {
@@ -241,7 +228,7 @@
   }
 
   &:hover .hoverReveal,
-  &:focus-within .hoverReveal {
+  &:has(:focus-visible) .hoverReveal {
     opacity: 1;
     pointer-events: auto;
   }
@@ -257,6 +244,15 @@
   z-index: 2;
   background-color: $color-sidebar-background;
   box-shadow: 0 -0.75rem 0 $color-sidebar-background;
+}
+
+// On a touch row the swipe moves the header and its inline buttons together
+.collapsibleHeaderInner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 // Reset button chrome on a collapsible top-level header so it keeps the
@@ -509,9 +505,23 @@
 }
 
 .itemRow:hover .hoverReveal,
-.itemRow:focus-within .hoverReveal {
+.itemRow:has(:focus-visible) .hoverReveal,
+.hoverReveal[aria-expanded='true'] {
   opacity: 1;
   pointer-events: auto;
+}
+
+// The More actions button looks pressed, and its row hovered, while its menu
+// is open (the menu is portaled, so the pointer has left the row)
+.moreBtn[aria-expanded='true'] {
+  background-color: rgba(127, 127, 127, 0.16);
+  color: $color-text-primary;
+}
+
+.itemRow:has(.moreBtn[aria-expanded='true']) .item,
+.collapsibleHeaderRow:has(.moreBtn[aria-expanded='true'])
+  .collapsibleHeader {
+  background-color: $color-background-hover;
 }
 
 @media (hover: none) {
@@ -713,23 +723,28 @@
 
 .swipeRow {
   position: relative;
+  display: flex;
+  align-items: stretch;
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   border-radius: $radius-sm;
 }
 
-// The browser keeps vertical scrolling; horizontal movement is the swipe
+// The browser keeps vertical scrolling; horizontal movement is the swipe.
+// The content narrows as a tray opens beside it, so its title ellipsizes
+// instead of sliding off the card
 .swipeContent {
   position: relative;
-  background-color: $color-sidebar-background;
-  transition: transform $transition-fast;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
   touch-action: pan-y;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 
-  .item {
+  > .item {
     padding-right: 0.5rem;
   }
 }
@@ -738,25 +753,28 @@
   transition: none;
 }
 
+// Zero wide while closed: its buttons stay focusable, and focusing one
+// opens the tray
 .swipeTray {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
+  flex: none;
   display: flex;
+  overflow: hidden;
+  transition: width $transition-fast;
 }
 
-.swipeTrayClosed {
-  opacity: 0;
+.swipeTrayDragging {
+  transition: none;
 }
 
 .swipeAction {
   flex: 1 1 0;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   border: none;
+  overflow: hidden;
   cursor: pointer;
 
   &:focus-visible {
@@ -778,4 +796,220 @@
 .swipeAction-muted {
   background-color: $color-conversation-header-bg;
   color: $color-conversation-header-text;
+}
+
+// ── Inside a SidebarWidget (surface="card") ─────────────────────────────────
+// The list shows the card's material instead of painting the sidebar
+// background; rows sit 6px in from the card's edges like the dock cards'
+// content, hover with the card's own fill, and sticky headings paint the
+// card's visible colour so rows scroll out of sight beneath them.
+.surfaceCard {
+  flex: 1 1 auto;
+  min-height: 0;
+  background-color: transparent;
+
+  .list {
+    padding: 4px 6px 6px;
+  }
+
+  .fixedSection {
+    padding: 4px 6px 0;
+  }
+
+  .stickyHeader,
+  .collapsibleHeaderRow.stickyHeader {
+    background-color: var(--sidebar-surface, #{$color-sidebar-background});
+    box-shadow: 0 -0.75rem 0
+      var(--sidebar-surface, #{$color-sidebar-background});
+  }
+
+  .groupHeader {
+    padding: 4px 12px 3px 6px;
+  }
+
+  .item {
+    padding: 5px 30px 5px 6px;
+
+    &.active {
+      background-color: $color-background-selected;
+    }
+  }
+
+  // The whole row, its buttons included, shows the hover fill; touch screens
+  // keep :hover on whatever was tapped last, so they get none
+  @media (hover: hover) {
+    .itemRow:hover .item:not(.active),
+    .collapsibleHeaderRow:hover .collapsibleHeader {
+      background-color: var(--sidebar-row-hover, #{$color-background-hover});
+    }
+  }
+
+  @media (hover: none) {
+    .item:not(.active):hover,
+    .collapsibleHeader:hover {
+      background-color: transparent;
+    }
+  }
+
+  .multiAction .item {
+    padding-right: 52px;
+  }
+
+  .noActions .item {
+    padding-right: 6px;
+  }
+
+  .itemContent {
+    gap: 3px;
+  }
+
+  .collapsibleHeader {
+    min-height: 28px;
+    padding: 4px 6px;
+  }
+
+  .collapsibleHeaderRow.hasActions .collapsibleHeader {
+    padding-right: 30px;
+  }
+
+  .collapsibleHeaderRow.multiAction .collapsibleHeader {
+    padding-right: 52px;
+  }
+
+  .actionsWrap {
+    right: 6px;
+  }
+
+  .itemRow:has(.moreBtn[aria-expanded='true']) .item:not(.active),
+  .collapsibleHeaderRow:has(.moreBtn[aria-expanded='true'])
+    .collapsibleHeader {
+    background-color: var(--sidebar-row-hover, #{$color-background-hover});
+  }
+}
+
+// 📱 The same lists in the mobile menu: lower density, a hairline between
+// rows, uppercase section labels at every level, and flat rows (the hairlines
+// separate them, so a rounded fill would float between two lines)
+.menuVariant.surfaceCard {
+  .list {
+    padding: 0 6px 8px;
+  }
+
+  .list > .group > .groupList,
+  .topLevelContent {
+    padding-bottom: 0;
+  }
+
+  .groupHeader,
+  .group .group > .groupHeader {
+    min-height: 0;
+    margin: 0;
+    padding: 10px 12px 4px 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  // Nothing sits above a stuck heading here (no list padding, no heading
+  // margin), and the cover would hide the hairline under the row before it
+  .stickyHeader,
+  .collapsibleHeaderRow.stickyHeader {
+    box-shadow: none;
+  }
+
+  // The hairline under a row is drawn over its bottom edge, so the row is
+  // exactly its minimum height whether or not a swipe tray is open
+  .itemRow::after,
+  .collapsibleHeaderRow::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 1px;
+    background-color: var(--sidebar-hairline, #{$color-border-light});
+    pointer-events: none;
+  }
+
+  // Projects stack edge to edge, their hairlines between them
+  .group .group {
+    margin-bottom: 0;
+  }
+
+  // So do the rows in a section and a chat's forks
+  .groupList,
+  .itemChildren {
+    gap: 0;
+  }
+
+  .itemChildren {
+    margin-top: 0;
+  }
+
+  // With a mouse the row keeps its kebab (and a project its plus) instead of
+  // a swipe tray, so the label stops short of the 44 px buttons
+  .item {
+    align-items: flex-start;
+    min-height: 62px;
+    padding: 11px 3rem 11px 12px;
+    border-radius: 0;
+  }
+
+  .multiAction .item {
+    padding-right: 6rem;
+  }
+
+  .noActions .item,
+  .swipeContent > .item {
+    padding-right: 12px;
+  }
+
+  .itemContent {
+    gap: 4px;
+  }
+
+  .swipeRow {
+    border-radius: 0;
+  }
+
+  // An open project hands its line over to the tree under it
+  .collapsibleHeaderRow:has(+ .groupChildren)::after,
+  .groupChildren .groupList > .itemLi:last-child > .itemRow::after {
+    content: none;
+  }
+
+  .collapsibleHeader {
+    min-height: 48px;
+    padding: 0 0 0 10px;
+    gap: 8px;
+    border-radius: 0;
+  }
+
+  .collapsibleHeaderRow.hasActions .collapsibleHeader {
+    padding-right: 3rem;
+  }
+
+  .collapsibleHeaderRow.multiAction .collapsibleHeader {
+    padding-right: 6rem;
+  }
+
+  .groupChildren,
+  .itemChildren {
+    margin-left: 12px;
+    padding-left: 8px;
+  }
+
+  .actionsWrap {
+    right: 0;
+  }
+
+  .actionBtn {
+    border-radius: 8px;
+
+    &:active {
+      background-color: $color-background-selected;
+      color: $color-primary;
+    }
+  }
 }

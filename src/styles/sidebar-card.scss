@@ -8,14 +8,28 @@
   --sidebar-material: rgba(243, 243, 246, 0.78);
   --sidebar-hairline: rgba(0, 0, 0, 0.08);
   --sidebar-hover-fill: rgba(0, 0, 0, 0.05);
+  --sidebar-row-hover: rgba(0, 0, 0, 0.05);
   --sidebar-scrollbar-thumb: rgba(0, 0, 0, 0.22);
+  // What the card looks like over the page background, as one opaque colour,
+  // for anything that must hide the card's content scrolling beneath it
+  --sidebar-surface: color-mix(
+    in srgb,
+    rgb(243 243 246) 78%,
+    var(--color-background)
+  );
 }
 
 @mixin sidebar-card-props-dark {
   --sidebar-material: rgba(38, 38, 42, 0.72);
   --sidebar-hairline: rgba(255, 255, 255, 0.09);
   --sidebar-hover-fill: rgba(255, 255, 255, 0.07);
+  --sidebar-row-hover: var(--color-background-hover);
   --sidebar-scrollbar-thumb: rgba(255, 255, 255, 0.25);
+  --sidebar-surface: color-mix(
+    in srgb,
+    rgb(38 38 42) 72%,
+    var(--color-background)
+  );
 }
 
 @mixin sidebar-card-chrome {
