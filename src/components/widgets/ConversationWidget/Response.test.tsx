@@ -520,6 +520,70 @@ describe('Response Widget Component', () => {
     ]);
   });
 
+  describe('vendor switch scroll correction', () => {
+    // JSDOM has no layout: the scroller, the row's offset and the row's
+    // height are faked so the correction sees a 20000px conversation whose
+    // response row starts 400px down.
+    const setup = (scrollTop: number, rowHeight: { current: number }) => {
+      jest.useFakeTimers();
+      mockSelection = [AIVendor.OPENAI, AIVendor.CLAUDE];
+      render(
+        <div data-testid="center-section-scroll">
+          <Response blockId="block-1" responseMessages={mockMessages} />
+        </div>
+      );
+      const scroller = screen.getByTestId('center-section-scroll');
+      const scrollTo = jest.fn();
+      Object.defineProperties(scroller, {
+        scrollTop: { value: scrollTop, configurable: true },
+        scrollHeight: { value: 20000, configurable: true },
+        clientHeight: { value: 600, configurable: true },
+        scrollTo: { value: scrollTo, configurable: true },
+      });
+      const row = screen.getByTestId('response-row');
+      Object.defineProperty(row, 'offsetHeight', {
+        get: () => rowHeight.current,
+        configurable: true,
+      });
+      row.getBoundingClientRect = () => ({ top: 400 - scrollTop }) as DOMRect;
+      return scrollTo;
+    };
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    test('leaves the page alone when the viewport is above where the new response ends', () => {
+      const rowHeight = { current: 14000 };
+      const scrollTo = setup(7500, rowHeight);
+
+      fireEvent.click(
+        screen.getByTestId(`vendor-checkbox-group-option-${AIVendor.CLAUDE}`)
+      );
+      rowHeight.current = 8000;
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+
+      expect(scrollTo).not.toHaveBeenCalled();
+    });
+
+    test('shifts up by the shrink when the viewport was inside the removed tail', () => {
+      const rowHeight = { current: 14000 };
+      const scrollTo = setup(12000, rowHeight);
+
+      fireEvent.click(
+        screen.getByTestId(`vendor-checkbox-group-option-${AIVendor.CLAUDE}`)
+      );
+      rowHeight.current = 10000;
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+
+      expect(scrollTo).toHaveBeenCalledWith({ top: 8000, behavior: 'smooth' });
+    });
+  });
+
   test('vendor toggle row fades only the edges with hidden pills', () => {
     mockSelection = [AIVendor.OPENAI, AIVendor.CLAUDE];
     render(<Response blockId="block-1" responseMessages={mockMessages} />);

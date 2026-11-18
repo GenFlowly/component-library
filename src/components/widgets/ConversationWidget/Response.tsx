@@ -721,6 +721,12 @@ function Response({
     const previousScrollTop = scroller?.scrollTop;
     const previousContainerHeight = containerEl?.offsetHeight;
     const previousInnerHeight = innerRef.current?.offsetHeight;
+    const previousRowTop =
+      scroller && innerRef.current && previousScrollTop != null
+        ? innerRef.current.getBoundingClientRect().top -
+          scroller.getBoundingClientRect().top +
+          previousScrollTop
+        : 0;
     if (containerEl && previousContainerHeight != null) {
       containerEl.style.minHeight = `${previousContainerHeight}px`;
     }
@@ -760,9 +766,24 @@ function Response({
         return;
       }
 
+      // A viewport top that is still above where the new content ends is
+      // left alone: content above the row (the toggle the user just tapped)
+      // didn't move. Only a viewport top inside the removed tail shifts up by
+      // the shrink, keeping whatever follows the row in place.
       const shrink = Math.max(0, previousInnerHeight - naturalHeight);
-      const target = Math.max(0, previousScrollTop - shrink);
-      scroller.scrollTo({ top: target, behavior: 'smooth' });
+      const newRowEnd = previousRowTop + naturalHeight;
+      const maxScrollTop = Math.max(
+        0,
+        scroller.scrollHeight - shrink - scroller.clientHeight
+      );
+      const desired =
+        previousScrollTop <= newRowEnd
+          ? previousScrollTop
+          : previousScrollTop - shrink;
+      const target = Math.max(0, Math.min(desired, maxScrollTop));
+      if (target !== previousScrollTop) {
+        scroller.scrollTo({ top: target, behavior: 'smooth' });
+      }
       setTimeout(() => {
         if (vendorSwitchOperationIdRef.current === myOperationId) {
           containerEl.style.minHeight = '';
