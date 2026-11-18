@@ -1,5 +1,6 @@
 @import '../../../styles/themes.scss';
 @import '../../../styles/mixins.scss';
+@import '../../../styles/sidebar-row.scss';
 
 .container {
   display: flex;
@@ -156,17 +157,12 @@
 // Collapsible group header (e.g. a project row): styled like an item row,
 // with a rotating chevron and an optional leading icon
 .collapsibleHeader {
+  @include sidebar-row-base(directory);
   display: flex;
   align-items: center;
   gap: 0.35rem;
   width: 100%;
   padding: 0.35rem 0.5rem 0.35rem 0.35rem;
-  border: none;
-  border-radius: $radius-sm;
-  background: transparent;
-  color: $color-text-secondary;
-  cursor: pointer;
-  text-align: left;
   transition: background-color $transition-fast;
   // Reserves room for an ancestor top-level section's sticky header (e.g.
   // "Projects") when this row's scrollIntoView runs on expand — without it,
@@ -176,7 +172,7 @@
   scroll-margin-top: 2.75rem;
 
   &:hover {
-    background-color: $color-background-hover;
+    @include sidebar-row-hover(directory);
   }
 }
 
@@ -290,28 +286,21 @@
 }
 
 .item {
+  @include sidebar-row-base(directory);
   display: flex;
   align-items: flex-start;
   width: 100%;
   padding: 0.35rem 2.4rem 0.35rem 0.35rem; // Right padding clears one trailing action button
-  border-radius: $radius-sm;
-  background: transparent;
-  border: none;
-  cursor: pointer;
   transition: background-color $transition-fast;
-  text-align: left;
   gap: 0.4rem;
-
   text-decoration: none;
-  color: $color-text-secondary;
 
   &:hover {
-    background-color: $color-background-hover;
+    @include sidebar-row-hover(directory);
   }
 
   &.active {
-    background-color: $color-background-selected;
-    color: $color-primary;
+    @include sidebar-row-active(directory);
   }
 }
 
@@ -519,8 +508,7 @@
 }
 
 .itemRow:has(.moreBtn[aria-expanded='true']) .item,
-.collapsibleHeaderRow:has(.moreBtn[aria-expanded='true'])
-  .collapsibleHeader {
+.collapsibleHeaderRow:has(.moreBtn[aria-expanded='true']) .collapsibleHeader {
   background-color: $color-background-hover;
 }
 
@@ -629,7 +617,7 @@
 
 // The full-screen mobile menu. It shows below isNarrow, so its touch sizing
 // can't depend on the mobile breakpoint.
-.menuVariant {
+.touch {
   @include touch-sizing;
 
   // A card that hugs its content has no definite height for height: 100%
@@ -694,10 +682,10 @@
 
   // Selection is a fill and weight here, not an accent-colored label
   .item.active {
-    color: $color-text-primary;
+    color: sidebar-row(directory, active-color, true);
 
     .itemLabel {
-      font-weight: 600;
+      font-weight: sidebar-row(directory, active-label-weight, true);
     }
   }
 
@@ -798,12 +786,12 @@
   color: $color-conversation-header-text;
 }
 
-// ── Inside a SidebarWidget (surface="card") ─────────────────────────────────
+// ── The history variant ─────────────────────────────────────────────────────
 // The list shows the card's material instead of painting the sidebar
 // background; rows sit 6px in from the card's edges like the dock cards'
 // content, hover with the card's own fill, and sticky headings paint the
 // card's visible colour so rows scroll out of sight beneath them.
-.surfaceCard {
+.history {
   flex: 1 1 auto;
   min-height: 0;
   background-color: transparent;
@@ -831,7 +819,7 @@
     padding: 5px 30px 5px 6px;
 
     &.active {
-      background-color: $color-background-selected;
+      background-color: sidebar-row(history, active-bg);
     }
   }
 
@@ -840,7 +828,7 @@
   @media (hover: hover) {
     .itemRow:hover .item:not(.active),
     .collapsibleHeaderRow:hover .collapsibleHeader {
-      background-color: var(--sidebar-row-hover, #{$color-background-hover});
+      @include sidebar-row-hover(history);
     }
   }
 
@@ -881,16 +869,15 @@
   }
 
   .itemRow:has(.moreBtn[aria-expanded='true']) .item:not(.active),
-  .collapsibleHeaderRow:has(.moreBtn[aria-expanded='true'])
-    .collapsibleHeader {
-    background-color: var(--sidebar-row-hover, #{$color-background-hover});
+  .collapsibleHeaderRow:has(.moreBtn[aria-expanded='true']) .collapsibleHeader {
+    @include sidebar-row-hover(history);
   }
 }
 
 // 📱 The same lists in the mobile menu: lower density, a hairline between
 // rows, uppercase section labels at every level, and flat rows (the hairlines
 // separate them, so a rounded fill would float between two lines)
-.menuVariant.surfaceCard {
+.touch.history {
   .list {
     padding: 0 6px 8px;
   }

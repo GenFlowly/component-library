@@ -43,11 +43,10 @@ export interface TreeMenuProps {
   /** Shown when the query matches nothing. */
   noResultsLabel?: string;
   /**
-   * 'sidebar': the desktop settings sidebar. 'menu': the phone's full-screen
-   * menu, with finger-sized rows; opening a section there only expands it.
-   * @default 'sidebar'
+   * The phone's full-screen menu: finger-sized rows, and opening a section
+   * only expands it.
    */
-  variant?: 'sidebar' | 'menu';
+  touch?: boolean;
   'aria-label': string;
   /** Prefix for test ids: `${prefix}-search-hit-${key}`. @default 'tree-menu' */
   testIdPrefix?: string;
@@ -68,15 +67,14 @@ export default function TreeMenu({
   query = '',
   extraSearchHits = [],
   noResultsLabel,
-  variant = 'sidebar',
+  touch = false,
   'aria-label': ariaLabel,
   testIdPrefix = 'tree-menu',
 }: TreeMenuProps): React.ReactElement {
   const [expandedOverride, setExpandedOverride] = useState<
     Record<string, boolean>
   >({});
-  const menu = variant === 'menu';
-  const iconSize = menu ? 18 : 16;
+  const iconSize = touch ? 18 : 16;
 
   const inSection = (item: TreeMenuItem) => isUnder(activePath, item.path);
   const isExpanded = (item: TreeMenuItem) =>
@@ -87,7 +85,7 @@ export default function TreeMenu({
     const opening = !isExpanded(item);
     setExpandedOverride(prev => ({ ...prev, [item.key]: opening }));
     // From the sidebar, opening another section also opens its first page.
-    if (opening && !menu && !inSection(item)) {
+    if (opening && !touch && !inSection(item)) {
       onNavigate(item.children[0].path);
     }
   };
@@ -95,7 +93,7 @@ export default function TreeMenu({
   const needle = query.trim().toLowerCase();
   const matches = (label: string) => label.toLowerCase().includes(needle);
 
-  const navClass = `${styles.nav} ${menu ? styles.menu : ''}`;
+  const navClass = `${styles.nav} ${touch ? styles.touch : ''}`;
 
   if (needle) {
     const hits: TreeMenuSearchHit[] = [

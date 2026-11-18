@@ -1,4 +1,5 @@
 @import '../../../styles/themes.scss';
+@import '../../../styles/sidebar-row.scss';
 
 .nav {
   display: flex;
@@ -14,34 +15,27 @@
 
 .item,
 .child {
+  @include sidebar-row-base(menu);
   position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
   min-width: 0;
-  height: 32px;
-  padding: 0 10px;
-  border: none;
-  border-radius: $radius-md;
-  background: transparent;
-  color: var(--color-text-secondary);
+  height: sidebar-row(menu, height);
+  padding: sidebar-row(menu, padding);
   font: inherit;
-  font-size: 0.8125rem;
-  text-align: left;
-  cursor: pointer;
+  font-size: sidebar-row(menu, font-size);
   transition:
     background-color $transition-fast,
     color $transition-fast;
 
   &:hover {
-    color: var(--color-text-primary);
-    background-color: var(--sidebar-row-hover, var(--color-background-hover));
+    @include sidebar-row-hover(menu);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--color-border-focus);
-    outline-offset: -2px;
+    @include sidebar-row-focus(menu);
   }
 }
 
@@ -71,8 +65,8 @@
 // The section holding the current page: emphasised, but the selection fill
 // belongs to the page under it
 .sectionActive {
-  color: var(--color-text-primary);
-  font-weight: 500;
+  color: sidebar-row(menu, active-color);
+  font-weight: sidebar-row(menu, active-weight);
 
   .icon {
     color: var(--color-primary);
@@ -80,9 +74,7 @@
 }
 
 .active {
-  color: var(--color-text-primary);
-  font-weight: 500;
-  background-color: var(--color-background-selected);
+  @include sidebar-row-active(menu);
 
   .icon {
     color: var(--color-primary);
@@ -99,8 +91,8 @@
 }
 
 .child {
-  height: 28px;
-  padding-left: 12px;
+  height: sidebar-row(menu, child-height);
+  padding-left: sidebar-row(menu, child-padding-left);
 }
 
 .empty {
@@ -112,21 +104,21 @@
 }
 
 // Phone menu: finger-sized rows and body-size text
-.menu {
+.touch {
   .item,
   .child {
-    font-size: 0.9375rem;
+    font-size: sidebar-row(menu, font-size, true);
   }
 
   .item {
-    height: auto;
-    min-height: 48px;
-    padding: 0 10px 0 8px;
+    height: sidebar-row(menu, height, true);
+    min-height: sidebar-row(menu, min-height, true);
+    padding: sidebar-row(menu, padding, true);
   }
 
   .child {
-    height: auto;
-    min-height: 44px;
+    height: sidebar-row(menu, child-height, true);
+    min-height: sidebar-row(menu, child-min-height, true);
   }
 
   .children {

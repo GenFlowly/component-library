@@ -45,11 +45,12 @@ export interface VerticalSplitProps {
    */
   showGrip?: boolean;
   /**
-   * Panes draw no card of their own: each holds a SidebarWidget, which fills
-   * it. The divider becomes a gap the width of the space between stacked
-   * cards, and shows its label as a tooltip.
+   * 'gap': the divider is the space the dock leaves between stacked cards,
+   * and shows its label as a tooltip. 'seam': the 1px seam between page
+   * panels (a 10px gap on mobile), with thin scrollbars inside the panes.
+   * @default 'gap'
    */
-  bare?: boolean;
+  divider?: 'gap' | 'seam';
   'data-testid'?: string;
   handleTestId?: string;
   topTestId?: string;
@@ -57,7 +58,7 @@ export interface VerticalSplitProps {
 }
 
 /**
- * Two vertically stacked sidebar cards split by a draggable divider: growing
+ * Two vertically stacked SidebarWidgets split by a draggable divider: growing
  * one pane shrinks the other within the fixed container height. The split
  * fraction persists across reloads; the divider is keyboard-operable
  * (arrows / Home / End) per the ARIA window-splitter pattern.
@@ -73,7 +74,7 @@ export default function VerticalSplit({
   topCollapsed = false,
   bottomCollapsed = false,
   showGrip = false,
-  bare = false,
+  divider: dividerStyle = 'gap',
   'data-testid': testId,
   handleTestId,
   topTestId,
@@ -166,12 +167,13 @@ export default function VerticalSplit({
     [fraction, clampFraction, minFraction, maxFraction, saveFraction]
   );
 
-  const paneClass = `${styles.pane} ${bare ? '' : styles.cardPane}`;
+  const paneClass = styles.pane;
+  const splitClass = `${styles.split} ${dividerStyle === 'gap' ? styles.gap : styles.seam}`;
 
   if (top == null) {
     return (
       <div
-        className={`${styles.split} ${bare ? styles.bare : ''} ${bottomCollapsed ? styles.splitCollapsed : ''}`}
+        className={`${splitClass} ${bottomCollapsed ? styles.splitCollapsed : ''}`}
         data-testid={testId}
       >
         <div
@@ -215,7 +217,7 @@ export default function VerticalSplit({
 
   return (
     <div
-      className={`${styles.split} ${bare ? styles.bare : ''} ${bothCollapsed ? styles.splitCollapsed : ''}`}
+      className={`${splitClass} ${bothCollapsed ? styles.splitCollapsed : ''}`}
       ref={containerRef}
       data-testid={testId}
     >
@@ -228,7 +230,7 @@ export default function VerticalSplit({
       >
         {top}
       </div>
-      {bare && !eitherCollapsed ? (
+      {dividerStyle === 'gap' && !eitherCollapsed ? (
         <Tooltip
           content={separatorLabel}
           position="top"

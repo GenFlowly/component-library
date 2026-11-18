@@ -6,8 +6,10 @@
   @include sidebar-base(right);
   width: 10rem; // Default; drag-resizing overrides via inline style
 
+  // The column draws no card: the SidebarWidgets in it are the cards
   @include sidebar-card-props;
-  @include sidebar-card-chrome;
+  background: transparent;
+  border: none;
   z-index: 15;
   transition: none; // Width is user-driven (drag); animating it would lag the pointer
 
@@ -25,24 +27,6 @@
 
 :global([data-theme='dark']) .sidebar {
   @include sidebar-card-props-dark;
-  @include sidebar-card-chrome-dark;
-}
-
-// Plain variant: the column still owns the width, drag handle and collapse
-// behavior, but draws no card of its own — for children that render their own
-// sidebar cards (e.g. a VerticalSplit of stacked panes)
-.plain {
-  background: transparent;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-  overflow: visible;
-}
-
-:global([data-theme='dark']) .plain {
-  box-shadow: none;
 }
 
 // Drag handle on the panel's right edge; sibling sections reflow
@@ -66,11 +50,22 @@
   }
 }
 
-// Collapsible mode: column layout so the footer toggle pins to the bottom
-// (same pattern as the app's chat right sidebar)
+// Collapsible mode: column layout so the footer toggle pins to the bottom.
+// The column and its toggle are one card, so it draws the card itself.
 .withFooter {
+  @include sidebar-card-chrome;
   display: flex;
   flex-direction: column;
+
+  @include respond-to-mobile {
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+}
+
+:global([data-theme='dark']) .withFooter {
+  @include sidebar-card-chrome-dark;
 }
 
 .contentArea {

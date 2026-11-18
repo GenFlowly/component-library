@@ -6,7 +6,7 @@ import SidebarListPanel, {
 } from './SidebarListPanel';
 
 const meta: Meta<typeof SidebarListPanel> = {
-  title: 'Components/SidebarListPanel',
+  title: 'Components/SidebarWidget/List rows',
   component: SidebarListPanel,
   tags: ['autodocs'],
   decorators: [

@@ -84,7 +84,7 @@ describe('TreeMenu', () => {
   });
 
   test('in the phone menu opening a section only expands it', () => {
-    const onNavigate = setupMenu({ variant: 'menu' });
+    const onNavigate = setupMenu({ touch: true });
     fireEvent.click(screen.getByRole('button', { name: 'Profile' }));
     expect(onNavigate).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Account' })).toBeInTheDocument();

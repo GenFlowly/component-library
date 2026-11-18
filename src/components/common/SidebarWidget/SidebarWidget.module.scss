@@ -10,6 +10,11 @@
   min-height: 0;
 }
 
+.fill {
+  flex: 1 1 auto;
+  height: 100%;
+}
+
 :global([data-theme='dark']) .widget {
   @include sidebar-card-props-dark;
   @include sidebar-card-chrome-dark;
@@ -116,7 +121,7 @@
 
 // 📱 Header buttons keep their look and get a finger-wide hit area that
 // stays inside the header, so it never takes taps meant for the first row
-.menu .actions :where(button) {
+.touch .actions :where(button) {
   position: relative;
 
   &::after {
@@ -126,5 +131,57 @@
     bottom: -3px;
     left: -8px;
     right: -8px;
+  }
+}
+
+// ── The menu variant ────────────────────────────────────────────────────────
+
+.menuHeader {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 34px;
+  margin: 0;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--sidebar-hairline, $color-border-light);
+  color: $color-text-muted;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.menuSearch {
+  flex-shrink: 0;
+  padding: 8px 8px 4px;
+}
+
+.menuScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 4px 8px;
+}
+
+.menuFooter {
+  flex-shrink: 0;
+  padding: 8px;
+  border-top: 1px solid var(--sidebar-hairline, $color-border-light);
+}
+
+// 📱 In the phone menu the card paints the sidebar background, and its
+// heading is taller with no hairline under it
+.menu.touch {
+  background-color: $color-sidebar-background;
+
+  .menuHeader {
+    height: auto;
+    min-height: 2.625rem;
+    padding: 0 0.75rem;
+    border-bottom: none;
+    font-size: 0.75rem;
+  }
+
+  .menuScroll {
+    padding: 0 0.25rem 0.25rem;
   }
 }

@@ -44,7 +44,6 @@ export { default as Modal } from './components/common/Modal/Modal';
 export { default as Tooltip } from './components/common/Tooltip/Tooltip';
 export { default as CopyToClipboard } from './components/common/CopyToClipboard/CopyToClipboard';
 export {
-  default as SidebarListPanel,
   SidebarListLoadMore,
   sidebarListPanelStyles,
 } from './components/common/SidebarListPanel/SidebarListPanel';
@@ -52,7 +51,6 @@ export type {
   SidebarListItem,
   SidebarListItemAction,
   SidebarListGroup,
-  SidebarListPanelProps,
 } from './components/common/SidebarListPanel/SidebarListPanel';
 export { default as ResizableSidebar } from './components/common/ResizableSidebar/ResizableSidebar';
 export type { ResizableSidebarProps } from './components/common/ResizableSidebar/ResizableSidebar';
@@ -70,10 +68,16 @@ export type {
 export { default as MenuSearchField } from './components/common/MenuSearchField/MenuSearchField';
 export type { MenuSearchFieldProps } from './components/common/MenuSearchField/MenuSearchField';
 export { default as SidebarWidget } from './components/common/SidebarWidget/SidebarWidget';
-export type { SidebarWidgetProps } from './components/common/SidebarWidget/SidebarWidget';
-/** @deprecated Use SidebarWidget. */
-export { default as SidebarCard } from './components/common/SidebarCard/SidebarCard';
-export type { SidebarCardProps } from './components/common/SidebarCard/SidebarCard';
+export type {
+  SidebarWidgetProps,
+  SidebarWidgetCustomProps,
+  SidebarWidgetListProps,
+  SidebarWidgetHistoryProps,
+  SidebarWidgetDirectoryProps,
+  SidebarWidgetMenuProps,
+  SidebarWidgetList,
+  SidebarWidgetMenu,
+} from './components/common/SidebarWidget/SidebarWidget';
 export { default as ActionMenu } from './components/common/ActionMenu/ActionMenu';
 export type {
   ActionMenuProps,
@@ -210,9 +214,7 @@ export type {
 } from './components/common/DataTable/DataTable';
 export { default as TypedConfirmDialog } from './components/common/TypedConfirmDialog/TypedConfirmDialog';
 export type { TypedConfirmDialogProps } from './components/common/TypedConfirmDialog/TypedConfirmDialog';
-export { default as TreeMenu } from './components/common/TreeMenu/TreeMenu';
 export type {
-  TreeMenuProps,
   TreeMenuItem,
   TreeMenuLeaf,
   TreeMenuSearchHit,

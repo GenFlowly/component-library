@@ -753,7 +753,7 @@ describe('SidebarListPanel menu variant', () => {
       <SidebarListPanel
         {...baseProps}
         title={undefined}
-        variant="menu"
+        touch
         groups={[
           {
             id: 'g1',
@@ -903,8 +903,8 @@ describe('SidebarListPanel menu variant', () => {
         <SidebarListPanel
           {...baseProps}
           title={undefined}
-          variant="menu"
-          surface="card"
+          variant="history"
+          touch
           moreActionsLabel="More actions"
           data-testid="panel"
           groups={[
@@ -967,10 +967,7 @@ describe('SidebarListPanel menu variant', () => {
     it('puts them behind one More actions button on a device with hover', () => {
       useTouchDevice(false);
       renderChats();
-      expect(screen.getByTestId('panel')).toHaveClass(
-        'surfaceCard',
-        'menuVariant'
-      );
+      expect(screen.getByTestId('panel')).toHaveClass('history', 'touch');
       expect(screen.queryByTestId('move-one')).not.toBeInTheDocument();
 
       const more = screen.getByTestId('row-one-more');
@@ -1077,7 +1074,7 @@ describe('SidebarListPanel menu variant', () => {
       <SidebarListPanel
         {...baseProps}
         title={undefined}
-        variant="menu"
+        touch
         groups={[
           {
             id: 'g1',

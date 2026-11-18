@@ -255,29 +255,33 @@ describe('VerticalSplit', () => {
     expect(inertGrip).not.toBeInTheDocument();
   });
 
-  test('panes are cards unless bare', () => {
+  test('the divider is a gap by default, or a seam', () => {
     const { unmount } = renderSplit();
-    expect(screen.getByTestId('split-top')).toHaveClass('pane', 'cardPane');
-    expect(screen.getByTestId('split-bottom')).toHaveClass('cardPane');
+    expect(screen.getByTestId('split')).toHaveClass('gap');
+    expect(screen.getByTestId('split-top')).toHaveClass('pane');
     unmount();
 
-    renderSplit({ bare: true });
-    expect(screen.getByTestId('split')).toHaveClass('bare');
-    expect(screen.getByTestId('split-top')).not.toHaveClass('cardPane');
-    expect(screen.getByTestId('split-bottom')).not.toHaveClass('cardPane');
+    renderSplit({ divider: 'seam' });
+    expect(screen.getByTestId('split')).toHaveClass('seam');
   });
 
-  test('bare: the divider shows its label as a tooltip while it can be dragged', () => {
-    renderSplit({ bare: true, separatorLabel: 'Resize panels' });
+  test('gap: the divider shows its label as a tooltip while it can be dragged', () => {
+    renderSplit({ separatorLabel: 'Resize panels' });
     const handle = screen.getByRole('separator', { name: 'Resize panels' });
     fireEvent.mouseEnter(handle.parentElement!);
     expect(screen.getByRole('tooltip')).toHaveTextContent('Resize panels');
     fireEvent.mouseLeave(handle.parentElement!);
   });
 
-  test('bare: an inert divider keeps the gap but has no tooltip', () => {
+  test('seam: the divider has no tooltip', () => {
+    renderSplit({ divider: 'seam', separatorLabel: 'Resize panels' });
+    const handle = screen.getByRole('separator', { name: 'Resize panels' });
+    fireEvent.mouseEnter(handle.parentElement!);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  test('gap: an inert divider keeps the gap but has no tooltip', () => {
     renderSplit({
-      bare: true,
       topCollapsed: true,
       separatorLabel: 'Resize panels',
     });
@@ -287,9 +291,9 @@ describe('VerticalSplit', () => {
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
-  test('bare with a single pane', () => {
-    renderSplit({ bare: true, top: null });
-    expect(screen.getByTestId('split-bottom')).not.toHaveClass('cardPane');
-    expect(screen.getByTestId('split')).toHaveClass('bare');
+  test('a single pane', () => {
+    renderSplit({ top: null });
+    expect(screen.getByTestId('split-bottom')).toHaveClass('pane');
+    expect(screen.getByTestId('split')).toHaveClass('gap');
   });
 });

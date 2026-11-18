@@ -1,0 +1,93 @@
+@import './themes.scss';
+
+// The rows of every SidebarWidget list, one entry per variant. Rows read
+// their shape and their hover, active and focus states from here only; a
+// variant that leaves a key out declares nothing for it. `touch` holds the
+// values that change in the full-screen phone menu.
+$sidebar-rows: (
+  history: (
+    radius: $radius-sm,
+    color: $color-text-secondary,
+    hover-bg: var(--sidebar-row-hover, #{$color-background-hover}),
+    active-bg: $color-background-selected,
+    active-color: $color-primary,
+    touch: (
+      active-color: $color-text-primary,
+      active-label-weight: 600,
+    ),
+  ),
+  directory: (
+    radius: $radius-sm,
+    color: $color-text-secondary,
+    hover-bg: $color-background-hover,
+    active-bg: $color-background-selected,
+    active-color: $color-primary,
+    touch: (
+      active-color: $color-text-primary,
+      active-label-weight: 600,
+    ),
+  ),
+  menu: (
+    height: 32px,
+    child-height: 28px,
+    padding: 0 10px,
+    child-padding-left: 12px,
+    radius: $radius-md,
+    font-size: 0.8125rem,
+    color: $color-text-secondary,
+    hover-bg: var(--sidebar-row-hover, #{$color-background-hover}),
+    hover-color: $color-text-primary,
+    active-bg: $color-background-selected,
+    active-color: $color-text-primary,
+    active-weight: 500,
+    focus-ring: 2px solid $color-border-focus,
+    touch: (
+      height: auto,
+      child-height: auto,
+      min-height: 48px,
+      child-min-height: 44px,
+      padding: 0 10px 0 8px,
+      font-size: 0.9375rem,
+    ),
+  ),
+);
+
+@function sidebar-row($variant, $key, $touch: false) {
+  $tokens: map-get($sidebar-rows, $variant);
+  @if $touch {
+    $touch-tokens: map-get($tokens, touch);
+    @if map-has-key($touch-tokens, $key) {
+      @return map-get($touch-tokens, $key);
+    }
+  }
+  @return map-get($tokens, $key);
+}
+
+// The row button itself, at rest
+@mixin sidebar-row-base($variant) {
+  border: none;
+  border-radius: sidebar-row($variant, radius);
+  background: transparent;
+  color: sidebar-row($variant, color);
+  text-align: left;
+  cursor: pointer;
+}
+
+@mixin sidebar-row-hover($variant) {
+  background-color: sidebar-row($variant, hover-bg);
+  color: sidebar-row($variant, hover-color);
+}
+
+@mixin sidebar-row-active($variant, $touch: false) {
+  background-color: sidebar-row($variant, active-bg, $touch);
+  color: sidebar-row($variant, active-color, $touch);
+  font-weight: sidebar-row($variant, active-weight, $touch);
+}
+
+@mixin sidebar-row-focus($variant) {
+  $ring: sidebar-row($variant, focus-ring);
+  @if $ring {
+    outline: $ring;
+    outline-offset: -2px;
+  }
+}

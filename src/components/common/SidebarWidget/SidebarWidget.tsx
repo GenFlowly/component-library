@@ -1,14 +1,21 @@
 import React, { ReactNode, useRef, useState } from 'react';
 import { Icon } from '../Icon/Icon';
 import Tooltip from '../Tooltip/Tooltip';
+import ScrollArea from '../ScrollArea/ScrollArea';
 import Chevron from '../SidebarListPanel/Chevron';
+import SidebarListPanel, {
+  SidebarListPanelProps,
+} from '../SidebarListPanel/SidebarListPanel';
+import TreeMenu, { TreeMenuProps } from '../TreeMenu/TreeMenu';
 import styles from './SidebarWidget.module.scss';
 
 let nextBodyId = 0;
 
-export interface SidebarWidgetProps {
-  children?: ReactNode;
-  /** Header title. Without it the card has no header row. */
+interface SidebarWidgetBaseProps {
+  /**
+   * Header title. Without it the card has no header row. A directory widget
+   * shows it as the list's uppercase heading, a menu widget as the card's.
+   */
   title?: ReactNode;
   /** Icon asset URL shown before the title. */
   icon?: string;
@@ -29,11 +36,12 @@ export interface SidebarWidgetProps {
   /** Tooltip of the toggle while collapsed, e.g. "Expand Projects". */
   expandLabel?: string;
   /**
-   * 'menu': the full-screen mobile menu. Same look, with header buttons whose
+   * The full-screen phone menu: finger-sized rows, and header buttons whose
    * hit area spans the header's height and grows sideways for a finger.
-   * @default 'default'
    */
-  variant?: 'default' | 'menu';
+  touch?: boolean;
+  /** Fills the height of the column it sits in instead of hugging its content. */
+  fill?: boolean;
   className?: string;
   /** Class for the body under the header (only used with a title). */
   bodyClassName?: string;
@@ -42,40 +50,125 @@ export interface SidebarWidgetProps {
   toggleTestId?: string;
 }
 
+/** A card with content of its own design, e.g. the dock's Models card. */
+export interface SidebarWidgetCustomProps extends SidebarWidgetBaseProps {
+  variant?: 'custom';
+  children?: ReactNode;
+}
+
+export type SidebarWidgetList = Omit<
+  SidebarListPanelProps,
+  'variant' | 'touch' | 'title'
+>;
+
+/**
+ * A card listing conversations in groups, with row actions, swipe trays and
+ * paging, on the card's material.
+ */
+export interface SidebarWidgetHistoryProps extends SidebarWidgetBaseProps {
+  variant: 'history';
+  list: SidebarWidgetList;
+}
+
+/** A card listing scopes or categories to pick from, on the sidebar background. */
+export interface SidebarWidgetDirectoryProps extends SidebarWidgetBaseProps {
+  variant: 'directory';
+  list: SidebarWidgetList;
+}
+
+export type SidebarWidgetListProps =
+  SidebarWidgetHistoryProps | SidebarWidgetDirectoryProps;
+
+export type SidebarWidgetMenu = Omit<TreeMenuProps, 'touch'>;
+
+/** A card of grouped navigation: sections with icons that expand to pages. */
+export interface SidebarWidgetMenuProps extends SidebarWidgetBaseProps {
+  variant: 'menu';
+  menu: SidebarWidgetMenu;
+  /** A search field between the heading and the menu. */
+  search?: ReactNode;
+  /** Pinned under the menu, over a hairline. */
+  footer?: ReactNode;
+}
+
+export type SidebarWidgetProps =
+  SidebarWidgetCustomProps | SidebarWidgetListProps | SidebarWidgetMenuProps;
+
 /**
  * The one card every sidebar widget sits in: the floating sidebar material, a
  * 34 px header with the widget's icon, title and actions, and its body. It
  * hugs its content and scrolls inside once the surrounding column runs out of
- * room; in a VerticalSplit pane it fills the pane.
+ * room; in a VerticalSplit pane it fills the pane. The variant decides the
+ * body: a history or directory list, a menu, or custom content.
  */
-export default function SidebarWidget({
-  children,
-  title,
-  icon,
-  actions,
-  collapsible = false,
-  collapsed: collapsedProp,
-  defaultCollapsed = false,
-  onCollapsedChange,
-  collapseLabel,
-  expandLabel,
-  variant = 'default',
-  className = '',
-  bodyClassName = '',
-  'data-testid': testId,
-  toggleTestId,
-}: SidebarWidgetProps): React.ReactElement {
+export default function SidebarWidget(
+  props: SidebarWidgetProps
+): React.ReactElement {
+  const {
+    title,
+    icon,
+    actions,
+    collapsible = false,
+    collapsed: collapsedProp,
+    defaultCollapsed = false,
+    onCollapsedChange,
+    collapseLabel,
+    expandLabel,
+    touch = false,
+    fill = false,
+    className = '',
+    bodyClassName = '',
+    'data-testid': testId,
+    toggleTestId,
+  } = props;
   const [internalCollapsed, setInternalCollapsed] = useState(defaultCollapsed);
   const bodyId = useRef(`sidebar-widget-body-${++nextBodyId}`).current;
   const isCollapsed = collapsible && (collapsedProp ?? internalCollapsed);
-  const variantClass = variant === 'menu' ? styles.menu : '';
+  const cardClass = `${styles.widget} ${touch ? styles.touch : ''} ${fill ? styles.fill : ''}`;
+
+  if (props.variant === 'menu') {
+    return (
+      <section
+        className={`${cardClass} ${styles.menu} ${className}`}
+        data-testid={testId}
+      >
+        {title != null && <h2 className={styles.menuHeader}>{title}</h2>}
+        {props.search != null && (
+          <div className={styles.menuSearch}>{props.search}</div>
+        )}
+        <ScrollArea className={styles.menuScroll}>
+          <TreeMenu {...props.menu} touch={touch} />
+        </ScrollArea>
+        {props.footer != null && (
+          <div className={styles.menuFooter}>{props.footer}</div>
+        )}
+      </section>
+    );
+  }
+
+  if (props.variant === 'directory') {
+    return (
+      <div className={`${cardClass} ${className}`} data-testid={testId}>
+        <SidebarListPanel
+          {...props.list}
+          variant="directory"
+          touch={touch}
+          title={typeof title === 'string' ? title : undefined}
+        />
+      </div>
+    );
+  }
+
+  const children =
+    props.variant === 'history' ? (
+      <SidebarListPanel {...props.list} variant="history" touch={touch} />
+    ) : (
+      props.children
+    );
 
   if (title == null) {
     return (
-      <div
-        className={`${styles.widget} ${variantClass} ${className}`}
-        data-testid={testId}
-      >
+      <div className={`${cardClass} ${className}`} data-testid={testId}>
         {children}
       </div>
     );
@@ -89,7 +182,7 @@ export default function SidebarWidget({
 
   return (
     <section
-      className={`${styles.widget} ${variantClass} ${isCollapsed ? styles.collapsed : ''} ${className}`}
+      className={`${cardClass} ${isCollapsed ? styles.collapsed : ''} ${className}`}
       data-testid={testId}
     >
       <header

@@ -31,15 +31,9 @@ export interface ResizableSidebarProps {
    */
   side?: 'left' | 'right';
   /**
-   * 'card' draws the floating sidebar material; 'plain' keeps only the
-   * width/drag/collapse behavior, for children that render their own cards
-   * (e.g. a VerticalSplit of stacked panes).
-   * @default 'card'
-   */
-  variant?: 'card' | 'plain';
-  /**
    * Adds a full-width footer toggle (chat-sidebar style) that collapses the
-   * panel to a slim strip hiding the content. @default false
+   * panel to a slim strip hiding the content. The column and its toggle are
+   * then one card. @default false
    */
   collapsible?: boolean;
   /**
@@ -62,9 +56,9 @@ export interface ResizableSidebarProps {
 }
 
 /**
- * Drag-resizable side panel: a fixed-width column with a drag handle on its
- * right edge. Width survives toggling (state lives here) and reloads
- * (persisted to localStorage in rem).
+ * Drag-resizable sidebar column holding SidebarWidgets: a fixed-width column
+ * with a drag handle on its right edge. Width survives toggling (state lives
+ * here) and reloads (persisted to localStorage in rem).
  */
 export default function ResizableSidebar({
   storageKey,
@@ -72,7 +66,6 @@ export default function ResizableSidebar({
   maxWidth = DEFAULT_MAX_WIDTH,
   defaultWidth,
   side = 'left',
-  variant = 'card',
   collapsible = false,
   collapsed: collapsedProp,
   onCollapsedChange,
@@ -170,7 +163,7 @@ export default function ResizableSidebar({
 
   return (
     <div
-      className={`${styles.sidebar} ${variant === 'plain' ? styles.plain : ''} ${collapsible ? styles.withFooter : ''} ${isCollapsed ? styles.collapsedStrip : ''}`}
+      className={`${styles.sidebar} ${collapsible ? styles.withFooter : ''} ${isCollapsed ? styles.collapsedStrip : ''}`}
       ref={panelRef}
       style={{ width: isCollapsed ? collapsedWidth : width }}
       data-testid={testId}

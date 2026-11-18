@@ -24,23 +24,9 @@
   min-height: 0;
 }
 
-// Unless bare, each pane is its own floating sidebar card, matching
-// ResizableSidebar's material so a stacked split reads as two sibling sidebars
-.cardPane {
-  @include sidebar-card-props;
-  @include sidebar-card-chrome;
-}
-
-@include sidebar-card-scrollbars('.cardPane');
-
-:global([data-theme='dark']) .cardPane {
-  @include sidebar-card-props-dark;
-  @include sidebar-card-chrome-dark;
-}
-
-// Bare panes hold a SidebarWidget each, which fills its pane (and hugs its
-// header once the pane hugs too)
-.bare > .pane > * {
+// Each pane holds a SidebarWidget, which fills its pane (and hugs its header
+// once the pane hugs too)
+.split > .pane > * {
   flex: 1 1 auto;
   min-height: 0;
 }
@@ -96,9 +82,9 @@
   }
 }
 
-// Between two widgets the divider is the same gap the dock leaves between
-// its cards; the grip shows on hover, drag and keyboard focus
-.bare .divider {
+// The gap divider is the same gap the dock leaves between its cards; the grip
+// shows on hover, drag and keyboard focus
+.gap .divider {
   width: 100%;
   height: 8px;
 
@@ -108,7 +94,7 @@
   }
 }
 
-.bare .dividerTouch {
+.gap .dividerTouch {
   height: 0.75rem;
 
   &::before {
@@ -165,3 +151,5 @@
     }
   }
 }
+
+@include sidebar-card-scrollbars('.seam > .pane');

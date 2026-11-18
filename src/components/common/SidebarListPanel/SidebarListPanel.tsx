@@ -98,12 +98,12 @@ export interface SidebarListPanelProps {
   errorText: string;
   emptyText: string;
   listAriaLabel?: string;
-  // 'menu': the full-screen mobile menu. Touch sizing at every width it shows
-  // at, and on touch devices item actions move into a swipe tray.
-  variant?: 'default' | 'menu';
-  // 'card': the list sits inside a SidebarWidget and shows the card's
-  // material instead of painting its own sidebar background.
-  surface?: 'panel' | 'card';
+  // 'history': the list shows its card's material. 'directory': it paints
+  // the sidebar background over it.
+  variant?: 'history' | 'directory';
+  // The full-screen mobile menu: touch sizing at every width it shows at,
+  // and on touch devices item actions move into a swipe tray.
+  touch?: boolean;
   // Accessible name and tooltip of the button that opens a row's menuActions
   moreActionsLabel?: string;
   // Infinite scroll: called when the end of the scrolling list comes within
@@ -481,8 +481,8 @@ export default function SidebarListPanel({
   errorText,
   emptyText,
   listAriaLabel,
-  variant = 'default',
-  surface = 'panel',
+  variant = 'directory',
+  touch = false,
   moreActionsLabel = 'More actions',
   onEndReached,
   footer,
@@ -492,7 +492,7 @@ export default function SidebarListPanel({
   const [isTouchDevice] = useState(
     () => window.matchMedia?.('(hover: none)').matches ?? false
   );
-  const swipeRows = variant === 'menu' && isTouchDevice;
+  const swipeRows = touch && isTouchDevice;
   const [openRowId, setOpenRowId] = useState<string | null>(null);
   const swipeContext = useMemo(
     () => ({ swipeRows, openRowId, setOpenRowId }),
@@ -525,7 +525,7 @@ export default function SidebarListPanel({
 
   return (
     <div
-      className={`${styles.container} ${variant === 'menu' ? styles.menuVariant : ''} ${surface === 'card' ? styles.surfaceCard : ''}`}
+      className={`${styles.container} ${touch ? styles.touch : ''} ${variant === 'history' ? styles.history : ''}`}
       data-testid={testId}
     >
       <MoreActionsLabelContext.Provider value={moreActionsLabel}>
