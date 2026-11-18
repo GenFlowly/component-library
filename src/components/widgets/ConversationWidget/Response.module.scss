@@ -122,16 +122,8 @@
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-
-  position: sticky;
-  bottom: 0;
-  background-color: color-mix(in srgb, $color-background 20%, transparent);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
   padding: 0.75rem 0;
-  z-index: 10;
   width: calc(100% + 4rem);
-  border-radius: 0 0 8px 8px; // Match the card's rounded bottom corners
 
   // @media (not @container) to match .inner/.responseWrapper above — these
   // all gate the same card-width breakpoint for one response card, and a
@@ -165,7 +157,7 @@
 }
 
 .swipeActive {
-  overflow-x: clip; // Not hidden: that would break the sticky action bar
+  overflow-x: clip; // Not hidden: that would break the sticky swipe label
 }
 
 .swipeDragging {

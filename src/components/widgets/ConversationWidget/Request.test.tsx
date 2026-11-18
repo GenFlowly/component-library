@@ -1092,6 +1092,15 @@ describe('Request Widget Component', () => {
       expect(container).toHaveClass('idleFollowUp');
     });
 
+    test('sticks to the bottom of the view, idle or in use', () => {
+      render(<Request blockId="block-2" />);
+      const container = screen.getByTestId('request-widget-container');
+      expect(container).toHaveAttribute('data-composer-sticky', 'true');
+
+      fireEvent.focus(screen.getByTestId('text-editor'));
+      expect(container).toHaveAttribute('data-composer-sticky', 'true');
+    });
+
     test('a draft keeps it full size', () => {
       render(<Request blockId="block-2" />);
       fireEvent.change(screen.getByTestId('text-editor'), {
@@ -1154,6 +1163,10 @@ describe('Request Widget Component', () => {
       render(<Request blockId="block-2" />);
       expect(screen.getByTestId('request-widget-container')).not.toHaveClass(
         'idleFollowUp'
+      );
+      expect(screen.getByTestId('request-widget-container')).toHaveAttribute(
+        'data-composer-sticky',
+        'false'
       );
       expect(screen.getByTestId('text-editor')).toHaveAttribute(
         'placeholder',
@@ -1235,6 +1248,24 @@ describe('Request Widget Component', () => {
       expect(
         screen.queryByTestId('generate-button-wrapper')
       ).not.toBeInTheDocument();
+    });
+
+    test('only an idle follow-up sticks to the bottom of the view', () => {
+      useBlocks(followUpBlocks());
+      render(<Request blockId="block-2" />);
+      const composer = screen.getByTestId('request-widget-container');
+      expect(composer).toHaveAttribute('data-composer-sticky', 'true');
+
+      fireEvent.focus(screen.getByTestId('text-editor'));
+      expect(composer).toHaveAttribute('data-composer-sticky', 'false');
+    });
+
+    test('a new chat does not stick to the bottom of the view', () => {
+      render(<Request blockId="block-1" />);
+      expect(screen.getByTestId('request-widget-container')).toHaveAttribute(
+        'data-composer-sticky',
+        'false'
+      );
     });
 
     test('a new chat starts grown, with its own placeholder', () => {

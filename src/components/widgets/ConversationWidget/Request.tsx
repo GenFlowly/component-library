@@ -514,8 +514,8 @@ function Request({
     resetAskSession();
   };
 
-  // 🖥️ The desktop editor rests as a one-line box at the end of the
-  // conversation and grows to a large box at the top of the view while in use
+  // 🖥️ The desktop editor rests as a one-line box stuck to the bottom of the
+  // view and grows to a large box at the top of the view while in use
   // (focused, or holding a draft), then on with its text, never scrolling
   // inside. A new chat's editor is always grown.
   const [isFocused, setFocused] = React.useState(false);
@@ -657,6 +657,7 @@ function Request({
         onPasteCapture={handlePasteCapture}
         data-testid={testId || 'request-widget-container'}
         data-composer-state={isIdleFollowUp ? 'idle' : 'grown'}
+        data-composer-sticky={isFollowUpBlock}
       >
         <div
           className={styles.editorWrapper}
@@ -720,6 +721,7 @@ function Request({
       onPasteCapture={handlePasteCapture}
       data-testid={testId || 'request-widget-container'}
       data-composer-state={isGrown ? 'grown' : 'idle'}
+      data-composer-sticky={!isGrown}
     >
       <div
         ref={editorWrapperRef}

@@ -467,14 +467,14 @@
 // Touch devices: the OS selection callout (Copy/Look Up…) draws over the page
 // wherever the selection sits, so the pill docks at the viewport bottom
 // instead of anchoring to the selection (rendered via portal to <body>). The
-// offset clears Response's own sticky action bar (Regenerate/Follow up/Fork —
-// see .responseActionButtonsWrapper: ~38px button + 0.75rem*2 padding, docked
-// at its own bottom: 0) plus a visible gap, so the two never overlap.
+// offset clears the idle follow-up editor stuck to the bottom of the view
+// (~7.75rem on phones, ~8.25rem on desktop — see Request.module.scss) plus a
+// visible gap, so the two never overlap.
 .selectionAskDocked {
   position: fixed;
   top: auto;
   left: 50%;
-  bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  bottom: calc(9.25rem + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 9999;
 }

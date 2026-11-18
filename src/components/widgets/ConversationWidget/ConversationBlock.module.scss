@@ -21,6 +21,15 @@
   }
 }
 
+// The trailing editor rests on the bottom of the conversation's view, over
+// the turns scrolled behind it (Request.tsx says when). Below the overlay
+// scrollbar thumb (z-index 10).
+.conversationBlock:last-child:has([data-composer-sticky='true']) {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+}
+
 .followUpButtonWrapper {
   width: 100%;
   display: flex;

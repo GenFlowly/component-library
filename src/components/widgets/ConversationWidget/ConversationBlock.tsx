@@ -194,6 +194,16 @@ function ConversationBlock({
         tempInput.remove();
       };
 
+      // The editor block ends the conversation. It is stuck to the bottom of
+      // the view while idle, where scrollIntoView would measure it, so scroll
+      // to the conversation's end instead.
+      const scrollToLastBlock = () => {
+        const scroller = document
+          .querySelector('.conversation-block-item:last-child')
+          ?.closest<HTMLElement>('[data-testid="center-section-scroll"]');
+        scroller?.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
+      };
+
       // Get the last conversation block
       const lastBlock = conversationBlockList[conversationBlockList.length - 1];
 
@@ -213,12 +223,8 @@ function ConversationBlock({
           selectedMessageId
         );
 
-        // Scroll to the existing block
         setTimeout(() => {
-          const last = document.querySelector(
-            `.conversation-block-item:last-child`
-          );
-          last?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          scrollToLastBlock();
           focusEditor();
         }, 100);
       } else {
@@ -227,12 +233,8 @@ function ConversationBlock({
         addNewConversationBlockWithId(newBlockId);
         setSelectedResponseForBlock(newBlockId, selectedMessageId);
 
-        // Scroll to new block
         setTimeout(() => {
-          const last = document.querySelector(
-            `.conversation-block-item:last-child`
-          );
-          last?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          scrollToLastBlock();
           focusEditor();
         }, 300);
       }

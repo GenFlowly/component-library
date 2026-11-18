@@ -177,8 +177,8 @@
 }
 
 // 📱 Follow-up blocks (any block after the first): identical docked editor,
-// but the block only takes the editor's height at the end of the
-// conversation — plus the keyboard's height while it's open, so the space
+// stuck to the bottom of the view, but the block only takes the editor's
+// height at the end of the conversation — plus the keyboard's height while it's open, so the space
 // the riding editor moves into is RESERVED in the layout rather than
 // overlapping the response above. Request.tsx keeps the conversation
 // scrolled to the end when --kb changes, which lands the editor flush on
@@ -340,7 +340,7 @@
 }
 
 // 🖥️ Desktop composer: one rounded box holding the text and its controls.
-// Idle it is a single line at the end of the conversation; in use it grows to
+// Idle it is a single line stuck to the bottom of the view; in use it grows to
 // a minimum height (set inline by Request.tsx) and scrolls to the top of the
 // view, where the space reserved below it keeps it. Its text grows it from
 // there; the conversation scrolls, not the box.
