@@ -31,6 +31,12 @@
     calc(20px + env(safe-area-inset-bottom, 0px));
   background: var(--color-background);
   box-shadow: 8px 0 24px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.full .panel {
+  width: 100%;
+  max-width: none;
 }
 
 .left .panel {
@@ -62,8 +68,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .scrim,
+  .panel,
   .left .panel,
   .right .panel {
     animation: none;
+    transition: none;
   }
 }

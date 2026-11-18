@@ -22,9 +22,10 @@ export interface InfoDrawerProps {
 }
 
 /**
- * The phone's home for a settings page's knowledge cards: a drawer that
- * slides in from the left, opened by the page header's info button or a
- * swipe in from the screen's right edge.
+ * The phone's home for a settings page's knowledge cards: a full-screen
+ * drawer that slides in from the right, opened by the page header's info
+ * button or a swipe in from the screen's right edge, and closed by its close
+ * button or a swipe back to the right.
  */
 export default function InfoDrawer({
   open,
@@ -40,7 +41,8 @@ export default function InfoDrawer({
     <SlideOverPanel
       open={open}
       onClose={onClose}
-      side="left"
+      side="right"
+      fullWidth
       aria-label={title}
       data-testid={testId}
     >

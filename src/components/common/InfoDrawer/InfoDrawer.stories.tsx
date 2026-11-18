@@ -11,9 +11,9 @@ const meta: Meta<typeof InfoDrawer> = {
   parameters: {
     docs: {
       description: {
-        component: `The phone's "About this page" drawer: a **SlideOverPanel** from the left with a close button, a title pill naming the page, the page's knowledge cards stacked, and a hint on how to reopen it. It opens from the ⓘ button or a swipe in from the right edge; Escape and the scrim close it.
+        component: `The phone's "About this page" drawer: a full-screen **SlideOverPanel** from the right with a close button, a title pill naming the page, the page's knowledge cards stacked, and a hint on how to reopen it. It opens from the ⓘ button or a swipe in from the right edge; the close button, Escape and a swipe back to the right close it.
 
-**SlideOverPanel** is the bare panel underneath: \`side\` left or right, a scrim, Escape to close, and no slide animation when the viewer prefers reduced motion.`,
+**SlideOverPanel** is the bare panel underneath: \`side\` left or right, \`fullWidth\` to cover the screen, a scrim, Escape or a swipe toward its edge to close, and no slide animation when the viewer prefers reduced motion.`,
       },
     },
   },
