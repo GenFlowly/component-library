@@ -55,9 +55,6 @@ function findScrollParent(el: HTMLElement): HTMLElement | null {
   return null;
 }
 
-/** Room above the grown desktop box, so a tall draft never fills the view. */
-const GROWN_EDITOR_TOP_ROOM_PX = 48;
-
 // Memoized (see export): props are stable, so re-renders come only from its
 // own editing state and the contexts it subscribes to
 function Request({
@@ -512,11 +509,10 @@ function Request({
     resetAskSession();
   };
 
-  // 🖥️ The desktop follow-up editor rests as a one-line box on the bottom of
-  // the view. In use (focused, or holding a draft) it grows and moves to the
-  // top of the view over the conversation, which stays where it was being
-  // read; past the view's height its text scrolls inside. A new chat's editor
-  // is always grown.
+  // 🖥️ The desktop editor rests as a one-line box stuck to the bottom of the
+  // view and grows to a large box at the top of the view while in use
+  // (focused, or holding a draft), then on with its text, never scrolling
+  // inside. A new chat's editor is always grown.
   const [isFocused, setFocused] = React.useState(false);
   const composerRef = React.useRef<HTMLDivElement | null>(null);
   const hasDraft =
@@ -525,56 +521,56 @@ function Request({
     validatingCount > 0;
   const isGrown = isNewChatBlock || isFocused || hasDraft;
 
+  // A grown follow-up editor reserves a full view of height below its top
+  // edge, so the conversation can always scroll it up to the top of the view.
+  // The sent prompt renders into the same element, so the reserve has to go
+  // with the editor, not just when it shrinks back to one line.
   useLayoutEffect(() => {
     const el = composerRef.current;
-    if (!el || isNarrow || !isEditorView || isNewChatBlock) return;
-    const cap = () => {
+    if (!el || isNarrow || !isEditorView || !isGrown || isNewChatBlock) return;
+    const reserve = () => {
       const scroller = findScrollParent(el);
-      if (!scroller) return;
-      el.style.setProperty(
-        '--composer-max-height',
-        `${scroller.clientHeight - GROWN_EDITOR_TOP_ROOM_PX}px`
-      );
+      el.style.minHeight = scroller ? `${scroller.clientHeight}px` : '';
     };
-    cap();
-    window.addEventListener('resize', cap);
+    reserve();
+    window.addEventListener('resize', reserve);
     return () => {
-      window.removeEventListener('resize', cap);
-      el.style.removeProperty('--composer-max-height');
+      window.removeEventListener('resize', reserve);
+      el.style.minHeight = '';
     };
-  }, [isNewChatBlock, isNarrow, isEditorView]);
+  }, [isGrown, isNewChatBlock, isNarrow, isEditorView]);
 
-  // The conversation learns the editor block's height and its own: an idle
-  // editor covers the end of the view, so whatever scrolls a response's end
-  // into view has to stop above it; a grown one is held at the top of the
-  // view by its distance from the bottom (ConversationBlock.module.scss)
+  // Starting to type brings the editor to the top of the view
+  const wasFocusedRef = React.useRef(false);
+  useEffect(() => {
+    if (!isNarrow && isFocused && !wasFocusedRef.current && !isNewChatBlock) {
+      composerRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
+    wasFocusedRef.current = isFocused;
+  }, [isFocused, isNarrow, isNewChatBlock]);
+
+  // The idle editor stuck to the bottom covers the end of the view, so
+  // whatever scrolls a response's end into view has to stop above it
   useLayoutEffect(() => {
     const el = composerRef.current;
     if (!el || isNarrow || !isEditorView || !isFollowUpBlock || !isLastBlock)
       return;
+    if (isGrown) return;
     const scroller = findScrollParent(el);
-    const block = el.closest<HTMLElement>('.conversation-block-item') ?? el;
     if (!scroller) return;
-    const measure = () => {
-      const height = block.offsetHeight;
-      scroller.style.setProperty('--trailing-editor-height', `${height}px`);
+    const observer = new ResizeObserver(() => {
       scroller.style.setProperty(
-        '--trailing-editor-cover',
-        isGrown ? '0px' : `${height}px`
+        '--trailing-editor-height',
+        `${el.offsetHeight}px`
       );
-      scroller.style.setProperty(
-        '--conversation-view-height',
-        `${scroller.clientHeight}px`
-      );
-    };
-    const observer = new ResizeObserver(measure);
-    observer.observe(block);
-    observer.observe(scroller);
+    });
+    observer.observe(el);
     return () => {
       observer.disconnect();
       scroller.style.removeProperty('--trailing-editor-height');
-      scroller.style.removeProperty('--trailing-editor-cover');
-      scroller.style.removeProperty('--conversation-view-height');
     };
   }, [isNarrow, isEditorView, isFollowUpBlock, isLastBlock, isGrown]);
 
@@ -742,8 +738,7 @@ function Request({
       onPasteCapture={handlePasteCapture}
       data-testid={testId || 'request-widget-container'}
       data-composer-state={isGrown ? 'grown' : 'idle'}
-      data-composer-sticky={isFollowUpBlock}
-      data-composer-at-top={isFollowUpBlock && isGrown}
+      data-composer-sticky={isFollowUpBlock && !isGrown}
     >
       <div
         ref={editorWrapperRef}

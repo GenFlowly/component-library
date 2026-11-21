@@ -245,6 +245,49 @@ describe('ConversationBlock Component', () => {
     jest.useRealTimers();
   });
 
+  test('a streaming answer holds a follow-up being written at the top of the view', () => {
+    jest.useFakeTimers();
+    const composer = document.createElement('div');
+    composer.setAttribute('data-composer-sticky', 'false');
+    const input = document.createElement('textarea');
+    composer.appendChild(input);
+    document.body.appendChild(composer);
+    input.focus();
+    const streaming = (text: string) => ({
+      conversationBlockList: [
+        {
+          conversationBlockId: 'block-1',
+          responseMessages: [{ id: 'msg-1', text }],
+          isLoading: true,
+          status: 'draft',
+        },
+      ],
+      addNewConversationBlockWithId: mockAddNewConversationBlockWithId,
+      setSelectedResponseForBlock: mockSetSelectedResponseForBlock,
+    });
+
+    try {
+      mockUseConversation.mockReturnValue(streaming('Hel'));
+      const { rerender } = render(<ConversationBlock id="block-1" />);
+      act(() => {
+        jest.advanceTimersByTime(200);
+      });
+      mockUseConversation.mockReturnValue(streaming('Hello there'));
+      // A new prop gets the memoised block to render the longer answer
+      rerender(<ConversationBlock id="block-1" data-testid="streaming" />);
+
+      // Only the box being written is scrolled, to the top of the view
+      expect(mockScrollIntoView.mock.contexts).not.toHaveLength(0);
+      mockScrollIntoView.mock.contexts.forEach(element =>
+        expect(element).toBe(composer)
+      );
+      expect(mockScrollIntoView).toHaveBeenCalledWith({ block: 'start' });
+    } finally {
+      composer.remove();
+      jest.useRealTimers();
+    }
+  });
+
   test('pauses auto-scroll when user scrolls up (wheel deltaY < 0)', () => {
     mockUseConversation.mockReturnValue({
       conversationBlockList: [

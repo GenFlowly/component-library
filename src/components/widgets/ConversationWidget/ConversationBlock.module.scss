@@ -33,25 +33,10 @@
   margin-top: auto;
 }
 
-// 🖥️ A grown desktop editor moves to the top of the view without scrolling
-// the conversation: held that far from the view's bottom, the sticky block
-// rests at the top (Request.tsx measures both)
-.conversationBlock:last-child:has([data-composer-at-top='true']) {
-  bottom: calc(
-    var(--conversation-view-height, var(--trailing-editor-height, 0px)) - var(
-        --trailing-editor-height,
-        0px
-      )
-  );
-}
-
-// Scrolling a response's end into view (following a stream) stops above an
-// editor on the bottom of the view (Request.tsx measures it)
+// Scrolling a response's end into view (following a stream) stops above the
+// editor stuck to the bottom of the view (Request.tsx measures it)
 .conversationBlock [data-item-type='response'] {
-  scroll-margin-bottom: var(
-    --trailing-editor-cover,
-    var(--trailing-editor-height, 0px)
-  );
+  scroll-margin-bottom: var(--trailing-editor-height, 0px);
 }
 
 .followUpButtonWrapper {

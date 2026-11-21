@@ -1261,51 +1261,14 @@ describe('Request Widget Component', () => {
       ).not.toBeInTheDocument();
     });
 
-    test('a follow-up stays stuck to the bottom of the view while in use', () => {
+    test('only an idle follow-up sticks to the bottom of the view', () => {
       useBlocks(followUpBlocks());
       render(<Request blockId="block-2" />);
       const composer = screen.getByTestId('request-widget-container');
       expect(composer).toHaveAttribute('data-composer-sticky', 'true');
 
       fireEvent.focus(screen.getByTestId('text-editor'));
-      expect(composer).toHaveAttribute('data-composer-sticky', 'true');
-    });
-
-    test('in use, a follow-up moves to the top of the view; idle it rests on the bottom', () => {
-      useBlocks(followUpBlocks());
-      render(<Request blockId="block-2" />);
-      const composer = screen.getByTestId('request-widget-container');
-      expect(composer).toHaveAttribute('data-composer-at-top', 'false');
-
-      fireEvent.focus(screen.getByTestId('text-editor'));
-      expect(composer).toHaveAttribute('data-composer-at-top', 'true');
-
-      fireEvent.blur(screen.getByTestId('text-editor'));
-      expect(composer).toHaveAttribute('data-composer-at-top', 'false');
-    });
-
-    test('a new chat never moves to the top of the view', () => {
-      render(<Request blockId="block-1" />);
-      expect(screen.getByTestId('request-widget-container')).toHaveAttribute(
-        'data-composer-at-top',
-        'false'
-      );
-    });
-
-    test('a follow-up box is capped to the height of the view', () => {
-      useBlocks(followUpBlocks());
-      const scroller = document.createElement('div');
-      scroller.style.overflowY = 'auto';
-      Object.defineProperty(scroller, 'clientHeight', { value: 640 });
-      document.body.appendChild(scroller);
-      render(<Request blockId="block-2" />, { container: scroller });
-
-      expect(
-        screen
-          .getByTestId('request-widget-container')
-          .style.getPropertyValue('--composer-max-height')
-      ).toBe('592px');
-      scroller.remove();
+      expect(composer).toHaveAttribute('data-composer-sticky', 'false');
     });
 
     test('send waits while the turn above is generating', () => {
@@ -1353,7 +1316,7 @@ describe('Request Widget Component', () => {
       );
     });
 
-    test('focus grows the box in place, without scrolling the conversation', () => {
+    test('focus grows the box and brings it to the top of the view', () => {
       useBlocks(followUpBlocks());
       render(<Request blockId="block-2" />);
       fireEvent.focus(screen.getByTestId('text-editor'));
@@ -1365,10 +1328,61 @@ describe('Request Widget Component', () => {
       expect(screen.getByTestId('composer-box')).toHaveStyle({
         minHeight: '300px',
       });
+      expect(scrollIntoView).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+
+    test('a grown follow-up reserves a full view of space below its top', () => {
+      useBlocks(followUpBlocks());
+      const scroller = document.createElement('div');
+      scroller.style.overflowY = 'auto';
+      Object.defineProperty(scroller, 'clientHeight', { value: 640 });
+      document.body.appendChild(scroller);
+      render(<Request blockId="block-2" />, { container: scroller });
+
+      const composer = screen.getByTestId('request-widget-container');
+      expect(composer.style.minHeight).toBe('');
+      fireEvent.focus(screen.getByTestId('text-editor'));
+      expect(composer.style.minHeight).toBe('640px');
+
+      fireEvent.blur(screen.getByTestId('text-editor'));
+      expect(composer.style.minHeight).toBe('');
+      scroller.remove();
+    });
+
+    test('a sent follow-up leaves no reserved space under the prompt', () => {
+      useBlocks(followUpBlocks());
+      const scroller = document.createElement('div');
+      scroller.style.overflowY = 'auto';
+      Object.defineProperty(scroller, 'clientHeight', { value: 640 });
+      document.body.appendChild(scroller);
+      const { rerender } = render(<Request blockId="block-2" />, {
+        container: scroller,
+      });
+
+      fireEvent.focus(screen.getByTestId('text-editor'));
       expect(
         screen.getByTestId('request-widget-container').style.minHeight
-      ).toBe('');
-      expect(scrollIntoView).not.toHaveBeenCalled();
+      ).toBe('640px');
+
+      const sent = followUpBlocks();
+      sent[1] = {
+        ...sent[1],
+        prompt: 'Make it shorter',
+        status: 'draft',
+        isLoading: true,
+      };
+      useBlocks(sent);
+      // A new prop gets the memoised widget to render the sent state
+      rerender(<Request blockId="block-2" data-testid="sent-request" />);
+
+      expect(screen.getByTestId('sent-request')).toHaveClass(
+        'resolvedRequestContainer'
+      );
+      expect(screen.getByTestId('sent-request').style.minHeight).toBe('');
+      scroller.remove();
     });
 
     test('blur returns an empty box to one line; a draft keeps it grown', () => {

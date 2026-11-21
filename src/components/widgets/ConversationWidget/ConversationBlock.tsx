@@ -9,6 +9,12 @@ import {
 } from './ConversationWidgetContext';
 import styles from './ConversationBlock.module.scss';
 
+/** 🖥️ A follow-up being written at the top of the view (Request.tsx) keeps
+ * its place: a streaming answer must not scroll it away. */
+function isWritingAtTop(): boolean {
+  return !!document.activeElement?.closest('[data-composer-sticky="false"]');
+}
+
 // Memoized: the block list parent re-renders on unrelated layout/context
 // changes; a block only needs to re-render when its own context reads change
 function ConversationBlock({
@@ -85,10 +91,12 @@ function ConversationBlock({
       }
       // Wait a tick for layout
       setTimeout(() => {
-        responseRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
+        if (!isWritingAtTop()) {
+          responseRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          });
+        }
         hasScrolledRef.current = true;
       }, 100);
     }
@@ -98,7 +106,9 @@ function ConversationBlock({
     isLastResponseBlock,
   ]);
 
-  // Continuous scroll during streaming (Sticky Bottom)
+  // Continuous scroll during streaming (Sticky Bottom). A follow-up being
+  // written at the top of the view is held there instead, so the answer
+  // growing above it doesn't push it down.
   useEffect(() => {
     if (
       conversationBlock?.isLoading &&
@@ -106,6 +116,13 @@ function ConversationBlock({
       isFollowArmedRef.current &&
       !isAutoScrollPausedRef.current
     ) {
+      const writing = document.activeElement?.closest<HTMLElement>(
+        '[data-composer-sticky="false"]'
+      );
+      if (writing) {
+        writing.scrollIntoView({ block: 'start' });
+        return;
+      }
       // Use 'auto' behavior for stickiness to avoid fighting with smooth animation lag
       responseRef.current.scrollIntoView({
         behavior: 'smooth',
