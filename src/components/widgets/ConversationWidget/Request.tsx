@@ -33,6 +33,7 @@ import {
   isPdfFile,
 } from './attachment.models';
 import { useAttachmentValidation } from './useAttachmentValidation';
+import { prepareImageForUpload } from '../../../utils/imageUpload';
 import { useWindowSize } from './useWindowSize';
 import { NARROW_BREAKPOINT } from '../../../constants/breakpoints';
 
@@ -250,10 +251,8 @@ function Request({
       // Attachments need the host's upload service — without it the paste
       // path is simply off
       if (!uploadAttachment) return;
-      // No size check, and the format was checked by addAttachments: any
-      // supported image goes up as-is (HEIC from iPhones, camera RAW,
-      // multi-MB photos) and the backend converts/compresses it for the
-      // LLM vendors
+      // The format was checked by addAttachments; prepareImageForUpload
+      // turns the image into a PNG within the backend's limits
       if (pendingAttachmentsRef.current.length >= MAX_ATTACHMENTS_PER_MESSAGE) {
         showToast(
           t('conversation.request.attachmentLimitReached', {
@@ -281,8 +280,24 @@ function Request({
       setPendingAttachments(prev => [...prev, entry]);
 
       try {
+        const upload = isPdf ? file : await prepareImageForUpload(file);
+        if (
+          upload !== file &&
+          pendingAttachmentsRef.current.some(a => a.localId === localId)
+        ) {
+          // The original may not render here (HEIC outside Safari)
+          const convertedUrl = URL.createObjectURL(upload);
+          URL.revokeObjectURL(previewUrl);
+          setPendingAttachments(prev =>
+            prev.map(a =>
+              a.localId === localId
+                ? { ...a, previewUrl: convertedUrl, fileName: upload.name }
+                : a
+            )
+          );
+        }
         const token = await getAccessTokenSilently();
-        const ref = await uploadAttachment(token, file);
+        const ref = await uploadAttachment(token, upload);
         setPendingAttachments(prev =>
           prev.map(a =>
             a.localId === localId ? { ...a, status: 'ready', ref } : a

@@ -5,6 +5,7 @@ import {
   fireEvent,
   act,
   waitFor,
+  within,
 } from '@testing-library/react';
 import Request from './Request';
 import {
@@ -26,6 +27,11 @@ jest.mock('./ConversationWidgetContext', () => ({
   useConversationServices: () => ({ uploadAttachment: mockUploadAttachment }),
   useConversationComposer: () => mockComposer,
   useToast: () => ({ showToast: mockShowToast }),
+}));
+
+const mockPrepareImageForUpload = jest.fn();
+jest.mock('../../../utils/imageUpload', () => ({
+  prepareImageForUpload: (file: File) => mockPrepareImageForUpload(file),
 }));
 
 // Mock heavy child components
@@ -102,6 +108,7 @@ describe('Request Widget Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockPrepareImageForUpload.mockImplementation(async (file: File) => file);
     // setEditorPrompt moved to the ConversationUI context (perf split);
     // the main-context mocks below may still carry it harmlessly
     mockUseConversationUI.mockReturnValue({
@@ -583,6 +590,7 @@ describe('Request Widget Component', () => {
           screen.queryByTestId('attachment-uploading-spinner')
         ).not.toBeInTheDocument();
       });
+      expect(mockPrepareImageForUpload).not.toHaveBeenCalled();
 
       fireEvent.click(screen.getByTestId('generate-button'));
       expect(mockGenerateResponsesStream).toHaveBeenCalledWith(
@@ -623,6 +631,39 @@ describe('Request Widget Component', () => {
       ).toBeInTheDocument();
       expect(mockUploadAttachment).toHaveBeenCalledWith('test-token', heic);
       expect(mockShowToast).not.toHaveBeenCalled();
+    });
+
+    test('uploads the converted PNG and previews it', async () => {
+      const converted = new File(['png'], 'IMG_0036.png', {
+        type: 'image/png',
+      });
+      mockPrepareImageForUpload.mockResolvedValue(converted);
+      (global.URL.createObjectURL as jest.Mock)
+        .mockReturnValueOnce('blob:original')
+        .mockReturnValueOnce('blob:converted');
+      mockUploadAttachment.mockResolvedValue({
+        attachmentId: 'att-1',
+        s3Key: 'k',
+        mediaType: 'image/png',
+      });
+
+      render(<Request blockId="block-1" />);
+      const heic = new File(['x'], 'IMG_0036.HEIC', { type: '' });
+      pasteImage(screen.getByTestId('request-widget-container'), heic);
+
+      await waitFor(() =>
+        expect(mockUploadAttachment).toHaveBeenCalledWith(
+          'test-token',
+          converted
+        )
+      );
+      expect(mockPrepareImageForUpload).toHaveBeenCalledWith(heic);
+      const thumb = within(
+        screen.getByTestId('attachment-thumbnail')
+      ).getByRole('img');
+      expect(thumb).toHaveAttribute('src', 'blob:converted');
+      expect(thumb).toHaveAttribute('alt', 'IMG_0036.png');
+      expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('blob:original');
     });
 
     test('pastes blank-type files only when they are images', async () => {

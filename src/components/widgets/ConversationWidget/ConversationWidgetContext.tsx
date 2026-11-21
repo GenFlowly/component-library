@@ -84,7 +84,8 @@ export interface ConversationWidgetAuth {
  * no uploadAttachment → image paste/attach is off; no getAttachmentViewUrl →
  * attachment thumbnails/downloads don't render; no getLearnedFacts → the
  * learned-facts stat is hidden; no getVendorDisplayName → title-cased
- * fallback names.
+ * fallback names. uploadAttachment receives an image already converted by
+ * prepareImageForUpload.
  */
 export interface ConversationWidgetServices {
   uploadAttachment?: (token: string, file: File) => Promise<AttachmentRef>;

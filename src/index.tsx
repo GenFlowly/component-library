@@ -234,6 +234,11 @@ export type {
   BarChartPoint,
 } from './components/common/BarChart/BarChart';
 export { formatCount, formatCompactCount } from './utils/numberFormat';
+export {
+  prepareImageForUpload,
+  MAX_IMAGE_UPLOAD_BYTES,
+  MAX_IMAGE_UPLOAD_PIXELS,
+} from './utils/imageUpload';
 export { bucketDailySeries } from './utils/dailySeries';
 export type {
   DailyValue,

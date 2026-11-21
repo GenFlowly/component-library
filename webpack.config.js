@@ -109,5 +109,8 @@ module.exports = {
       amd: 'i18next',
       root: 'i18next',
     },
+    // ~3 MB of WebAssembly: left as a real import() so the app's bundler
+    // splits it into a chunk that loads only when a HEIC is attached.
+    'heic-to': 'import heic-to',
   },
 };
