@@ -29,6 +29,10 @@ export type {
   GridColProps,
   GridSpan,
 } from './components/common/Grid/Grid';
+export { default as DesktopOptimalReadingWidthContainer } from './components/common/DesktopOptimalReadingWidthContainer/DesktopOptimalReadingWidthContainer';
+export type { DesktopOptimalReadingWidthContainerProps } from './components/common/DesktopOptimalReadingWidthContainer/DesktopOptimalReadingWidthContainer';
+export { default as ChatReadingWidthContainer } from './components/common/DesktopOptimalReadingWidthContainer/ChatReadingWidthContainer';
+export type { ChatReadingWidthContainerProps } from './components/common/DesktopOptimalReadingWidthContainer/ChatReadingWidthContainer';
 export {
   default as DateRangePicker,
   DEFAULT_DATE_RANGE_PRESETS,

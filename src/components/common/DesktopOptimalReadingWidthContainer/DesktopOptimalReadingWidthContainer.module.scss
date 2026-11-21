@@ -1,0 +1,15 @@
+@import '../../../styles/themes.scss';
+
+.container {
+  width: 100%;
+  min-width: 0;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+// Desktop only, the same breakpoint the conversation's desktop rules use
+@media (min-width: #{$breakpoint-tablet + 1px}) {
+  .container {
+    max-width: var(--reading-max-width, #{$reading-width-optimal});
+  }
+}

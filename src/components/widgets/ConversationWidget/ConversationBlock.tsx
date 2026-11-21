@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import Response from './Response';
 import Request from './Request';
+import ChatReadingWidthContainer from '../../common/DesktopOptimalReadingWidthContainer/ChatReadingWidthContainer';
 import { landOnElement } from './landOnElement';
 import {
   useConversation,
@@ -255,33 +256,35 @@ function ConversationBlock({
       data-block-id={id}
       data-testid={testId}
     >
-      <div
-        data-scroll-item="true"
-        data-block-id={id}
-        data-item-type="request"
-        style={{ width: '100%' }}
-      >
-        <Request blockId={id} />
-      </div>
-
-      {(conversationBlock.status === 'resolved' ||
-        conversationBlock.responseMessages.length > 0) && (
+      <ChatReadingWidthContainer>
         <div
-          ref={responseRef}
-          style={{ width: '100%' }}
           data-scroll-item="true"
           data-block-id={id}
-          data-item-type="response"
+          data-item-type="request"
+          style={{ width: '100%' }}
         >
-          <Response
-            blockId={id}
-            responseMessages={conversationBlock.responseMessages}
-            onFollowUp={handleFollowUp}
-            disabled={!hasAnyValidApiKey}
-            isLastResponseBlock={isLastResponseBlock}
-          />
+          <Request blockId={id} />
         </div>
-      )}
+
+        {(conversationBlock.status === 'resolved' ||
+          conversationBlock.responseMessages.length > 0) && (
+          <div
+            ref={responseRef}
+            style={{ width: '100%' }}
+            data-scroll-item="true"
+            data-block-id={id}
+            data-item-type="response"
+          >
+            <Response
+              blockId={id}
+              responseMessages={conversationBlock.responseMessages}
+              onFollowUp={handleFollowUp}
+              disabled={!hasAnyValidApiKey}
+              isLastResponseBlock={isLastResponseBlock}
+            />
+          </div>
+        )}
+      </ChatReadingWidthContainer>
     </div>
   );
 }

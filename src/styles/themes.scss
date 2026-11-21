@@ -117,6 +117,13 @@
   // Message cards (request/response text containers)
   --message-card-max-width: 68rem; // Max width of a single card / response column
   --response-column-gap: 0.75rem; // Gap between response columns
+
+  // Reading widths: the widest a column of running text may grow on desktop.
+  // 45-75 characters a line reads best (65 ideal); 70ch is that at any font.
+  // The chat column is the 48rem (768px) chat apps cap their message column
+  // at, whatever the screen size.
+  --reading-width-optimal: 70ch;
+  --reading-width-chat: 48rem;
 }
 
 // Dark Theme
@@ -287,4 +294,6 @@ $mobile-content-width: var(--mobile-content-width);
 $mobile-header-height: var(--mobile-header-height);
 $widget-padding-y: var(--widget-padding-y);
 $message-card-max-width: var(--message-card-max-width);
+$reading-width-optimal: var(--reading-width-optimal);
+$reading-width-chat: var(--reading-width-chat);
 $response-column-gap: var(--response-column-gap);
