@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import Response from './Response';
 import Request from './Request';
 import ChatReadingWidthContainer from '../../common/DesktopOptimalReadingWidthContainer/ChatReadingWidthContainer';
@@ -41,7 +47,12 @@ function ConversationBlock({
     [...conversationBlockList]
       .reverse()
       .find(b => b.responseMessages.length > 0)?.conversationBlockId === id;
+  const blockRef = useRef<HTMLDivElement | null>(null);
   const responseRef = useRef<HTMLDivElement | null>(null);
+  // Sent from this page (not opened finished): the turn goes to the top of
+  // the view and stays there while its answer generates below it
+  const [isSentHere, setSentHere] = useState(false);
+  const holdsTop = isSentHere && isLastResponseBlock;
   // Gates the one-time jump-to-start below. Never reset back to false, so a
   // regenerate/vendor-switch on an already-visible last response can't
   // re-trigger that jump (it would yank the viewport back up to the prompt
@@ -71,7 +82,9 @@ function ConversationBlock({
   const endLandingRef = useRef<(() => void) | null>(null);
   useEffect(() => () => endLandingRef.current?.(), []);
 
-  // Scroll to response when it appears and we haven't scrolled yet (Initial "Jump" to start)
+  // A response appearing for the first time takes the view to it once: a
+  // finished one (conversation opened) lands on the response, a generating
+  // one (just sent) puts its prompt at the top of the view
   useEffect(() => {
     if (
       conversationBlock?.responseMessages?.length &&
@@ -89,10 +102,11 @@ function ConversationBlock({
         }
         return;
       }
+      setSentHere(true);
       // Wait a tick for layout
       setTimeout(() => {
         if (!isWritingAtTop()) {
-          responseRef.current?.scrollIntoView({
+          blockRef.current?.scrollIntoView({
             behavior: 'smooth',
             block: 'start',
           });
@@ -106,9 +120,9 @@ function ConversationBlock({
     isLastResponseBlock,
   ]);
 
-  // Continuous scroll during streaming (Sticky Bottom). A follow-up being
-  // written at the top of the view is held there instead, so the answer
-  // growing above it doesn't push it down.
+  // The view doesn't follow a streaming answer: it grows down from the prompt
+  // at the top. Only a follow-up being written at the top of the view is
+  // held there, so the answer growing above it doesn't push it down.
   useEffect(() => {
     if (
       conversationBlock?.isLoading &&
@@ -119,17 +133,47 @@ function ConversationBlock({
       const writing = document.activeElement?.closest<HTMLElement>(
         '[data-composer-sticky="false"]'
       );
-      if (writing) {
-        writing.scrollIntoView({ block: 'start' });
-        return;
-      }
-      // Use 'auto' behavior for stickiness to avoid fighting with smooth animation lag
-      responseRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'end',
-      });
+      writing?.scrollIntoView({ block: 'start' });
     }
   }, [conversationBlock?.responseMessages, conversationBlock?.isLoading]);
+
+  // A turn held at the top keeps a view of height from its top edge to the
+  // conversation's end, so it reaches the top however short its answer is.
+  // Below it: the trailing editor (stuck to the bottom of the view) and the
+  // host's bottom padding.
+  const blockCount = conversationBlockList.length;
+  useLayoutEffect(() => {
+    const block = blockRef.current;
+    const host = block?.parentElement;
+    const scroller = block?.closest<HTMLElement>(
+      '[data-testid="center-section-scroll"]'
+    );
+    if (!block || !host || !scroller || !holdsTop) return undefined;
+    const below: HTMLElement[] = [];
+    for (let el = block.nextElementSibling; el; el = el.nextElementSibling) {
+      below.push(el as HTMLElement);
+    }
+    const reserve = () => {
+      const marginTop = parseFloat(getComputedStyle(block).scrollMarginTop);
+      const belowHeight = below.reduce(
+        (sum, el) => sum + el.offsetHeight,
+        parseFloat(getComputedStyle(host).paddingBottom) || 0
+      );
+      const height = scroller.clientHeight - (marginTop || 0) - belowHeight;
+      block.style.minHeight = `${Math.max(0, height)}px`;
+    };
+    reserve();
+    const observer =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(reserve)
+        : null;
+    observer?.observe(scroller);
+    below.forEach(el => observer?.observe(el));
+    return () => {
+      observer?.disconnect();
+      block.style.minHeight = '';
+    };
+  }, [holdsTop, blockCount]);
 
   // Detect user scroll to pause/resume auto-scroll
   useEffect(() => {
@@ -269,6 +313,7 @@ function ConversationBlock({
 
   return (
     <div
+      ref={blockRef}
       className={`${styles.conversationBlock} conversation-block-item`}
       data-block-id={id}
       data-testid={testId}

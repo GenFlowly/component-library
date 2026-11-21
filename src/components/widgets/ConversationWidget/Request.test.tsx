@@ -1385,6 +1385,92 @@ describe('Request Widget Component', () => {
       scroller.remove();
     });
 
+    describe('scrolled back up out of view', () => {
+      const setUp = () => {
+        const scroller = document.createElement('div');
+        scroller.style.overflowY = 'auto';
+        Object.defineProperty(scroller, 'clientHeight', { value: 640 });
+        scroller.getBoundingClientRect = () =>
+          ({ top: 0, bottom: 640 }) as DOMRect;
+        document.body.appendChild(scroller);
+        render(<Request blockId="block-2" />, { container: scroller });
+        const composer = screen.getByTestId('request-widget-container');
+        let composerTop = 16;
+        composer.getBoundingClientRect = () =>
+          ({ top: composerTop, bottom: composerTop + 640 }) as DOMRect;
+        const scrollTo = (top: number, boxTop: number) => {
+          composerTop = boxTop;
+          scroller.scrollTop = top;
+          fireEvent.scroll(scroller);
+        };
+        return { scroller, composer, scrollTo };
+      };
+
+      test('an empty box returns to the bottom as the one-line box', () => {
+        useBlocks(followUpBlocks());
+        const { scroller, composer, scrollTo } = setUp();
+        const editor = screen.getByTestId('text-editor');
+        act(() => editor.focus());
+        expect(composer).toHaveAttribute('data-composer-sticky', 'false');
+
+        scrollTo(1000, 16);
+        scrollTo(700, 316);
+        expect(composer).toHaveAttribute('data-composer-sticky', 'false');
+
+        scrollTo(300, 716);
+        expect(composer).toHaveAttribute('data-composer-sticky', 'true');
+        expect(composer).toHaveAttribute('data-composer-state', 'idle');
+        expect(editor).not.toHaveFocus();
+        expect(composer.style.minHeight).toBe('');
+        scroller.remove();
+      });
+
+      test('a draft stays with the box on the bottom until a press takes it back to the top', () => {
+        useBlocks(followUpBlocks('Shorter please'));
+        const { scroller, composer, scrollTo } = setUp();
+        fireEvent.focus(screen.getByTestId('text-editor'));
+        scrollTo(1000, 16);
+        scrollIntoView.mockClear();
+
+        scrollTo(300, 716);
+        expect(composer).toHaveAttribute('data-composer-sticky', 'true');
+        expect(composer).toHaveAttribute('data-composer-state', 'grown');
+
+        fireEvent.mouseDown(screen.getByTestId('composer-box'));
+        expect(composer).toHaveAttribute('data-composer-sticky', 'false');
+        expect(scrollIntoView).toHaveBeenCalledWith({
+          behavior: 'smooth',
+          block: 'start',
+        });
+        scroller.remove();
+      });
+
+      test('typing in a box left at the bottom takes it back to the top', () => {
+        useBlocks(followUpBlocks('Shorter please'));
+        const { scroller, composer, scrollTo } = setUp();
+        fireEvent.focus(screen.getByTestId('text-editor'));
+        scrollTo(1000, 16);
+        scrollTo(300, 716);
+        expect(composer).toHaveAttribute('data-composer-sticky', 'true');
+
+        fireEvent.change(screen.getByTestId('text-editor'), {
+          target: { value: 'Shorter please, and simpler' },
+        });
+        expect(composer).toHaveAttribute('data-composer-sticky', 'false');
+        scroller.remove();
+      });
+
+      test('the downward scroll that brings it to the top never sends it back', () => {
+        useBlocks(followUpBlocks());
+        const { scroller, composer, scrollTo } = setUp();
+        act(() => screen.getByTestId('text-editor').focus());
+        scrollTo(0, 900);
+        scrollTo(500, 400);
+        expect(composer).toHaveAttribute('data-composer-sticky', 'false');
+        scroller.remove();
+      });
+    });
+
     test('blur returns an empty box to one line; a draft keeps it grown', () => {
       useBlocks(followUpBlocks());
       render(<Request blockId="block-2" />);

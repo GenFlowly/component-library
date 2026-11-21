@@ -33,12 +33,6 @@
   margin-top: auto;
 }
 
-// Scrolling a response's end into view (following a stream) stops above the
-// editor stuck to the bottom of the view (Request.tsx measures it)
-.conversationBlock [data-item-type='response'] {
-  scroll-margin-bottom: var(--trailing-editor-height, 0px);
-}
-
 .followUpButtonWrapper {
   width: 100%;
   display: flex;

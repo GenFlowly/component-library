@@ -288,6 +288,138 @@ describe('ConversationBlock Component', () => {
     }
   });
 
+  describe('a turn sent from the page', () => {
+    const generating = (text: string) => ({
+      conversationBlockId: 'block-1',
+      responseMessages: [{ id: 'msg-1', text }],
+      isLoading: true,
+      status: 'draft',
+    });
+    const trailingDraft = {
+      conversationBlockId: 'block-2',
+      responseMessages: [],
+      isLoading: false,
+      status: 'draft',
+    };
+    const conversation = (blocks: object[]) => ({
+      conversationBlockList: blocks,
+      addNewConversationBlockWithId: mockAddNewConversationBlockWithId,
+      setSelectedResponseForBlock: mockSetSelectedResponseForBlock,
+    });
+
+    // The center section's scroller, the turn, and the trailing editor below it
+    let scroller: HTMLDivElement;
+    let host: HTMLDivElement;
+    let editor: HTMLDivElement;
+    beforeEach(() => {
+      jest.useFakeTimers();
+      scroller = document.createElement('div');
+      scroller.setAttribute('data-testid', 'center-section-scroll');
+      Object.defineProperty(scroller, 'clientHeight', { value: 800 });
+      host = document.createElement('div');
+      host.style.paddingBottom = '0px';
+      scroller.appendChild(host);
+      document.body.appendChild(scroller);
+      editor = document.createElement('div');
+      Object.defineProperty(editor, 'offsetHeight', { value: 120 });
+    });
+    afterEach(() => {
+      scroller.remove();
+      jest.useRealTimers();
+    });
+
+    const renderTurn = (blocks: object[], testId = 'turn') => {
+      mockUseConversation.mockReturnValue(conversation(blocks));
+      const result = render(
+        <ConversationBlock id="block-1" data-testid={testId} />,
+        {
+          container: host,
+        }
+      );
+      host.appendChild(editor);
+      return result;
+    };
+
+    test('goes to the top of the view: the prompt, not the response', () => {
+      renderTurn([generating(''), trailingDraft]);
+      act(() => {
+        jest.advanceTimersByTime(200);
+      });
+
+      expect(mockScrollIntoView).toHaveBeenCalledTimes(1);
+      expect(mockScrollIntoView.mock.contexts[0]).toBe(
+        screen.getByTestId('turn')
+      );
+      expect(mockScrollIntoView).toHaveBeenCalledWith({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+
+    test('stays at the top while the answer streams: the view never follows it', () => {
+      const { rerender } = renderTurn([generating('Hel'), trailingDraft]);
+      act(() => {
+        jest.advanceTimersByTime(200);
+      });
+      mockScrollIntoView.mockClear();
+
+      mockUseConversation.mockReturnValue(
+        conversation([
+          generating('Hello there, a longer answer'),
+          trailingDraft,
+        ])
+      );
+      rerender(<ConversationBlock id="block-1" data-testid="streaming" />);
+      act(() => {
+        jest.advanceTimersByTime(200);
+      });
+
+      expect(mockScrollIntoView).not.toHaveBeenCalled();
+    });
+
+    test('reserves the view down to the editor until a newer turn takes the top', () => {
+      const { rerender } = renderTurn([generating('')]);
+      act(() => {
+        jest.advanceTimersByTime(200);
+      });
+      // The trailing editor is added below the turn once it is sent
+      mockUseConversation.mockReturnValue(
+        conversation([generating(''), trailingDraft])
+      );
+      rerender(<ConversationBlock id="block-1" data-testid="turn-2" />);
+
+      const turn = screen.getByTestId('turn-2');
+      // 800 view - 120 editor (the test has no scroll margin)
+      expect(turn.style.minHeight).toBe('680px');
+
+      mockUseConversation.mockReturnValue(
+        conversation([
+          { ...generating('Done'), isLoading: false, status: 'resolved' },
+          {
+            ...trailingDraft,
+            responseMessages: [{ id: 'msg-2' }],
+            isLoading: true,
+          },
+        ])
+      );
+      rerender(<ConversationBlock id="block-1" data-testid="turn-3" />);
+
+      expect(screen.getByTestId('turn-3').style.minHeight).toBe('');
+    });
+
+    test('an opened conversation reserves nothing below its last turn', () => {
+      renderTurn([
+        { ...generating('Done'), isLoading: false, status: 'resolved' },
+        trailingDraft,
+      ]);
+      act(() => {
+        jest.advanceTimersByTime(200);
+      });
+
+      expect(screen.getByTestId('turn').style.minHeight).toBe('');
+    });
+  });
+
   test('pauses auto-scroll when user scrolls up (wheel deltaY < 0)', () => {
     mockUseConversation.mockReturnValue({
       conversationBlockList: [

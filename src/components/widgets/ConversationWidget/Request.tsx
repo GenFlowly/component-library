@@ -116,33 +116,25 @@ function Request({
   // SCSS caps it). It is positioned out of flow, so a follow-up block reserves
   // the editor's real height itself, or a grown editor would cover the reply
   // above it. The block is stuck to the bottom of the view, so neither opening
-  // the keyboard nor typing scrolls the conversation. The trailing editor also
-  // tells the conversation how much of the view's bottom it covers, keyboard
-  // included (--kb in the SCSS).
+  // the keyboard nor typing scrolls the conversation.
   const narrowContainerRef = React.useRef<HTMLDivElement | null>(null);
   useLayoutEffect(() => {
     const container = narrowContainerRef.current;
     const wrapper = editorWrapperRef.current;
     if (!isNarrow || !isEditorView || !isFollowUpBlock) return;
     if (!container || !wrapper) return;
-    const scroller = isLastBlock ? findScrollParent(container) : null;
     const observer = new ResizeObserver(() => {
       container.style.setProperty(
         '--editor-live-height',
         `${wrapper.offsetHeight}px`
-      );
-      scroller?.style.setProperty(
-        '--trailing-editor-height',
-        `calc(${wrapper.offsetHeight}px + max(0px, 100svh - var(--vvh, 100svh)))`
       );
     });
     observer.observe(wrapper);
     return () => {
       observer.disconnect();
       container.style.removeProperty('--editor-live-height');
-      scroller?.style.removeProperty('--trailing-editor-height');
     };
-  }, [isNarrow, isEditorView, isFollowUpBlock, isLastBlock]);
+  }, [isNarrow, isEditorView, isFollowUpBlock]);
 
   // 📱 iOS Safari force-scrolls the page on focus when it thinks the
   // keyboard will cover the caret — before our CSS has moved the editor up
@@ -410,10 +402,15 @@ function Request({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blockId]); // Run on mount/id change
 
+  // Typing in a desktop editor left at the bottom takes it back to the top
+  // (set by the desktop composer below)
+  const leaveBottomRef = React.useRef<() => void>(() => {});
+
   const handleEditorChange = React.useCallback(
     (newValue: string) => {
       // Ensure we are the active block
       setActiveBlockId(blockId);
+      leaveBottomRef.current();
 
       // Immediate UI update via local state
       setDraftPrompt(newValue);
@@ -512,7 +509,9 @@ function Request({
   // 🖥️ The desktop editor rests as a one-line box stuck to the bottom of the
   // view and grows to a large box at the top of the view while in use
   // (focused, or holding a draft), then on with its text, never scrolling
-  // inside. A new chat's editor is always grown.
+  // inside. Scrolled back up out of view, it returns to the bottom: as the
+  // one-line box when empty, holding its draft otherwise, until a press or a
+  // keystroke takes it to the top again. A new chat's editor is always grown.
   const [isFocused, setFocused] = React.useState(false);
   const composerRef = React.useRef<HTMLDivElement | null>(null);
   const hasDraft =
@@ -520,6 +519,16 @@ function Request({
     pendingAttachments.length > 0 ||
     validatingCount > 0;
   const isGrown = isNewChatBlock || isFocused || hasDraft;
+  const [isLeftBehind, setLeftBehind] = React.useState(false);
+  const isAtTop =
+    !isNarrow && isFollowUpBlock && isEditorView && isGrown && !isLeftBehind;
+  const hasDraftRef = React.useRef(hasDraft);
+  hasDraftRef.current = hasDraft;
+  leaveBottomRef.current = () => setLeftBehind(false);
+
+  useEffect(() => {
+    if (!isGrown) setLeftBehind(false);
+  }, [isGrown]);
 
   // A grown follow-up editor reserves a full view of height below its top
   // edge, so the conversation can always scroll it up to the top of the view.
@@ -527,7 +536,7 @@ function Request({
   // with the editor, not just when it shrinks back to one line.
   useLayoutEffect(() => {
     const el = composerRef.current;
-    if (!el || isNarrow || !isEditorView || !isGrown || isNewChatBlock) return;
+    if (!el || !isAtTop) return;
     const reserve = () => {
       const scroller = findScrollParent(el);
       el.style.minHeight = scroller ? `${scroller.clientHeight}px` : '';
@@ -538,41 +547,54 @@ function Request({
       window.removeEventListener('resize', reserve);
       el.style.minHeight = '';
     };
-  }, [isGrown, isNewChatBlock, isNarrow, isEditorView]);
+  }, [isAtTop]);
 
   // Starting to type brings the editor to the top of the view
+  const wasAtTopRef = React.useRef(isAtTop);
   const wasFocusedRef = React.useRef(false);
   useEffect(() => {
-    if (!isNarrow && isFocused && !wasFocusedRef.current && !isNewChatBlock) {
-      composerRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
+    const arrived = isAtTop && !wasAtTopRef.current;
+    const refocused = isAtTop && isFocused && !wasFocusedRef.current;
+    if (arrived || refocused) {
+      const toTop = () =>
+        composerRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      toTop();
+      // Putting the caret in the text can have CodeMirror scroll it into
+      // view a frame later, which stops a smooth scroll short of the top
+      requestAnimationFrame(() => requestAnimationFrame(toTop));
     }
+    wasAtTopRef.current = isAtTop;
     wasFocusedRef.current = isFocused;
-  }, [isFocused, isNarrow, isNewChatBlock]);
+  }, [isAtTop, isFocused]);
 
-  // The idle editor stuck to the bottom covers the end of the view, so
-  // whatever scrolls a response's end into view has to stop above it
-  useLayoutEffect(() => {
+  // Scrolling back up until the editor at the top has left the view returns
+  // it to the bottom. Only an upward scroll counts: the smooth scroll that
+  // brings the editor to the top runs downward from below the view.
+  useEffect(() => {
     const el = composerRef.current;
-    if (!el || isNarrow || !isEditorView || !isFollowUpBlock || !isLastBlock)
-      return;
-    if (isGrown) return;
+    if (!el || !isAtTop) return;
     const scroller = findScrollParent(el);
     if (!scroller) return;
-    const observer = new ResizeObserver(() => {
-      scroller.style.setProperty(
-        '--trailing-editor-height',
-        `${el.offsetHeight}px`
-      );
-    });
-    observer.observe(el);
-    return () => {
-      observer.disconnect();
-      scroller.style.removeProperty('--trailing-editor-height');
+    let lastTop = scroller.scrollTop;
+    const handleScroll = () => {
+      const scrolledUp = scroller.scrollTop < lastTop;
+      lastTop = scroller.scrollTop;
+      if (!scrolledUp) return;
+      const outOfView =
+        el.getBoundingClientRect().top >=
+        scroller.getBoundingClientRect().bottom;
+      if (!outOfView) return;
+      setLeftBehind(true);
+      if (!hasDraftRef.current && el.contains(document.activeElement)) {
+        (document.activeElement as HTMLElement).blur();
+      }
     };
-  }, [isNarrow, isEditorView, isFollowUpBlock, isLastBlock, isGrown]);
+    scroller.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scroller.removeEventListener('scroll', handleScroll);
+  }, [isAtTop]);
 
   const handleComposerBlur = (e: React.FocusEvent<HTMLDivElement>) => {
     // Focus moving between the text and the box's own buttons keeps it open
@@ -581,8 +603,10 @@ function Request({
   };
 
   // A press on the box outside the text and its controls puts the caret in
-  // the text, so the whole box is the target, not just the text line
+  // the text, so the whole box is the target, not just the text line. Any
+  // press on a box left at the bottom takes it back to the top.
   const handleComposerMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    setLeftBehind(false);
     const target = e.target as HTMLElement;
     if (target.closest('button, input, a, [role="button"], .cm-editor')) return;
     e.preventDefault();
@@ -738,7 +762,7 @@ function Request({
       onPasteCapture={handlePasteCapture}
       data-testid={testId || 'request-widget-container'}
       data-composer-state={isGrown ? 'grown' : 'idle'}
-      data-composer-sticky={isFollowUpBlock && !isGrown}
+      data-composer-sticky={isFollowUpBlock && !isAtTop}
     >
       <div
         ref={editorWrapperRef}
