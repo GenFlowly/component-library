@@ -513,9 +513,10 @@ function Request({
   };
 
   // 🖥️ The desktop follow-up editor rests as a one-line box on the bottom of
-  // the view and grows upward in place while in use (focused, or holding a
-  // draft), so the conversation stays where it was being read; past the
-  // view's height its text scrolls inside. A new chat's editor is always grown.
+  // the view. In use (focused, or holding a draft) it grows and moves to the
+  // top of the view over the conversation, which stays where it was being
+  // read; past the view's height its text scrolls inside. A new chat's editor
+  // is always grown.
   const [isFocused, setFocused] = React.useState(false);
   const composerRef = React.useRef<HTMLDivElement | null>(null);
   const hasDraft =
@@ -543,26 +544,39 @@ function Request({
     };
   }, [isNewChatBlock, isNarrow, isEditorView]);
 
-  // The editor stuck to the bottom covers the end of the view, so whatever
-  // scrolls a response's end into view has to stop above it
+  // The conversation learns the editor block's height and its own: an idle
+  // editor covers the end of the view, so whatever scrolls a response's end
+  // into view has to stop above it; a grown one is held at the top of the
+  // view by its distance from the bottom (ConversationBlock.module.scss)
   useLayoutEffect(() => {
     const el = composerRef.current;
     if (!el || isNarrow || !isEditorView || !isFollowUpBlock || !isLastBlock)
       return;
     const scroller = findScrollParent(el);
+    const block = el.closest<HTMLElement>('.conversation-block-item') ?? el;
     if (!scroller) return;
-    const observer = new ResizeObserver(() => {
+    const measure = () => {
+      const height = block.offsetHeight;
+      scroller.style.setProperty('--trailing-editor-height', `${height}px`);
       scroller.style.setProperty(
-        '--trailing-editor-height',
-        `${el.offsetHeight}px`
+        '--trailing-editor-cover',
+        isGrown ? '0px' : `${height}px`
       );
-    });
-    observer.observe(el);
+      scroller.style.setProperty(
+        '--conversation-view-height',
+        `${scroller.clientHeight}px`
+      );
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(block);
+    observer.observe(scroller);
     return () => {
       observer.disconnect();
       scroller.style.removeProperty('--trailing-editor-height');
+      scroller.style.removeProperty('--trailing-editor-cover');
+      scroller.style.removeProperty('--conversation-view-height');
     };
-  }, [isNarrow, isEditorView, isFollowUpBlock, isLastBlock]);
+  }, [isNarrow, isEditorView, isFollowUpBlock, isLastBlock, isGrown]);
 
   const handleComposerBlur = (e: React.FocusEvent<HTMLDivElement>) => {
     // Focus moving between the text and the box's own buttons keeps it open
@@ -729,6 +743,7 @@ function Request({
       data-testid={testId || 'request-widget-container'}
       data-composer-state={isGrown ? 'grown' : 'idle'}
       data-composer-sticky={isFollowUpBlock}
+      data-composer-at-top={isFollowUpBlock && isGrown}
     >
       <div
         ref={editorWrapperRef}

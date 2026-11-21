@@ -1271,6 +1271,27 @@ describe('Request Widget Component', () => {
       expect(composer).toHaveAttribute('data-composer-sticky', 'true');
     });
 
+    test('in use, a follow-up moves to the top of the view; idle it rests on the bottom', () => {
+      useBlocks(followUpBlocks());
+      render(<Request blockId="block-2" />);
+      const composer = screen.getByTestId('request-widget-container');
+      expect(composer).toHaveAttribute('data-composer-at-top', 'false');
+
+      fireEvent.focus(screen.getByTestId('text-editor'));
+      expect(composer).toHaveAttribute('data-composer-at-top', 'true');
+
+      fireEvent.blur(screen.getByTestId('text-editor'));
+      expect(composer).toHaveAttribute('data-composer-at-top', 'false');
+    });
+
+    test('a new chat never moves to the top of the view', () => {
+      render(<Request blockId="block-1" />);
+      expect(screen.getByTestId('request-widget-container')).toHaveAttribute(
+        'data-composer-at-top',
+        'false'
+      );
+    });
+
     test('a follow-up box is capped to the height of the view', () => {
       useBlocks(followUpBlocks());
       const scroller = document.createElement('div');
