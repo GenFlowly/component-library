@@ -93,16 +93,21 @@ describe('ConversationWidget', () => {
       expect(add).toHaveBeenCalledTimes(1);
     });
 
-    test('adds nothing while the last turn streams or is a draft', () => {
+    test('adds one as soon as the last turn starts generating', () => {
       const add = jest.fn();
       mockUseConversation.mockReturnValue({
         conversationBlockList: [
           resolved('b1'),
-          { ...resolved('b2'), isLoading: true },
+          { ...resolved('b2'), status: 'draft', isLoading: true },
         ],
         addNewConversationBlockWithId: add,
       });
-      const { rerender } = render(<ConversationWidget />);
+      render(<ConversationWidget />);
+      expect(add).toHaveBeenCalledTimes(1);
+    });
+
+    test('adds nothing after an unsent draft', () => {
+      const add = jest.fn();
       mockUseConversation.mockReturnValue({
         conversationBlockList: [
           resolved('b1'),
@@ -116,7 +121,7 @@ describe('ConversationWidget', () => {
         ],
         addNewConversationBlockWithId: add,
       });
-      rerender(<ConversationWidget />);
+      render(<ConversationWidget />);
       expect(add).not.toHaveBeenCalled();
     });
 

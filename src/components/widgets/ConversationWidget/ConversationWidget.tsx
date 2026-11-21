@@ -22,25 +22,21 @@ export default function ConversationWidget() {
   const { setActiveViewportItem } = useConversationUI();
   const { canCompose = true } = useConversationComposer();
 
-  // A finished last turn gets an empty editor after it, so a follow-up is
-  // always one click away. Each finished turn gets at most one: the ref also
+  // A sent last turn gets an empty editor after it as soon as it starts
+  // generating, so the editor stays on the bottom of the view and a follow-up
+  // is always one click away. Each turn gets at most one: the ref also
   // absorbs effect re-runs before the new block reaches the list.
   const lastBlock = conversationBlockList[conversationBlockList.length - 1];
   const lastBlockId = lastBlock?.conversationBlockId;
-  const lastBlockFinished =
-    lastBlock?.status === 'resolved' && !lastBlock.isLoading;
+  const lastBlockSent =
+    lastBlock?.status === 'resolved' || lastBlock?.isLoading === true;
   const appendedAfterRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!canCompose || !lastBlockId || !lastBlockFinished) return;
+    if (!canCompose || !lastBlockId || !lastBlockSent) return;
     if (appendedAfterRef.current === lastBlockId) return;
     appendedAfterRef.current = lastBlockId;
     addNewConversationBlockWithId(`conv-${Date.now()}`);
-  }, [
-    canCompose,
-    lastBlockId,
-    lastBlockFinished,
-    addNewConversationBlockWithId,
-  ]);
+  }, [canCompose, lastBlockId, lastBlockSent, addNewConversationBlockWithId]);
 
   useEffect(() => {
     const root = document.querySelector('[data-testid="center-section"]');

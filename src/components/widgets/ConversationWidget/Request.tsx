@@ -55,13 +55,8 @@ function findScrollParent(el: HTMLElement): HTMLElement | null {
   return null;
 }
 
-/** 📱 Scrolls the conversation to its end, where the docked editor sits. */
-function scrollConversationToEnd(): void {
-  const scroller = document.querySelector(
-    '[data-testid="center-section-scroll"]'
-  );
-  if (scroller) scroller.scrollTop = scroller.scrollHeight;
-}
+/** Room above the grown desktop box, so a tall draft never fills the view. */
+const GROWN_EDITOR_TOP_ROOM_PX = 48;
 
 // Memoized (see export): props are stable, so re-renders come only from its
 // own editing state and the contexts it subscribes to
@@ -120,54 +115,37 @@ function Request({
 
   const editorWrapperRef = React.useRef<HTMLDivElement | null>(null);
 
-  // 📱 A focused follow-up block grows by the keyboard's height (--kb in
-  // the SCSS) so the riding editor gets reserved space instead of
-  // overlapping the response above. That growth happens at the END of the
-  // scroll content — keep the conversation pinned to the end whenever the
-  // keyboard opens/closes so the editor lands flush on the keyboard with
-  // the last response visible right above it.
-  useEffect(() => {
-    if (!isNarrow || !isEditorView || !isFollowUpBlock) return;
-    const viewport = window.visualViewport;
-    if (!viewport) return;
-
-    const handleResize = () => {
-      if (!editorWrapperRef.current?.contains(document.activeElement)) return;
-      // Double rAF: the --vvh/--kb CSS vars are themselves written in a
-      // rAF, so wait a frame for the block's new height to apply first
-      requestAnimationFrame(() =>
-        requestAnimationFrame(scrollConversationToEnd)
-      );
-    };
-
-    viewport.addEventListener('resize', handleResize);
-    return () => viewport.removeEventListener('resize', handleResize);
-  }, [isNarrow, isEditorView, isFollowUpBlock]);
-
   // 📱 The docked editor grows upward with its text, up to the header (the
   // SCSS caps it). It is positioned out of flow, so a follow-up block reserves
   // the editor's real height itself, or a grown editor would cover the reply
-  // above it; while the editor grows, the conversation stays at its end so
-  // the editor stays on the keyboard.
+  // above it. The block is stuck to the bottom of the view, so neither opening
+  // the keyboard nor typing scrolls the conversation. The trailing editor also
+  // tells the conversation how much of the view's bottom it covers, keyboard
+  // included (--kb in the SCSS).
   const narrowContainerRef = React.useRef<HTMLDivElement | null>(null);
   useLayoutEffect(() => {
     const container = narrowContainerRef.current;
     const wrapper = editorWrapperRef.current;
     if (!isNarrow || !isEditorView || !isFollowUpBlock) return;
     if (!container || !wrapper) return;
+    const scroller = isLastBlock ? findScrollParent(container) : null;
     const observer = new ResizeObserver(() => {
       container.style.setProperty(
         '--editor-live-height',
         `${wrapper.offsetHeight}px`
       );
-      if (wrapper.contains(document.activeElement)) scrollConversationToEnd();
+      scroller?.style.setProperty(
+        '--trailing-editor-height',
+        `calc(${wrapper.offsetHeight}px + max(0px, 100svh - var(--vvh, 100svh)))`
+      );
     });
     observer.observe(wrapper);
     return () => {
       observer.disconnect();
       container.style.removeProperty('--editor-live-height');
+      scroller?.style.removeProperty('--trailing-editor-height');
     };
-  }, [isNarrow, isEditorView, isFollowUpBlock]);
+  }, [isNarrow, isEditorView, isFollowUpBlock, isLastBlock]);
 
   // 📱 iOS Safari force-scrolls the page on focus when it thinks the
   // keyboard will cover the caret — before our CSS has moved the editor up
@@ -501,8 +479,13 @@ function Request({
     acknowledgeAsks,
   ]);
 
+  // The trailing editor shows while the turn above it generates, but its
+  // prompt can only go once that answer is in the conversation
+  const isGenerating = conversationBlockList.some(b => b.isLoading);
+  const canGenerate = hasAnyValidApiKey && !isGenerating;
+
   const handleGenerate = () => {
-    if (!hasAnyValidApiKey) return;
+    if (!canGenerate) return;
     if (
       validatingCount > 0 ||
       pendingAttachments.some(a => a.status === 'uploading')
@@ -529,10 +512,10 @@ function Request({
     resetAskSession();
   };
 
-  // 🖥️ The desktop editor rests as a one-line box stuck to the bottom of the
-  // view and grows to a large box at the top of the view while in use
-  // (focused, or holding a draft), then on with its text, never scrolling
-  // inside. A new chat's editor is always grown.
+  // 🖥️ The desktop follow-up editor rests as a one-line box on the bottom of
+  // the view and grows upward in place while in use (focused, or holding a
+  // draft), so the conversation stays where it was being read; past the
+  // view's height its text scrolls inside. A new chat's editor is always grown.
   const [isFocused, setFocused] = React.useState(false);
   const composerRef = React.useRef<HTMLDivElement | null>(null);
   const hasDraft =
@@ -541,36 +524,45 @@ function Request({
     validatingCount > 0;
   const isGrown = isNewChatBlock || isFocused || hasDraft;
 
-  // A grown follow-up editor reserves a full view of height below its top
-  // edge, so the conversation can always scroll it up to the top of the view.
-  // The sent prompt renders into the same element, so the reserve has to go
-  // with the editor, not just when it shrinks back to one line.
   useLayoutEffect(() => {
     const el = composerRef.current;
-    if (!el || isNarrow || !isEditorView || !isGrown || isNewChatBlock) return;
-    const reserve = () => {
+    if (!el || isNarrow || !isEditorView || isNewChatBlock) return;
+    const cap = () => {
       const scroller = findScrollParent(el);
-      el.style.minHeight = scroller ? `${scroller.clientHeight}px` : '';
+      if (!scroller) return;
+      el.style.setProperty(
+        '--composer-max-height',
+        `${scroller.clientHeight - GROWN_EDITOR_TOP_ROOM_PX}px`
+      );
     };
-    reserve();
-    window.addEventListener('resize', reserve);
+    cap();
+    window.addEventListener('resize', cap);
     return () => {
-      window.removeEventListener('resize', reserve);
-      el.style.minHeight = '';
+      window.removeEventListener('resize', cap);
+      el.style.removeProperty('--composer-max-height');
     };
-  }, [isGrown, isNewChatBlock, isNarrow, isEditorView]);
+  }, [isNewChatBlock, isNarrow, isEditorView]);
 
-  // Starting to type brings the editor to the top of the view
-  const wasFocusedRef = React.useRef(false);
-  useEffect(() => {
-    if (!isNarrow && isFocused && !wasFocusedRef.current && !isNewChatBlock) {
-      composerRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    }
-    wasFocusedRef.current = isFocused;
-  }, [isFocused, isNarrow, isNewChatBlock]);
+  // The editor stuck to the bottom covers the end of the view, so whatever
+  // scrolls a response's end into view has to stop above it
+  useLayoutEffect(() => {
+    const el = composerRef.current;
+    if (!el || isNarrow || !isEditorView || !isFollowUpBlock || !isLastBlock)
+      return;
+    const scroller = findScrollParent(el);
+    if (!scroller) return;
+    const observer = new ResizeObserver(() => {
+      scroller.style.setProperty(
+        '--trailing-editor-height',
+        `${el.offsetHeight}px`
+      );
+    });
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      scroller.style.removeProperty('--trailing-editor-height');
+    };
+  }, [isNarrow, isEditorView, isFollowUpBlock, isLastBlock]);
 
   const handleComposerBlur = (e: React.FocusEvent<HTMLDivElement>) => {
     // Focus moving between the text and the box's own buttons keeps it open
@@ -697,7 +689,7 @@ function Request({
           <button
             className={styles.mobileGenerateButton}
             onClick={handleGenerate}
-            disabled={!hasAnyValidApiKey}
+            disabled={!canGenerate}
             aria-label={t('conversation.request.generate')}
             data-testid="generate-button"
           >
@@ -736,7 +728,7 @@ function Request({
       onPasteCapture={handlePasteCapture}
       data-testid={testId || 'request-widget-container'}
       data-composer-state={isGrown ? 'grown' : 'idle'}
-      data-composer-sticky={!isGrown}
+      data-composer-sticky={isFollowUpBlock}
     >
       <div
         ref={editorWrapperRef}
@@ -788,7 +780,7 @@ function Request({
               type="button"
               className={styles.sendButton}
               onClick={handleGenerate}
-              disabled={!hasAnyValidApiKey}
+              disabled={!canGenerate}
               aria-label={t('conversation.request.generate')}
               data-testid="generate-button"
             >

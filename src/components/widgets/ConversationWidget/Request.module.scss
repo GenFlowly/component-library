@@ -340,10 +340,9 @@
 }
 
 // 🖥️ Desktop composer: one rounded box holding the text and its controls.
-// Idle it is a single line stuck to the bottom of the view; in use it grows to
-// a minimum height (set inline by Request.tsx) and scrolls to the top of the
-// view, where the space reserved below it keeps it. Its text grows it from
-// there; the conversation scrolls, not the box.
+// A follow-up box is stuck to the bottom of the view: idle it is a single
+// line; in use it grows upward in place to a minimum height (set inline by
+// Request.tsx), and its text grows it from there up to the view's height.
 // In the conversation column the prompt and the responses use, so the box
 // shares their left edge and spans the panel like they do
 .composer {
@@ -355,8 +354,6 @@
   background-color: $color-request-container-background;
 }
 
-// At the top of the view nothing of the turn above may show, so the gap
-// above the box is the composer's own padding, not a scroll margin
 .grown {
   padding-top: 1rem;
 }
@@ -381,10 +378,25 @@
   box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18);
 }
 
+// A follow-up box never grows past the view (Request.tsx sets the limit); its
+// text scrolls inside from there
+.composerBox {
+  max-height: var(--composer-max-height, none);
+}
+
 .composerText {
   flex: 1 1 auto;
   min-height: 1.5rem;
   width: 100%;
+
+  // The box's limit less its padding, borders, the gap and the controls row
+  :global(.cm-editor) {
+    max-height: calc(var(--composer-max-height, 100vh) - 4rem);
+  }
+
+  :global(.cm-scroller) {
+    overflow-y: auto;
+  }
 }
 
 .idle .composerText {

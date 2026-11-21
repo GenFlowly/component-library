@@ -461,44 +461,14 @@ describe('Request Widget Component', () => {
       });
     };
 
-    test('pins the conversation to the end when the keyboard opens while the editor is focused', () => {
+    test('opening the keyboard leaves the conversation where it was', () => {
       mockFollowUpBlocks();
       render(<Request blockId="block-2" />);
 
       screen.getByTestId('text-editor').focus();
-      openKeyboard();
-
-      expect(scroller.scrollTop).toBe(500);
-    });
-
-    test('does not scroll when focus is outside the editor', () => {
-      mockFollowUpBlocks();
-      render(<Request blockId="block-2" />);
-
       openKeyboard();
 
       expect(scroller.scrollTop).toBe(0);
-    });
-
-    test('does not attach the keyboard-resize listener for the first block', () => {
-      render(<Request blockId="block-1" />);
-
-      screen.getByTestId('text-editor').focus();
-
-      expect(resizeHandler).toBeUndefined();
-    });
-
-    test('removes the resize listener on unmount', () => {
-      mockFollowUpBlocks();
-      const { unmount } = render(<Request blockId="block-2" />);
-      expect(resizeHandler).toBeDefined();
-
-      unmount();
-
-      expect(removeViewportListener).toHaveBeenCalledWith(
-        'resize',
-        resizeHandler
-      );
     });
   });
 
@@ -1152,7 +1122,7 @@ describe('Request Widget Component', () => {
       );
     });
 
-    test('reserves the height its text grows it to, keeping the conversation at its end while typing', () => {
+    test('reserves the height its text grows it to, without scrolling the conversation while typing', () => {
       let resized = () => {};
       const OriginalResizeObserver = window.ResizeObserver;
       window.ResizeObserver = class {
@@ -1181,7 +1151,7 @@ describe('Request Widget Component', () => {
 
         screen.getByTestId('text-editor').focus();
         act(() => resized());
-        expect(scroller.scrollTop).toBe(900);
+        expect(scroller.scrollTop).toBe(0);
 
         unmount();
         expect(container.style.getPropertyValue('--editor-live-height')).toBe(
@@ -1291,14 +1261,41 @@ describe('Request Widget Component', () => {
       ).not.toBeInTheDocument();
     });
 
-    test('only an idle follow-up sticks to the bottom of the view', () => {
+    test('a follow-up stays stuck to the bottom of the view while in use', () => {
       useBlocks(followUpBlocks());
       render(<Request blockId="block-2" />);
       const composer = screen.getByTestId('request-widget-container');
       expect(composer).toHaveAttribute('data-composer-sticky', 'true');
 
       fireEvent.focus(screen.getByTestId('text-editor'));
-      expect(composer).toHaveAttribute('data-composer-sticky', 'false');
+      expect(composer).toHaveAttribute('data-composer-sticky', 'true');
+    });
+
+    test('a follow-up box is capped to the height of the view', () => {
+      useBlocks(followUpBlocks());
+      const scroller = document.createElement('div');
+      scroller.style.overflowY = 'auto';
+      Object.defineProperty(scroller, 'clientHeight', { value: 640 });
+      document.body.appendChild(scroller);
+      render(<Request blockId="block-2" />, { container: scroller });
+
+      expect(
+        screen
+          .getByTestId('request-widget-container')
+          .style.getPropertyValue('--composer-max-height')
+      ).toBe('592px');
+      scroller.remove();
+    });
+
+    test('send waits while the turn above is generating', () => {
+      const blocks = followUpBlocks('Shorter please');
+      blocks[0] = { ...blocks[0], isLoading: true };
+      useBlocks(blocks);
+      render(<Request blockId="block-2" />);
+
+      expect(screen.getByTestId('generate-button')).toBeDisabled();
+      fireEvent.click(screen.getByTestId('generate-button'));
+      expect(mockGenerateResponsesStream).not.toHaveBeenCalled();
     });
 
     test('a new chat does not stick to the bottom of the view', () => {
@@ -1335,7 +1332,7 @@ describe('Request Widget Component', () => {
       );
     });
 
-    test('focus grows the box and brings it to the top of the view', () => {
+    test('focus grows the box in place, without scrolling the conversation', () => {
       useBlocks(followUpBlocks());
       render(<Request blockId="block-2" />);
       fireEvent.focus(screen.getByTestId('text-editor'));
@@ -1347,61 +1344,10 @@ describe('Request Widget Component', () => {
       expect(screen.getByTestId('composer-box')).toHaveStyle({
         minHeight: '300px',
       });
-      expect(scrollIntoView).toHaveBeenCalledWith({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    });
-
-    test('a grown follow-up reserves a full view of space below its top', () => {
-      useBlocks(followUpBlocks());
-      const scroller = document.createElement('div');
-      scroller.style.overflowY = 'auto';
-      Object.defineProperty(scroller, 'clientHeight', { value: 640 });
-      document.body.appendChild(scroller);
-      render(<Request blockId="block-2" />, { container: scroller });
-
-      const composer = screen.getByTestId('request-widget-container');
-      expect(composer.style.minHeight).toBe('');
-      fireEvent.focus(screen.getByTestId('text-editor'));
-      expect(composer.style.minHeight).toBe('640px');
-
-      fireEvent.blur(screen.getByTestId('text-editor'));
-      expect(composer.style.minHeight).toBe('');
-      scroller.remove();
-    });
-
-    test('a sent follow-up leaves no reserved space under the prompt', () => {
-      useBlocks(followUpBlocks());
-      const scroller = document.createElement('div');
-      scroller.style.overflowY = 'auto';
-      Object.defineProperty(scroller, 'clientHeight', { value: 640 });
-      document.body.appendChild(scroller);
-      const { rerender } = render(<Request blockId="block-2" />, {
-        container: scroller,
-      });
-
-      fireEvent.focus(screen.getByTestId('text-editor'));
       expect(
         screen.getByTestId('request-widget-container').style.minHeight
-      ).toBe('640px');
-
-      const sent = followUpBlocks();
-      sent[1] = {
-        ...sent[1],
-        prompt: 'Make it shorter',
-        status: 'draft',
-        isLoading: true,
-      };
-      useBlocks(sent);
-      // A new prop gets the memoised widget to render the sent state
-      rerender(<Request blockId="block-2" data-testid="sent-request" />);
-
-      expect(screen.getByTestId('sent-request')).toHaveClass(
-        'resolvedRequestContainer'
-      );
-      expect(screen.getByTestId('sent-request').style.minHeight).toBe('');
-      scroller.remove();
+      ).toBe('');
+      expect(scrollIntoView).not.toHaveBeenCalled();
     });
 
     test('blur returns an empty box to one line; a draft keeps it grown', () => {
