@@ -2,7 +2,7 @@
 
 // macOS-style floating sidebar card: translucent, blurred, hairline-edged.
 // Component-local custom props so dark mode only swaps the values. Shared by
-// ResizableSidebar and VerticalSplit so stacked panes match the single-card
+// ResizableSidebar and SidebarWidget so stacked cards match the single-card
 // sidebars exactly.
 @mixin sidebar-card-props {
   --sidebar-material: rgba(243, 243, 246, 0.78);

@@ -3,9 +3,19 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+// The gap lives on its own wrapper: ScrollArea's first child is its sticky,
+// zero-height scrollbar track, and a gap on the ScrollArea itself would push
+// the first card below the top edge. The wrapper is at least as tall as the
+// stack, so a fill card can grow into the room that is left.
+.cards {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 
-  // Cards keep their full height; the column scrolls instead
+  // Cards keep their full height; the stack scrolls instead
   > * {
     flex: none;
   }

@@ -524,11 +524,9 @@
 
 // Scroll viewport for the node-settings sidebar. Deliberately style-free
 // beyond scrolling: AgentMaker renders inside exactly as it does standalone.
-.configScroll {
+.configBody {
   box-sizing: border-box;
-  height: 100%;
   padding: 0.5rem;
-  overflow-y: auto;
   // Transparent: the sidebar's translucent material is the surface
   background-color: transparent;
 }

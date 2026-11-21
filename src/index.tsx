@@ -58,8 +58,6 @@ export type {
 } from './components/common/SidebarListPanel/SidebarListPanel';
 export { default as ResizableSidebar } from './components/common/ResizableSidebar/ResizableSidebar';
 export type { ResizableSidebarProps } from './components/common/ResizableSidebar/ResizableSidebar';
-export { default as VerticalSplit } from './components/common/VerticalSplit/VerticalSplit';
-export type { VerticalSplitProps } from './components/common/VerticalSplit/VerticalSplit';
 export { default as SidebarStack } from './components/common/SidebarStack/SidebarStack';
 export type { SidebarStackProps } from './components/common/SidebarStack/SidebarStack';
 export { Toast, ToastContainer } from './components/common/Toast/Toast';

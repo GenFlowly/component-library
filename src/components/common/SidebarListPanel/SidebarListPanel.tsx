@@ -12,6 +12,7 @@ import Tooltip from '../Tooltip/Tooltip';
 import ActionMenu from '../ActionMenu/ActionMenu';
 import Chevron from './Chevron';
 import SwipeableRow, { SwipeRowsContext } from './SwipeableRow';
+import { SidebarStackContext } from '../SidebarStack/SidebarStackContext';
 import styles from './SidebarListPanel.module.scss';
 
 // Exposed for consumers that render custom item content and want to reuse the
@@ -114,8 +115,9 @@ export interface SidebarListPanelProps {
   // Rendered below the list (e.g. a "Load more" pagination button)
   footer?: ReactNode;
   // The list grows to its full height and scrolls with the column it sits in
-  // (a SidebarStack) instead of inside itself; onEndReached then watches how
-  // close that column's view is to the end of the list
+  // instead of inside itself; onEndReached then watches how close that
+  // column's view is to the end of the list. Defaults to whether the panel
+  // sits in a SidebarStack.
   hug?: boolean;
   'data-testid'?: string;
   testIds?: {
@@ -499,13 +501,15 @@ export default function SidebarListPanel({
   moreActionsLabel = 'More actions',
   onEndReached,
   footer,
-  hug = false,
+  hug: hugProp,
   'data-testid': testId,
   testIds,
 }: SidebarListPanelProps) {
   const [isTouchDevice] = useState(
     () => window.matchMedia?.('(hover: none)').matches ?? false
   );
+  const inStack = useContext(SidebarStackContext);
+  const hug = hugProp ?? inStack;
   const swipeRows = touch && isTouchDevice;
   const [openRowId, setOpenRowId] = useState<string | null>(null);
   const swipeContext = useMemo(

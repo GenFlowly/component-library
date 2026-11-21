@@ -73,9 +73,53 @@ describe('SidebarStack', () => {
   test('touch widens the gap between cards', () => {
     render(
       <SidebarStack touch data-testid="stack">
-        <span />
+        <span data-testid="card" />
       </SidebarStack>
     );
-    expect(screen.getByTestId('stack')).toHaveClass('touch');
+    expect(screen.getByTestId('card').parentElement).toHaveClass(
+      'cards',
+      'touch'
+    );
+  });
+
+  test('a stack inside a stack only stacks its cards; the outer one scrolls', () => {
+    render(
+      <SidebarStack data-testid="outer">
+        <SidebarStack data-testid="inner">
+          <SidebarWidget
+            variant="history"
+            title="Chats"
+            list={list}
+            data-testid="card"
+          />
+        </SidebarStack>
+      </SidebarStack>
+    );
+    expect(screen.getByTestId('outer')).toHaveClass('scrollArea');
+    expect(screen.getByTestId('inner')).not.toHaveClass('scrollArea');
+    expect(screen.getByTestId('inner')).toHaveClass('cards');
+    expect(screen.getByTestId('card')).toHaveClass('stacked');
+  });
+
+  test('a menu card in a stack lists its pages without a scroller of its own', () => {
+    render(
+      <SidebarStack>
+        <SidebarWidget
+          variant="menu"
+          fill
+          title="Settings"
+          menu={{
+            items: [],
+            activePath: '/',
+            onNavigate: jest.fn(),
+            'aria-label': 'Settings',
+          }}
+          data-testid="menu"
+        />
+      </SidebarStack>
+    );
+    const card = screen.getByTestId('menu');
+    expect(card).toHaveClass('stacked', 'fill');
+    expect(card.querySelector('.scrollArea')).toBeNull();
   });
 });

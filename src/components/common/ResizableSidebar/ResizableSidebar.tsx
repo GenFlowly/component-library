@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import SidebarStack from '../SidebarStack/SidebarStack';
 import styles from './ResizableSidebar.module.scss';
 
 // Resize bounds for the panel (px)
@@ -49,6 +50,15 @@ export interface ResizableSidebarProps {
   /** Footer-toggle tooltip/aria-label while collapsed. */
   expandLabel?: string;
   children: ReactNode;
+  /**
+   * Fixed above the scrolling cards, e.g. a New Chat button and a search
+   * field. Not used with collapsible.
+   */
+  header?: ReactNode;
+  /** Fixed below the scrolling cards, e.g. a collapse strip. Not used with collapsible. */
+  footer?: ReactNode;
+  /** Names the sidebar, which then renders as an aside landmark. */
+  'aria-label'?: string;
   'data-testid'?: string;
   handleTestId?: string;
   /** Test id of the footer toggle. */
@@ -57,8 +67,11 @@ export interface ResizableSidebarProps {
 
 /**
  * Drag-resizable sidebar column holding SidebarWidgets: a fixed-width column
- * with a drag handle on its right edge. Width survives toggling (state lives
- * here) and reloads (persisted to localStorage in rem).
+ * with a drag handle on its right edge. Its cards sit in a SidebarStack, so
+ * each takes its full height and the column scrolls as a whole, between an
+ * optional fixed header and footer. Width survives toggling (state lives
+ * here) and reloads (persisted to localStorage in rem). A collapsible one is
+ * a single card instead, with a footer toggle.
  */
 export default function ResizableSidebar({
   storageKey,
@@ -73,6 +86,9 @@ export default function ResizableSidebar({
   collapseLabel = 'Collapse sidebar',
   expandLabel = 'Expand sidebar',
   children,
+  header,
+  footer,
+  'aria-label': ariaLabel,
   'data-testid': testId,
   handleTestId,
   toggleTestId,
@@ -93,7 +109,7 @@ export default function ResizableSidebar({
     }
     return clampWidth(defaultWidth ?? minWidth);
   });
-  const panelRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
 
   // A width dragged near maxWidth on a wide monitor must not stay that wide
   // once the window narrows — re-clamp on every resize, not just at
@@ -161,11 +177,14 @@ export default function ResizableSidebar({
     [width, clampWidth, saveWidth, side]
   );
 
+  const Root = ariaLabel ? 'aside' : 'div';
+
   return (
-    <div
-      className={`${styles.sidebar} ${collapsible ? styles.withFooter : ''} ${isCollapsed ? styles.collapsedStrip : ''}`}
-      ref={panelRef}
+    <Root
+      className={`${styles.sidebar} ${collapsible ? styles.withFooter : styles.stacked} ${isCollapsed ? styles.collapsedStrip : ''}`}
+      ref={panelRef as React.RefObject<HTMLDivElement>}
       style={{ width: isCollapsed ? collapsedWidth : width }}
+      aria-label={ariaLabel}
       data-testid={testId}
     >
       {collapsible ? (
@@ -177,7 +196,11 @@ export default function ResizableSidebar({
           {children}
         </div>
       ) : (
-        children
+        <>
+          {header}
+          <SidebarStack>{children}</SidebarStack>
+          {footer}
+        </>
       )}
       {collapsible && (
         <button
@@ -199,6 +222,6 @@ export default function ResizableSidebar({
           data-testid={handleTestId}
         />
       )}
-    </div>
+    </Root>
   );
 }

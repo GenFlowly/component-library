@@ -7,7 +7,7 @@ import SidebarListPanel, {
   SidebarListPanelProps,
 } from '../SidebarListPanel/SidebarListPanel';
 import TreeMenu, { TreeMenuProps } from '../TreeMenu/TreeMenu';
-import { SidebarStackContext } from '../SidebarStack/SidebarStack';
+import { SidebarStackContext } from '../SidebarStack/SidebarStackContext';
 import styles from './SidebarWidget.module.scss';
 
 let nextBodyId = 0;
@@ -99,9 +99,10 @@ export type SidebarWidgetProps =
  * The one card every sidebar widget sits in: the floating sidebar material, a
  * 34 px header with the widget's icon, title and actions, and its body. It
  * hugs its content and scrolls inside once the surrounding column runs out of
- * room; in a VerticalSplit pane it fills the pane; in a SidebarStack it takes
- * its full height and the stack scrolls. The variant decides the body: a
- * history or directory list, a menu, or custom content.
+ * room; in a SidebarStack (every ResizableSidebar has one) it takes its full
+ * height and the stack scrolls, and a fill card grows to at least the stack's
+ * height. The variant decides the body: a history or directory list, a menu,
+ * or custom content.
  */
 export default function SidebarWidget(
   props: SidebarWidgetProps
@@ -139,9 +140,15 @@ export default function SidebarWidget(
         {props.search != null && (
           <div className={styles.menuSearch}>{props.search}</div>
         )}
-        <ScrollArea className={styles.menuScroll}>
-          <TreeMenu {...props.menu} touch={touch} />
-        </ScrollArea>
+        {inStack ? (
+          <div className={styles.menuScroll}>
+            <TreeMenu {...props.menu} touch={touch} />
+          </div>
+        ) : (
+          <ScrollArea className={styles.menuScroll}>
+            <TreeMenu {...props.menu} touch={touch} />
+          </ScrollArea>
+        )}
         {props.footer != null && (
           <div className={styles.menuFooter}>{props.footer}</div>
         )}
@@ -156,7 +163,6 @@ export default function SidebarWidget(
           {...props.list}
           variant="directory"
           touch={touch}
-          hug={inStack}
           title={typeof title === 'string' ? title : undefined}
         />
       </div>
@@ -165,12 +171,7 @@ export default function SidebarWidget(
 
   const children =
     props.variant === 'history' ? (
-      <SidebarListPanel
-        {...props.list}
-        variant="history"
-        touch={touch}
-        hug={inStack}
-      />
+      <SidebarListPanel {...props.list} variant="history" touch={touch} />
     ) : (
       props.children
     );

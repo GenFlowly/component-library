@@ -23,6 +23,13 @@
   overflow: clip;
 }
 
+// A fill card in a stack reaches at least the bottom of the stack's view and
+// grows past it with its content
+.stacked.fill {
+  flex: 1 0 auto;
+  height: auto;
+}
+
 :global([data-theme='dark']) .widget {
   @include sidebar-card-props-dark;
   @include sidebar-card-chrome-dark;

@@ -790,9 +790,9 @@ function GraphEditorInner({
             data-testid="graph-editor-config-panel"
             handleTestId="graph-editor-config-resize"
           >
-            {/* AgentMaker renders as-is (own strings, own card look) — the
-                wrapper div is purely a scroll viewport for the sidebar. */}
-            <div className={styles.configScroll}>
+            {/* AgentMaker renders as-is (own strings, own card look); the
+                sidebar's stack scrolls it. */}
+            <div className={styles.configBody}>
               <AgentMaker
                 key={selectedNode.id}
                 data-testid="graph-editor-config"
