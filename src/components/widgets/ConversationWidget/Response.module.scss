@@ -709,6 +709,9 @@
 @media (min-width: #{$breakpoint-tablet + 1px}) {
   .inner {
     padding: 12px 2rem 8px;
+    // A vendor switch from inside the response lands here; the sub-bar sits
+    // above the scroller, not over it
+    scroll-margin-top: 0.75rem;
   }
 
   .responseWrapper {
@@ -759,6 +762,8 @@
 @include respond-to-tablet {
   .inner {
     padding: 18px $mobile-content-inset 8px;
+    // Clear of the overlay header when a vendor switch lands on it
+    scroll-margin-top: $mobile-header-height;
   }
 
   .responseWrapper article {

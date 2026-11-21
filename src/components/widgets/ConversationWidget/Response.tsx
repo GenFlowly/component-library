@@ -766,20 +766,26 @@ function Response({
         return;
       }
 
-      // A viewport top that is still above where the new content ends is
-      // left alone: content above the row (the toggle the user just tapped)
-      // didn't move. Only a viewport top inside the removed tail shifts up by
-      // the shrink, keeping whatever follows the row in place.
+      // A viewport top above the row is left alone: content above it (the
+      // toggle the user just tapped) didn't move. One inside the row starts
+      // the new response from its top, since the old reading position means
+      // nothing in a different response and a shorter one would leave the
+      // view blank below its end. One past the row shifts up by the shrink,
+      // keeping whatever follows the row in place.
       const shrink = Math.max(0, previousInnerHeight - naturalHeight);
-      const newRowEnd = previousRowTop + naturalHeight;
+      const rowStart =
+        previousRowTop -
+        (parseFloat(getComputedStyle(innerEl).scrollMarginTop) || 0);
       const maxScrollTop = Math.max(
         0,
         scroller.scrollHeight - shrink - scroller.clientHeight
       );
       const desired =
-        previousScrollTop <= newRowEnd
-          ? previousScrollTop
-          : previousScrollTop - shrink;
+        previousScrollTop >= previousRowTop + previousInnerHeight
+          ? previousScrollTop - shrink
+          : previousScrollTop > rowStart
+            ? rowStart
+            : previousScrollTop;
       const target = Math.max(0, Math.min(desired, maxScrollTop));
       if (target !== previousScrollTop) {
         scroller.scrollTo({ top: target, behavior: 'smooth' });

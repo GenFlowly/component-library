@@ -553,34 +553,63 @@ describe('Response Widget Component', () => {
       jest.useRealTimers();
     });
 
-    test('leaves the page alone when the viewport is above where the new response ends', () => {
-      const rowHeight = { current: 14000 };
-      const scrollTo = setup(7500, rowHeight);
-
+    const switchTo = (rowHeight: { current: number }, newHeight: number) => {
       fireEvent.click(
         screen.getByTestId(`vendor-checkbox-group-option-${AIVendor.CLAUDE}`)
       );
-      rowHeight.current = 8000;
+      rowHeight.current = newHeight;
       act(() => {
         jest.advanceTimersByTime(1000);
       });
+    };
+
+    test('leaves the page alone when the response starts in view', () => {
+      const rowHeight = { current: 14000 };
+      const scrollTo = setup(300, rowHeight);
+
+      switchTo(rowHeight, 2000);
 
       expect(scrollTo).not.toHaveBeenCalled();
     });
 
-    test('shifts up by the shrink when the viewport was inside the removed tail', () => {
+    test('starts a shorter response from its top when the viewport was inside the row', () => {
       const rowHeight = { current: 14000 };
       const scrollTo = setup(12000, rowHeight);
 
-      fireEvent.click(
-        screen.getByTestId(`vendor-checkbox-group-option-${AIVendor.CLAUDE}`)
-      );
-      rowHeight.current = 10000;
-      act(() => {
-        jest.advanceTimersByTime(1000);
-      });
+      switchTo(rowHeight, 2000);
 
-      expect(scrollTo).toHaveBeenCalledWith({ top: 8000, behavior: 'smooth' });
+      expect(scrollTo).toHaveBeenCalledWith({ top: 400, behavior: 'smooth' });
+    });
+
+    test('starts a longer response from its top when the viewport was inside the row', () => {
+      const rowHeight = { current: 8000 };
+      const scrollTo = setup(7500, rowHeight);
+
+      switchTo(rowHeight, 14000);
+
+      expect(scrollTo).toHaveBeenCalledWith({ top: 400, behavior: 'smooth' });
+    });
+
+    test('lands the row its scroll margin below the top of the view', () => {
+      const rowHeight = { current: 14000 };
+      const scrollTo = setup(12000, rowHeight);
+      screen.getByTestId('response-row').style.scrollMarginTop = '56px';
+
+      switchTo(rowHeight, 2000);
+
+      expect(scrollTo).toHaveBeenCalledWith({ top: 344, behavior: 'smooth' });
+    });
+
+    test('shifts up by the shrink when the viewport was past the row', () => {
+      const rowHeight = { current: 14000 };
+      const scrollTo = setup(15000, rowHeight);
+
+      switchTo(rowHeight, 10000);
+
+      expect(scrollTo).toHaveBeenCalledWith({
+        top: 11000,
+        behavior: 'smooth',
+      });
     });
   });
 
