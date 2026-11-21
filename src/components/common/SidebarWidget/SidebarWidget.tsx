@@ -1,4 +1,4 @@
-import React, { ReactNode, useRef, useState } from 'react';
+import React, { ReactNode, useContext, useRef, useState } from 'react';
 import { Icon } from '../Icon/Icon';
 import Tooltip from '../Tooltip/Tooltip';
 import ScrollArea from '../ScrollArea/ScrollArea';
@@ -7,6 +7,7 @@ import SidebarListPanel, {
   SidebarListPanelProps,
 } from '../SidebarListPanel/SidebarListPanel';
 import TreeMenu, { TreeMenuProps } from '../TreeMenu/TreeMenu';
+import { SidebarStackContext } from '../SidebarStack/SidebarStack';
 import styles from './SidebarWidget.module.scss';
 
 let nextBodyId = 0;
@@ -58,7 +59,7 @@ export interface SidebarWidgetCustomProps extends SidebarWidgetBaseProps {
 
 export type SidebarWidgetList = Omit<
   SidebarListPanelProps,
-  'variant' | 'touch' | 'title'
+  'variant' | 'touch' | 'title' | 'hug'
 >;
 
 /**
@@ -98,8 +99,9 @@ export type SidebarWidgetProps =
  * The one card every sidebar widget sits in: the floating sidebar material, a
  * 34 px header with the widget's icon, title and actions, and its body. It
  * hugs its content and scrolls inside once the surrounding column runs out of
- * room; in a VerticalSplit pane it fills the pane. The variant decides the
- * body: a history or directory list, a menu, or custom content.
+ * room; in a VerticalSplit pane it fills the pane; in a SidebarStack it takes
+ * its full height and the stack scrolls. The variant decides the body: a
+ * history or directory list, a menu, or custom content.
  */
 export default function SidebarWidget(
   props: SidebarWidgetProps
@@ -121,10 +123,11 @@ export default function SidebarWidget(
     'data-testid': testId,
     toggleTestId,
   } = props;
+  const inStack = useContext(SidebarStackContext);
   const [internalCollapsed, setInternalCollapsed] = useState(defaultCollapsed);
   const bodyId = useRef(`sidebar-widget-body-${++nextBodyId}`).current;
   const isCollapsed = collapsible && (collapsedProp ?? internalCollapsed);
-  const cardClass = `${styles.widget} ${touch ? styles.touch : ''} ${fill ? styles.fill : ''}`;
+  const cardClass = `${styles.widget} ${touch ? styles.touch : ''} ${fill ? styles.fill : ''} ${inStack ? styles.stacked : ''}`;
 
   if (props.variant === 'menu') {
     return (
@@ -153,6 +156,7 @@ export default function SidebarWidget(
           {...props.list}
           variant="directory"
           touch={touch}
+          hug={inStack}
           title={typeof title === 'string' ? title : undefined}
         />
       </div>
@@ -161,7 +165,12 @@ export default function SidebarWidget(
 
   const children =
     props.variant === 'history' ? (
-      <SidebarListPanel {...props.list} variant="history" touch={touch} />
+      <SidebarListPanel
+        {...props.list}
+        variant="history"
+        touch={touch}
+        hug={inStack}
+      />
     ) : (
       props.children
     );

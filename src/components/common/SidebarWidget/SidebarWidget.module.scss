@@ -15,6 +15,14 @@
   height: 100%;
 }
 
+// In a SidebarStack the card keeps its full height. clip, unlike the chrome's
+// hidden, still rounds the corners without making the card a scroll
+// container, so its list's sticky headings stick to the stack's view.
+.stacked {
+  flex: none;
+  overflow: clip;
+}
+
 :global([data-theme='dark']) .widget {
   @include sidebar-card-props-dark;
   @include sidebar-card-chrome-dark;

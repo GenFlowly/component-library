@@ -56,6 +56,18 @@
   padding-top: 0.25rem;
 }
 
+// A hugging list (hug) takes its full height and leaves scrolling to the
+// column around it. clip, unlike hidden, doesn't make the panel a scroll
+// container, so its sticky headings stick to that column's view.
+.hug {
+  height: auto;
+  overflow: clip;
+
+  .list {
+    flex: none;
+  }
+}
+
 // Invisible observer target at the end of the list for onEndReached
 .endSentinel {
   flex-shrink: 0;

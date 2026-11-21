@@ -113,6 +113,10 @@ export interface SidebarListPanelProps {
   onEndReached?: () => void;
   // Rendered below the list (e.g. a "Load more" pagination button)
   footer?: ReactNode;
+  // The list grows to its full height and scrolls with the column it sits in
+  // (a SidebarStack) instead of inside itself; onEndReached then watches how
+  // close that column's view is to the end of the list
+  hug?: boolean;
   'data-testid'?: string;
   testIds?: {
     list?: string;
@@ -124,6 +128,15 @@ export interface SidebarListPanelProps {
 }
 
 const MoreActionsLabelContext = createContext('More actions');
+
+// The nearest ancestor that scrolls: what a hugging list's rows scroll in
+function scrollParent(el: HTMLElement): HTMLElement | null {
+  for (let node = el.parentElement; node; node = node.parentElement) {
+    const { overflowY } = window.getComputedStyle(node);
+    if (overflowY === 'auto' || overflowY === 'scroll') return node;
+  }
+  return null;
+}
 
 // Styled pagination button for the panel's footer slot
 export function SidebarListLoadMore({
@@ -486,6 +499,7 @@ export default function SidebarListPanel({
   moreActionsLabel = 'More actions',
   onEndReached,
   footer,
+  hug = false,
   'data-testid': testId,
   testIds,
 }: SidebarListPanelProps) {
@@ -507,9 +521,10 @@ export default function SidebarListPanel({
   useEffect(() => {
     if (!onEndReached || isEmpty) return;
     if (typeof IntersectionObserver === 'undefined') return;
-    const rootEl = listRef.current;
+    const list = listRef.current;
     const target = endSentinelRef.current;
-    if (!rootEl || !target) return;
+    if (!list || !target) return;
+    const rootEl = hug ? scrollParent(list) : list;
     // Recreated whenever groups change: observe() always reports the initial
     // intersection, so a list that still doesn't fill the viewport after a
     // load immediately requests the next page
@@ -521,11 +536,37 @@ export default function SidebarListPanel({
     );
     observer.observe(target);
     return () => observer.disconnect();
-  }, [onEndReached, isEmpty, groups]);
+  }, [onEndReached, isEmpty, groups, hug]);
+
+  // Scrolling closes an open swipe tray; a hugging list scrolls with its column
+  useEffect(() => {
+    if (!hug || !openRowId || !listRef.current) return;
+    const scroller = scrollParent(listRef.current);
+    if (!scroller) return;
+    const close = () => setOpenRowId(null);
+    scroller.addEventListener('scroll', close, { passive: true });
+    return () => scroller.removeEventListener('scroll', close);
+  }, [hug, openRowId]);
+
+  const listContent = (
+    <>
+      {groups.map(group => (
+        <GroupSection key={group.id} group={group} isTopLevel />
+      ))}
+      {onEndReached != null && (
+        <div
+          ref={endSentinelRef}
+          className={styles.endSentinel}
+          aria-hidden="true"
+          data-testid={testIds?.endSentinel}
+        />
+      )}
+    </>
+  );
 
   return (
     <div
-      className={`${styles.container} ${touch ? styles.touch : ''} ${variant === 'history' ? styles.history : ''}`}
+      className={`${styles.container} ${touch ? styles.touch : ''} ${variant === 'history' ? styles.history : ''} ${hug ? styles.hug : ''}`}
       data-testid={testId}
     >
       <MoreActionsLabelContext.Provider value={moreActionsLabel}>
@@ -561,25 +602,28 @@ export default function SidebarListPanel({
                   ))}
                 </div>
               )}
-              <ScrollArea
-                ref={listRef}
-                className={styles.list}
-                aria-label={listAriaLabel}
-                data-testid={testIds?.list}
-                onScroll={openRowId ? () => setOpenRowId(null) : undefined}
-              >
-                {groups.map(group => (
-                  <GroupSection key={group.id} group={group} isTopLevel />
-                ))}
-                {onEndReached != null && (
-                  <div
-                    ref={endSentinelRef}
-                    className={styles.endSentinel}
-                    aria-hidden="true"
-                    data-testid={testIds?.endSentinel}
-                  />
-                )}
-              </ScrollArea>
+              {hug ? (
+                <div
+                  ref={el => {
+                    listRef.current = el;
+                  }}
+                  className={styles.list}
+                  aria-label={listAriaLabel}
+                  data-testid={testIds?.list}
+                >
+                  {listContent}
+                </div>
+              ) : (
+                <ScrollArea
+                  ref={listRef}
+                  className={styles.list}
+                  aria-label={listAriaLabel}
+                  data-testid={testIds?.list}
+                  onScroll={openRowId ? () => setOpenRowId(null) : undefined}
+                >
+                  {listContent}
+                </ScrollArea>
+              )}
             </>
           )}
 

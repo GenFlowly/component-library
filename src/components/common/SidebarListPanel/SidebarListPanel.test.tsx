@@ -376,6 +376,58 @@ describe('SidebarListPanel nested groups', () => {
     }
   });
 
+  test('a hugging list pages off the column it scrolls in', () => {
+    const roots: (Element | Document | null | undefined)[] = [];
+    const callbacks: IntersectionObserverCallback[] = [];
+    const RealIO = window.IntersectionObserver;
+    window.IntersectionObserver = class {
+      constructor(
+        cb: IntersectionObserverCallback,
+        opts?: IntersectionObserverInit
+      ) {
+        callbacks.push(cb);
+        roots.push(opts?.root);
+      }
+      observe() {}
+      disconnect() {}
+    } as unknown as typeof IntersectionObserver;
+
+    const onEndReached = jest.fn();
+    try {
+      render(
+        <div data-testid="column" style={{ overflowY: 'auto' }}>
+          <SidebarListPanel
+            hug
+            groups={[
+              {
+                id: 'g',
+                label: 'Recents',
+                items: [{ id: 'a', label: 'A', onSelect: jest.fn() }],
+              },
+            ]}
+            isLoading={false}
+            hasError={false}
+            errorText="err"
+            emptyText="empty"
+            onEndReached={onEndReached}
+            testIds={{ list: 'list' }}
+          />
+        </div>
+      );
+      expect(screen.getByTestId('list')).not.toHaveClass('scrollArea');
+      expect(roots[roots.length - 1]).toBe(screen.getByTestId('column'));
+      act(() => {
+        callbacks[callbacks.length - 1](
+          [{ isIntersecting: true } as IntersectionObserverEntry],
+          {} as IntersectionObserver
+        );
+      });
+      expect(onEndReached).toHaveBeenCalledTimes(1);
+    } finally {
+      window.IntersectionObserver = RealIO;
+    }
+  });
+
   test('without onEndReached no sentinel renders', () => {
     render(
       <SidebarListPanel
