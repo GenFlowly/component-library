@@ -19,15 +19,10 @@ import { useAskSelection } from './AskSelectionContext';
 import TextContainer from '../../common/TextContainer/TextContainer';
 import { ErrorBoundary } from '../../common/ErrorBoundary/ErrorBoundary';
 import { Icon } from '../../common/Icon/Icon';
-import {
-  LearnedFact,
-  Message,
-  ThinkingStep,
-  WebSource,
-} from './conversation.models';
+import { LearnedFact, Message, WebSource } from './conversation.models';
 import { AttachmentRef } from './attachment.models';
 import AttachmentCard from '../../common/AttachmentCard/AttachmentCard';
-import ThinkingSteps from './ThinkingSteps';
+import ActivityPanel from '../ActivityPanel/ActivityPanel';
 import { useLearnedFacts } from './useLearnedFacts';
 import RectangleButton from '../../common/RectangleButton/RectangleButton';
 import PillButton from '../../common/PillButton/PillButton';
@@ -337,83 +332,6 @@ interface ResponseProps {
   onFollowUp?: (selectedMessageId: string) => void;
   disabled?: boolean;
   isLastResponseBlock?: boolean;
-}
-
-/**
- * Thinking summary shown inside each response card, between the header and
- * the response text (formerly the separate ResponseThinking widget). The
- * whole section collapses behind the "Thinking / Thought for Ns" header —
- * open while the turn is live, auto-collapsed once the answer lands — and
- * each step inside additionally manages its own expand/collapse (see
- * ThinkingSteps).
- */
-function ThinkingSection({
-  steps,
-  stepList,
-  isThinking,
-  durationMs,
-  text,
-}: {
-  steps: string[];
-  stepList?: ThinkingStep[] | null;
-  isThinking: boolean;
-  durationMs?: number | null;
-  text: string;
-}) {
-  const { t } = useTranslation();
-  // Expanded only while live thinking — historical loads start collapsed
-  const [isExpanded, setIsExpanded] = useState(isThinking);
-
-  // Auto-collapse the whole section once the answer lands
-  useEffect(() => {
-    if (!isThinking) setIsExpanded(false);
-  }, [isThinking]);
-
-  // Legacy flat "k" strings become plain steps (label only, no icon) so the
-  // whole section renders through one component; structured "ks" steps follow
-  const displaySteps: ThinkingStep[] = useMemo(
-    () => [
-      ...steps.map((step, i): ThinkingStep => ({
-        node: `legacy-${i}`,
-        name: step,
-        status: 'done',
-      })),
-      ...(stepList ?? []),
-    ],
-    [steps, stepList]
-  );
-
-  if (displaySteps.length === 0 && !isThinking) return null;
-
-  // Once thinking completes, show how long it took (measured by the
-  // retrieval server: request receipt → first generated token)
-  let label = t('conversation.response.thinking');
-  if (!isThinking && durationMs != null) {
-    const seconds = Math.max(1, Math.round(durationMs / 1000));
-    label = t('conversation.response.thoughtForSeconds', { count: seconds });
-  }
-
-  return (
-    <div className={styles.thinkingSection} data-testid="thinking-section">
-      <button
-        className={styles.thinkingToggle}
-        onClick={() => setIsExpanded(prev => !prev)}
-        aria-expanded={isExpanded}
-        data-testid="thinking-section-toggle"
-      >
-        {isThinking && <span className={styles.pulse} />}
-        <span className={styles.thinkingLabel}>{label}</span>
-        <span className={styles.chevron}>{isExpanded ? '▼' : '▶'}</span>
-      </button>
-      {isExpanded && (
-        <ThinkingSteps
-          steps={displaySteps}
-          isThinking={isThinking}
-          finalText={text}
-        />
-      )}
-    </div>
-  );
 }
 
 // Memoized (see export): responseMessages keeps its identity for blocks a
@@ -851,9 +769,7 @@ function Response({
             messageId,
             isLoading,
             error,
-            thinkingSteps,
-            thinkingStepList,
-            thinkingDurationMs,
+            activity,
             webSources,
             generatedAttachments,
             inputTokens,
@@ -865,7 +781,9 @@ function Response({
             stopReason,
           }) => {
             const isSelected = selectedResponseId === messageId;
-            const isThinkingPhase = !!isLoading && text.trim().length === 0;
+            // The answer area's own placeholder: loading with no text yet.
+            // The activity panel never looks at the text (see ActivityPanel).
+            const isAwaitingText = !!isLoading && text.trim().length === 0;
             const isSwipeNeighbor =
               messageId === swipeNeighborMessage?.messageId;
             const swipeClassName = isSwipeNeighbor
@@ -946,15 +864,15 @@ function Response({
                     title={HeaderComponent}
                     content={linkifyCitations(text, webSources)}
                     subheader={
-                      <ThinkingSection
-                        steps={thinkingSteps ?? []}
-                        stepList={thinkingStepList}
-                        isThinking={isThinkingPhase}
-                        durationMs={thinkingDurationMs}
-                        text={text}
+                      <ActivityPanel
+                        className={styles.activityPanel}
+                        events={activity}
+                        isLive={!!isLoading}
+                        citedSources={webSources}
+                        stopReason={stopReason}
                       />
                     }
-                    isLoading={isThinkingPhase}
+                    isLoading={isAwaitingText}
                     loadingContent={null}
                     onAskSelection={
                       canAsk

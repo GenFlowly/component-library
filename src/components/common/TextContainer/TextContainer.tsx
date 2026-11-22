@@ -16,7 +16,7 @@ export interface TextContainerProps {
   children?: React.ReactNode;
   'data-testid'?: string;
   loadingContent?: React.ReactNode;
-  /** Rendered between the header and the markdown content (e.g. a thinking summary) */
+  /** Rendered between the header and the markdown content (e.g. the agent activity panel) */
   subheader?: React.ReactNode;
   /**
    * When set, selecting text in the rendered markdown shows a floating "Ask"

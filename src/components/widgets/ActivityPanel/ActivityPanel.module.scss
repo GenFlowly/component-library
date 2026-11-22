@@ -1,0 +1,927 @@
+@import '../../../styles/themes.scss';
+
+// The agent activity panel inside a response card. Everything wraps: no
+// horizontal scroll at phone width, long queries and titles break.
+
+.panel {
+  // A recessed surface for nested boxes that reads on both card colours.
+  --activity-well: #{$color-background};
+  --activity-rail: #{$color-border};
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  color: $color-text-secondary;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+:global([data-theme='dark']) .panel {
+  --activity-well: #{$color-background-secondary};
+}
+
+// The panel renders inside the response's markdown article, whose turn
+// typography (.article.turn ul / ol / li / p: two classes and an element)
+// would otherwise indent every list and space every paragraph. Tripling the
+// class outranks it without !important.
+.panel.panel.panel {
+  ul,
+  ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    margin: 0;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  a {
+    text-decoration: none;
+  }
+
+  .sourceTitle:hover {
+    text-decoration: underline;
+  }
+
+  .quote,
+  .beatSub,
+  .emptyNote {
+    font-size: 0.8125rem;
+  }
+
+  .sourceList {
+    padding-left: 21px;
+  }
+
+  .memoryGroup ul {
+    padding-left: 1.1rem;
+    list-style: disc;
+  }
+}
+
+// ----- header ---------------------------------------------------------------
+
+.header {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  cursor: pointer;
+  color: $color-text-secondary;
+
+  &:focus-visible {
+    outline: 2px solid $color-border-focus;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+// Title and summary flow as one wrapping line of text; the status dot and
+// the chevron stay pinned to its first line.
+.headerText {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.headerTitle {
+  font-weight: 500;
+  color: $color-text-primary;
+}
+
+.headerSummary {
+  color: $color-text-muted;
+}
+
+.headerChevron {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-self: flex-start;
+  margin-top: 3px;
+  color: $color-text-muted;
+}
+
+.pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: $color-primary;
+  flex-shrink: 0;
+  animation: activityPulse 1.2s ease-in-out infinite;
+}
+
+.header > .pulse,
+.header > .statusIcon {
+  align-self: flex-start;
+  margin-top: 6px;
+}
+
+.header > .statusIcon {
+  margin-top: 3px;
+}
+
+@keyframes activityPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse,
+  .phaseRunning {
+    animation: none;
+  }
+}
+
+.statusIcon {
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.statusDone {
+  color: $color-success;
+}
+
+.statusStopped {
+  color: $color-text-muted;
+}
+
+.statusFailed {
+  color: $color-error;
+}
+
+// ----- receipt ----------------------------------------------------------------
+
+.receipt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tile {
+  padding: 8px 10px;
+  background: var(--activity-well);
+}
+
+.phaseBar {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  min-width: 0;
+}
+
+.phaseSegment {
+  min-width: 3px;
+  border-radius: 3px;
+}
+
+.phaseRunning {
+  animation: activitySegment 1.2s ease-in-out infinite;
+}
+
+@keyframes activitySegment {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.6875rem;
+  color: $color-text-muted;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+}
+
+.legendSwatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.legendValue {
+  color: $color-text-primary;
+  font-variant-numeric: tabular-nums;
+}
+
+.phase-setup {
+  background: $color-border;
+}
+.phase-memory {
+  background: var(--color-activity-memory);
+}
+.phase-plan {
+  background: var(--color-activity-plan);
+}
+.phase-search {
+  background: var(--color-activity-search);
+}
+.phase-reason {
+  background: var(--color-activity-reason);
+}
+.phase-answer {
+  background: var(--color-activity-answer);
+}
+
+// ----- view switch ------------------------------------------------------------
+
+.switch {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--activity-well);
+}
+
+.switchTab {
+  all: unset;
+  box-sizing: border-box;
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: $color-text-secondary;
+
+  &:focus-visible {
+    outline: 2px solid $color-border-focus;
+    outline-offset: 1px;
+  }
+}
+
+.switchTabOn {
+  background: $color-background-selected;
+  border-color: $color-primary;
+  color: $color-text-primary;
+}
+
+.countBadge {
+  font-size: 0.6875rem;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: $color-background-tertiary;
+  color: $color-text-muted;
+  font-variant-numeric: tabular-nums;
+}
+
+// ----- story ------------------------------------------------------------------
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.beat {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  border-radius: 8px;
+  transition: background-color 0.6s ease;
+}
+
+.beatFocused {
+  background: $color-background-selected;
+}
+
+.rail {
+  width: 20px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.railDot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-background-selected;
+}
+
+.railDotPending {
+  box-sizing: border-box;
+  background: transparent;
+  border: 2px solid var(--activity-rail);
+}
+
+.railLine {
+  width: 2px;
+  flex-grow: 1;
+  margin: 3px 0;
+  background: var(--activity-rail);
+}
+
+.beatBody {
+  flex-grow: 1;
+  min-width: 0;
+  padding-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.beatHead {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 20px;
+
+  &[role='button'],
+  &:is(button) {
+    cursor: pointer;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-border-focus;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.beatIcon {
+  flex-shrink: 0;
+  color: $color-text-muted;
+}
+
+.beatTitle {
+  flex-grow: 1;
+  min-width: 0;
+  font-weight: 500;
+  color: $color-text-primary;
+  overflow-wrap: anywhere;
+}
+
+.beatTitleCompact {
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.beatTime {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: $color-text-muted;
+  font-variant-numeric: tabular-nums;
+}
+
+.beatTimeLive {
+  color: $color-text-primary;
+}
+
+.chevronSlot {
+  width: 12px;
+  flex-shrink: 0;
+}
+
+.beatBar {
+  width: 60px;
+  flex-shrink: 0;
+  display: flex;
+}
+
+.beatBarFill {
+  height: 6px;
+  border-radius: 3px;
+  min-width: 3px;
+}
+
+.beatSub {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: $color-text-muted;
+  overflow-wrap: anywhere;
+}
+
+.quote {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-style: italic;
+  color: $color-text-secondary;
+  overflow-wrap: anywhere;
+}
+
+.well {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--activity-well);
+}
+
+.callRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+
+  & + & {
+    padding-top: 8px;
+    border-top: 1px solid $color-border-light;
+  }
+}
+
+.callHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.callIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: $color-text-muted;
+}
+
+.callText {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.callQuery {
+  color: $color-text-primary;
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.callPurpose {
+  font-size: 0.75rem;
+  color: $color-text-muted;
+  overflow-wrap: anywhere;
+}
+
+.callMeta {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  color: $color-text-muted;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.callNote {
+  font-size: 0.75rem;
+  color: $color-text-muted;
+  overflow-wrap: anywhere;
+}
+
+.callError {
+  font-size: 0.75rem;
+  color: $color-error;
+  overflow-wrap: anywhere;
+}
+
+.callDot {
+  width: 8px;
+  height: 8px;
+  margin: 4px 2px 0;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: $color-primary;
+  animation: activityPulse 1.2s ease-in-out infinite;
+}
+
+.callDotStill {
+  animation: none;
+  background: transparent;
+  border: 1px solid $color-text-muted;
+  box-sizing: border-box;
+}
+
+.sourceList {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 21px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.linkButton {
+  all: unset;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: $color-primary;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-border-focus;
+    border-radius: 2px;
+  }
+}
+
+.wellFooter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding-left: 21px;
+  font-size: 0.75rem;
+  color: $color-text-muted;
+
+  .linkButton {
+    margin-left: auto;
+  }
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-left: 22px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 2px 8px 2px 4px;
+  border-radius: 10px;
+  background: var(--activity-well);
+  color: $color-text-secondary;
+  font-size: 0.6875rem;
+  text-decoration: none;
+
+  &:hover {
+    color: $color-text-primary;
+  }
+}
+
+.todoList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.8125rem;
+}
+
+.todoItem {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+
+  &[data-status='completed'] .todoContent {
+    opacity: 0.6;
+    text-decoration: line-through;
+  }
+
+  &[data-status='in_progress'] .todoContent {
+    font-weight: 600;
+  }
+}
+
+.todoContent {
+  overflow-wrap: anywhere;
+}
+
+.memoryGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  & + & {
+    margin-top: 6px;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.8125rem;
+  }
+
+  li {
+    overflow-wrap: anywhere;
+  }
+}
+
+.groupLabel {
+  font-size: 0.6875rem;
+  color: $color-text-muted;
+}
+
+// ----- sources ------------------------------------------------------------------
+
+.source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sourceLarge {
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid $color-border-light;
+}
+
+.siteIcon {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.sourceLarge .siteIcon {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+}
+
+.monogram {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-background-hover;
+  color: $color-text-primary;
+  font-size: 0.625rem;
+  font-weight: 700;
+}
+
+.sourceLarge .monogram {
+  font-size: 0.6875rem;
+}
+
+.sourceDomain {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: $color-text-muted;
+}
+
+.sourceTitle {
+  flex-grow: 1;
+  min-width: 0;
+  font-size: 0.8125rem;
+  color: $color-text-secondary;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:hover {
+    color: $color-text-primary;
+    text-decoration: underline;
+  }
+}
+
+.sourceStack {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sourceMeta {
+  font-size: 0.6875rem;
+  color: $color-text-muted;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.citedBadge {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border: 1px solid $color-primary;
+  border-radius: 10px;
+  background: $color-background-selected;
+  color: $color-text-primary;
+  font-size: 0.6875rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.indexBadge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border: 1px solid $color-primary;
+  border-radius: 10px;
+  background: $color-background-selected;
+  color: $color-text-primary;
+  font-size: 0.6875rem;
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.notCited {
+  opacity: 0.7;
+}
+
+// ----- evidence -----------------------------------------------------------------
+
+.evidence {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filterChip {
+  all: unset;
+  box-sizing: border-box;
+  padding: 3px 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--activity-well);
+  color: $color-text-secondary;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+
+  &:focus-visible {
+    outline: 2px solid $color-border-focus;
+    outline-offset: 1px;
+  }
+}
+
+.filterChipOn {
+  border-color: $color-primary;
+  background: $color-background-selected;
+  color: $color-text-primary;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: 8px;
+  transition: background-color 0.6s ease;
+}
+
+.groupHead {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 0;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid $color-border-focus;
+    border-radius: 4px;
+  }
+}
+
+.groupStep {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  color: $color-text-muted;
+  font-variant-numeric: tabular-nums;
+}
+
+.groupTitle {
+  flex-grow: 1;
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: $color-text-primary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groupMeta {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  color: $color-text-muted;
+}
+
+.groupRows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.failedRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+  border-top: 1px solid $color-border-light;
+  font-size: 0.8125rem;
+}
+
+.emptyNote {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: $color-text-muted;
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid $color-border-light;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionHead {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: $color-text-secondary;
+
+  &:focus-visible {
+    outline: 2px solid $color-border-focus;
+    border-radius: 4px;
+  }
+}
+
+.sectionSub {
+  font-size: 0.75rem;
+  color: $color-text-muted;
+}
+
+.developerBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pre {
+  margin: 0;
+  padding: 8px 10px;
+  max-height: 16rem;
+  overflow-y: auto;
+  border: 1px solid $color-border-light;
+  border-radius: 6px;
+  background: var(--activity-well);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

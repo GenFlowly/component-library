@@ -1,5 +1,6 @@
 import { AIVendor } from './vendors';
 import { AttachmentRef } from './attachment.models';
+import type { ActivityEvent } from '../ActivityPanel/activity.models';
 
 /**
  * A web-search source backing an inline [n] citation marker in the response
@@ -9,6 +10,10 @@ export interface WebSource {
   index: number;
   title: string;
   url: string;
+  /** The site's icon URL, when the search provider returned one. */
+  favicon?: string;
+  /** Publish date as the provider sent it; a calendar date. */
+  published_date?: string;
 }
 
 /**
@@ -18,100 +23,6 @@ export interface WebSource {
 export interface LearnedFact {
   memoryId: string;
   text: string;
-}
-
-/** What a graph node does — drives the icon shown next to its thinking step. */
-export type ThinkingStepKind =
-  'LLM' | 'MEMORY' | 'RETRIEVAL' | 'WEB_SEARCH' | 'REFLECTION' | 'TOOL';
-
-/**
- * One built-in tool call executed by a TOOL kind step, with its own args and
- * results — distinct from the step's flattened `detail`/`items`, so several
- * calls of the same tool in one round (e.g. three web_search calls) render as
- * separate breakdowns instead of collapsing into "web_search, web_search,
- * web_search" with no way to tell which query produced which results.
- */
-export interface ThinkingStepToolCall {
-  name: string;
-  /** The call's arguments as the model wrote them, e.g. {query, topic}. */
-  args?: Record<string, unknown>;
-  /** This call's own cited sources, turn-numbered to match [n] markers in the answer. */
-  sources?: WebSource[];
-  /** Set when this specific call failed; sources are empty in that case. */
-  error?: string | null;
-}
-
-/**
- * One structured per-node step of the agent graph's thinking phase, streamed
- * via the "ks" chunk. A node can appear multiple times (graph cycles): a later
- * `running` for the same node id after it finished starts a NEW entry, while a
- * `done` updates the latest still-running entry with that node id.
- */
-export interface ThinkingStep {
-  /** Node id — the correlation key between running/done events */
-  node: string;
-  /** User-facing node name, e.g. "Query Analyzer" */
-  name: string;
-  /**
-   * Absent only on legacy fallback rows built client-side from flat "k"
-   * strings — the backend always sends it.
-   */
-  kind?: ThinkingStepKind;
-  status: 'running' | 'done';
-  /** Present while running, e.g. "Query Analyzer: thinking…" */
-  label?: string;
-  /** Present when done, e.g. "Found 3 relevant document(s)" */
-  detail?: string;
-  /** Done: the full list of retrieved doc titles / web titles / memory texts */
-  items?: string[];
-  /** Done, LLM-backed nodes: rendered prompt sent to the model (truncated) */
-  prompt?: string;
-  /** Done, LLM-backed nodes: the model's raw response (truncated) */
-  response?: string;
-  /**
-   * Done, WEB_SEARCH kind: the full {index, title, url} result list — `items`
-   * above stays title-only for older clients.
-   */
-  sources?: WebSource[];
-  /**
-   * Done, MEMORY kind: the applied memories split into labeled groups —
-   * `core` is injected on every turn, `recalled` was pulled in because it
-   * looks related to the current message. Render this instead of `items`
-   * when present; the flat `items` list stays for older payloads.
-   */
-  memories?: { core: string[]; recalled: string[] };
-  /**
-   * Done, TOOL kind: one entry per individual tool call executed this round.
-   * The primary fix for "web_search, web_search, web_search" — render this
-   * instead of `items`/`detail` when present.
-   */
-  calls?: ThinkingStepToolCall[];
-  /**
-   * Done, LLM-backed nodes when the model decides to call tools: the calls it
-   * made (name + args), e.g. `web_search({query: "..."})` — what the model is
-   * about to do, before TOOL_EXECUTOR's own step reports what came back.
-   */
-  tool_calls?: { name: string; args?: Record<string, unknown> }[];
-  /**
-   * Done, LLM-backed nodes when the model decides to call tools: any text it
-   * wrote alongside the call — its stated reason for searching (again), when
-   * the model provided one. Absent when the model called tools with no
-   * accompanying text, which is common and not itself a problem.
-   */
-  reasoning?: string;
-  /**
-   * Done, TOOL kind: the agent's todo checklist as of this round, present on
-   * steps where the agent updated its plan (write_todos). Each occurrence is
-   * the FULL current list, so the newest step carrying one is the plan's
-   * current state — render that one.
-   */
-  todos?: TodoItem[];
-}
-
-/** One item of the agent's plan (the write_todos harness tool). */
-export interface TodoItem {
-  content: string;
-  status: 'pending' | 'in_progress' | 'completed';
 }
 
 /**
@@ -133,22 +44,10 @@ export interface Message {
    */
   error?: string | null;
   /**
-   * Legacy flat thinking lines streamed via the "k" chunk. Kept for backends
-   * that still emit flat strings; rendered as plain steps without an icon.
+   * The turn's activity log (contract v2): the `ac` events in stream order,
+   * live and as persisted. Everything the thinking panel shows comes from it.
    */
-  thinkingSteps?: string[];
-  /**
-   * Structured per-node thinking steps streamed via the "ks" chunk, in
-   * arrival order (cycles append new entries for the same node id). Also
-   * persisted with the message and restored on conversation load.
-   */
-  thinkingStepList?: ThinkingStep[];
-  /**
-   * Retrieval-server thinking time (request receipt → first generated token),
-   * in ms. Streamed live via the "kd" chunk and persisted in DDB; null for
-   * records predating the feature.
-   */
-  thinkingDurationMs?: number | null;
+  activity?: ActivityEvent[] | null;
   /**
    * The vendor's raw finish reason for this turn (end_turn / stop /
    * max_tokens / refusal / content_filter / …). Streamed live via the "sr"

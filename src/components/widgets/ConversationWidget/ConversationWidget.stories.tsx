@@ -7,6 +7,9 @@ import {
 } from './ConversationWidgetContext';
 import { ConversationBlock, Message } from './conversation.models';
 import { AIVendor } from './vendors';
+import { ActivityEvent } from '../ActivityPanel/activity.models';
+import memoryOnlyActivity from '../ActivityPanel/fixtures/memory_only.json';
+import completedActivity from '../ActivityPanel/fixtures/completed_six_searches.json';
 
 const meta: Meta<typeof ConversationWidget> = {
   title: 'Widgets/ConversationWidget',
@@ -18,7 +21,7 @@ const meta: Meta<typeof ConversationWidget> = {
       description: {
         component:
           'The conversation surface extracted from the GenFlowly web app: a list of request/response ' +
-          'blocks with a markdown prompt editor, streaming-aware response cards, thinking steps, ' +
+          'blocks with a markdown prompt editor, streaming-aware response cards, the agent activity panel, ' +
           'sources, usage badges and follow-up flow. It is fully host-driven: wrap it in ' +
           '`ConversationWidgetProvider` and inject the conversation state (`ConversationWidgetApi`), ' +
           'auth surface, optional services (uploads, learned facts, vendor names) and layout flags. ' +
@@ -200,17 +203,7 @@ export const WithHistory: Story = {
               model: 'claude-sonnet-4-6',
               text: 'Revenue grew **12%** quarter over quarter [1].',
               messageId: 'hist-1',
-              thinkingStepList: [
-                {
-                  node: 'retriever',
-                  name: 'Document Retriever',
-                  kind: 'RETRIEVAL',
-                  status: 'done',
-                  detail: 'Found 1 relevant document(s)',
-                  items: ['Q3 sales report'],
-                },
-              ],
-              thinkingDurationMs: 2400,
+              activity: memoryOnlyActivity.events as ActivityEvent[],
               webSources: [
                 {
                   index: 1,
@@ -246,7 +239,7 @@ export const WithHistory: Story = {
 // The theme-regression fixture: tables (wide grid AND the stacked mobile
 // presentation), fenced code with syntax highlighting, inline code,
 // blockquote, nested/ordered lists, long unbreakable URLs, KaTeX math,
-// citations with web sources, thinking steps of several kinds, usage/cost
+// citations with web sources, a full agent activity log, usage/cost
 // badges, learned facts, model chips and a truncation stop reason. Flip the
 // toolbar theme and the viewport to hunt for token collisions (see the
 // Design System/Design Tokens story).
@@ -334,46 +327,7 @@ function makeFullyLoadedBlocks(): ConversationBlock[] {
     model: 'claude-sonnet-4-6',
     text: RICH_RESPONSE_MD,
     messageId: 'rich-claude-1',
-    thinkingStepList: [
-      {
-        node: 'retriever',
-        name: 'Document Retriever',
-        kind: 'RETRIEVAL',
-        status: 'done',
-        detail: 'Found 2 relevant document(s)',
-        items: ['Memory supercycle note (Oct 2026)', 'Portfolio risk limits'],
-      },
-      {
-        node: 'web',
-        name: 'Web Search',
-        kind: 'WEB_SEARCH',
-        status: 'done',
-        detail: 'Searched 2 queries',
-        items: ['TrendForce DRAM spot index', 'SK Hynix HBM share 2026'],
-        sources: [
-          {
-            index: 1,
-            title: 'TrendForce: DRAM spot index',
-            url: 'https://www.trendforce.com/price/',
-          },
-          {
-            index: 2,
-            title: 'SK Hynix IR — HBM capacity update',
-            url: 'https://example.com/hynix-ir',
-          },
-        ],
-      },
-      {
-        node: 'writer',
-        name: 'Answer Writer',
-        kind: 'LLM',
-        status: 'done',
-        detail: 'Drafted the answer',
-        tool_calls: [{ name: 'web_search', args: { query: 'DXI spot price' } }],
-        reasoning: 'Needed current spot pricing before sizing the trade.',
-      },
-    ],
-    thinkingDurationMs: 5400,
+    activity: completedActivity.events as ActivityEvent[],
     webSources: [
       {
         index: 1,
@@ -405,7 +359,6 @@ function makeFullyLoadedBlocks(): ConversationBlock[] {
     model: 'gpt-4o',
     text: SECOND_RESPONSE_MD,
     messageId: 'rich-openai-1',
-    thinkingDurationMs: 1800,
     inputTokens: 1620,
     outputTokens: 256,
     totalTokens: 1876,
@@ -447,7 +400,7 @@ export const FullyLoaded: Story = {
         story:
           'Kitchen-sink conversation: two vendor responses containing every markdown element the ' +
           'response surface renders (grid + stacked tables, highlighted code, inline code, math, ' +
-          'blockquote, lists, long URLs, citations) plus the full card chrome (thinking steps, ' +
+          'blockquote, lists, long URLs, citations) plus the full card chrome (activity panel, ' +
           'sources, usage/cost badges, learned facts, model chip, truncation notice). Use the ' +
           'toolbar to flip light/dark and the viewport menu to check mobile.',
       },

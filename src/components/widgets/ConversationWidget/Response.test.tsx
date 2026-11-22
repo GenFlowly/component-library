@@ -4,6 +4,8 @@ import Response from './Response';
 import { useConversation } from './ConversationWidgetContext';
 import { AIVendor } from './vendors';
 import '@testing-library/jest-dom';
+import completedActivity from '../ActivityPanel/fixtures/completed_six_searches.json';
+import liveActivity from '../ActivityPanel/fixtures/live_mid_turn.json';
 
 // Mock the injection context: one module replaces the app's separate
 // Conversation/Layout/Auth contexts and the injected services
@@ -424,7 +426,7 @@ describe('Response Widget Component', () => {
     expect(regenerateBtns[1]).toBeDisabled();
   });
 
-  // --- Vendor toggle + thinking (merged from the former ResponseThinking widget) ---
+  // --- Vendor toggle + activity panel ---
 
   test('shows no toggle group for a single vendor', () => {
     render(<Response blockId="block-1" responseMessages={[mockMessages[0]]} />);
@@ -686,30 +688,32 @@ describe('Response Widget Component', () => {
     ]);
   });
 
-  test('renders the thinking section inside the response card for messages with steps', () => {
+  test('renders the activity panel inside the card for a message with a log', () => {
     mockSelection = [AIVendor.OPENAI];
-    const withThinking = [
+    const withActivity = [
       {
         messageId: 'msg-1',
-        text: 'Answer',
+        text: 'Answer [1]',
         aiVendor: AIVendor.OPENAI,
         isLoading: false,
-        thinkingSteps: ['pondering deeply'],
+        activity: completedActivity.events as any,
+        webSources: completedActivity.web_sources,
         timestamp: 0,
       },
     ];
-    render(<Response blockId="block-1" responseMessages={withThinking} />);
+    render(<Response blockId="block-1" responseMessages={withActivity} />);
 
-    expect(screen.getByTestId('thinking-section')).toBeInTheDocument();
-    expect(screen.getByText('Thinking')).toBeInTheDocument();
+    const header = screen.getByTestId('activity-header');
+    expect(header).toHaveTextContent('Thought for 22s');
+    expect(header).toHaveAttribute('aria-expanded', 'false');
   });
 
-  test('omits the thinking section for messages without steps', () => {
+  test('omits the activity panel for messages without a log', () => {
     render(<Response blockId="block-1" responseMessages={mockMessages} />);
-    expect(screen.queryByTestId('thinking-section')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('activity-panel')).not.toBeInTheDocument();
   });
 
-  test('shows a single "Thinking" label (no placeholder) while steps have not arrived', () => {
+  test('shows a single live "Thinking" header before the first activity arrives', () => {
     mockSelection = [AIVendor.OPENAI];
     const thinkingMsg = [
       {
@@ -717,153 +721,64 @@ describe('Response Widget Component', () => {
         text: '',
         aiVendor: AIVendor.OPENAI,
         isLoading: true,
-        thinkingSteps: [],
         timestamp: 0,
       },
     ];
     render(<Response blockId="block-1" responseMessages={thinkingMsg} />);
 
-    expect(screen.getAllByText('Thinking')).toHaveLength(1);
+    expect(screen.getByTestId('activity-header')).toHaveTextContent('Thinking');
+    expect(screen.getByTestId('activity-header')).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
     expect(screen.queryByText('Thinking...')).not.toBeInTheDocument();
   });
 
-  test('shows "Thought for x seconds" once thinking is complete', () => {
+  test('a tool-call preamble streaming in and being reset never folds the live panel', () => {
+    // The old panel took "loading with no text" as its live flag, so the
+    // preamble collapsed it and nothing reopened it once the text was reset.
     mockSelection = [AIVendor.OPENAI];
-    const withDuration = [
-      {
-        messageId: 'msg-1',
-        text: 'Answer',
-        aiVendor: AIVendor.OPENAI,
-        isLoading: false,
-        thinkingSteps: ['step one'],
-        thinkingDurationMs: 4321,
-        timestamp: 0,
-      },
-    ];
-    render(<Response blockId="block-1" responseMessages={withDuration} />);
+    const base = {
+      messageId: 'msg-1',
+      aiVendor: AIVendor.OPENAI,
+      isLoading: true,
+      activity: liveActivity.events as any,
+      timestamp: 0,
+    };
+    const { rerender } = render(
+      <Response blockId="block-1" responseMessages={[{ ...base, text: '' }]} />
+    );
+    const header = () => screen.getByTestId('activity-header');
+    expect(header()).toHaveAttribute('aria-expanded', 'true');
 
-    expect(screen.getByText('Thought for 4 seconds')).toBeInTheDocument();
-    expect(screen.queryByText('Thinking')).not.toBeInTheDocument();
-  });
+    rerender(
+      <Response
+        blockId="block-1"
+        responseMessages={[{ ...base, text: 'Let me look that up…' }]}
+      />
+    );
+    expect(header()).toHaveAttribute('aria-expanded', 'true');
+    rerender(
+      <Response blockId="block-1" responseMessages={[{ ...base, text: '' }]} />
+    );
+    expect(header()).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('activity-story')).toBeInTheDocument();
 
-  test('keeps the "Thinking" label while still thinking, even if duration is unset', () => {
-    mockSelection = [AIVendor.OPENAI];
-    const stillThinking = [
-      {
-        messageId: 'msg-1',
-        text: '',
-        aiVendor: AIVendor.OPENAI,
-        isLoading: true,
-        thinkingSteps: ['step one'],
-        timestamp: 0,
-      },
-    ];
-    render(<Response blockId="block-1" responseMessages={stillThinking} />);
-
-    expect(screen.getByText('Thinking')).toBeInTheDocument();
-  });
-
-  test('a structured step collapses and expands via its own row toggle', () => {
-    // Legacy flat "k" strings carry no data beyond a name, so they have
-    // nothing to expand/collapse — this exercises a structured step, which
-    // is what per-row collapse actually applies to.
-    mockSelection = [AIVendor.OPENAI];
-    const withThinking = [
-      {
-        messageId: 'msg-1',
-        text: 'Answer',
-        aiVendor: AIVendor.OPENAI,
-        isLoading: false,
-        timestamp: 0,
-        thinkingStepList: [
+    rerender(
+      <Response
+        blockId="block-1"
+        responseMessages={[
           {
-            node: 'retriever',
-            name: 'Document Retriever',
-            kind: 'RETRIEVAL' as const,
-            status: 'done' as const,
-            detail: 'Found 1 relevant document(s)',
-            items: ['step one'],
+            ...base,
+            isLoading: false,
+            text: 'Answer [1]',
+            activity: completedActivity.events as any,
+            webSources: completedActivity.web_sources,
           },
-        ],
-      },
-    ];
-    render(<Response blockId="block-1" responseMessages={withThinking} />);
-
-    // Not thinking anymore → the whole section starts collapsed; the row
-    // inside is collapsed too once the section is opened
-    expect(screen.queryByText('step one')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('thinking-section-toggle'));
-    expect(screen.queryByText('step one')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId('thinking-step-toggle'));
-    expect(screen.getByText('step one')).toBeInTheDocument();
-  });
-
-  test('renders structured thinking steps (name, detail, items) from thinkingStepList', () => {
-    mockSelection = [AIVendor.OPENAI];
-    const withStructured = [
-      {
-        messageId: 'msg-1',
-        text: 'Answer',
-        aiVendor: AIVendor.OPENAI,
-        isLoading: false,
-        timestamp: 0,
-        thinkingStepList: [
-          {
-            node: 'retriever',
-            name: 'Document Retriever',
-            kind: 'RETRIEVAL' as const,
-            status: 'done' as const,
-            detail: 'Found 1 relevant document(s)',
-            items: ['Q3 sales report'],
-          },
-        ],
-      },
-    ];
-    render(<Response blockId="block-1" responseMessages={withStructured} />);
-
-    // Completed turn → the whole section starts collapsed behind its header
-    expect(screen.queryByTestId('thinking-step-list')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('thinking-section-toggle'));
-
-    expect(screen.getByTestId('thinking-step-list')).toBeInTheDocument();
-    expect(screen.getByText('Document Retriever')).toBeInTheDocument();
-    expect(
-      screen.getByText('Found 1 relevant document(s)')
-    ).toBeInTheDocument();
-
-    // The row's own content (items) stays collapsed until its own toggle is clicked
-    expect(screen.queryByText('Q3 sales report')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('thinking-step-toggle'));
-    expect(screen.getByText('Q3 sales report')).toBeInTheDocument();
-  });
-
-  test('renders legacy flat strings and structured steps together', () => {
-    mockSelection = [AIVendor.OPENAI];
-    const mixed = [
-      {
-        messageId: 'msg-1',
-        text: '',
-        aiVendor: AIVendor.OPENAI,
-        isLoading: true,
-        timestamp: 0,
-        thinkingSteps: ['legacy flat line'],
-        thinkingStepList: [
-          {
-            node: 'qa',
-            name: 'Query Analyzer',
-            kind: 'LLM' as const,
-            status: 'running' as const,
-            label: 'Query Analyzer: thinking…',
-          },
-        ],
-      },
-    ];
-    render(<Response blockId="block-1" responseMessages={mixed} />);
-
-    // Still thinking → section starts expanded
-    expect(screen.getByText('legacy flat line')).toBeInTheDocument();
-    expect(screen.getByText('Query Analyzer: thinking…')).toBeInTheDocument();
+        ]}
+      />
+    );
+    expect(header()).toHaveAttribute('aria-expanded', 'false');
   });
 
   test('shows the model chip in the card header when the model is known', () => {

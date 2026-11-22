@@ -124,10 +124,26 @@
   // at, whatever the screen size.
   --reading-width-optimal: 70ch;
   --reading-width-chat: 48rem;
+
+  // Activity panel time phases. A categorical set validated for light mode on
+  // the white response card (dataviz palette checker: lightness band, chroma,
+  // colour-blind separation, 3:1 contrast all pass).
+  --color-activity-memory: #006be8;
+  --color-activity-plan: #b3680a;
+  --color-activity-search: #8a3fc4;
+  --color-activity-reason: #1d8a3a;
+  --color-activity-answer: #1a7fa8;
 }
 
 // Dark Theme
 [data-theme='dark'] {
+  // Validated on the #3a3a3c response card; the search purple sits below 3:1
+  // and is always shown with its text legend.
+  --color-activity-memory: #0a84ff;
+  --color-activity-plan: #c47a10;
+  --color-activity-search: #a04ed8;
+  --color-activity-reason: #22a040;
+  --color-activity-answer: #2a9ac4;
   // Primary Colors (keeping blue visible in dark mode)
   --color-primary: #0a84ff;
   --color-button-primary: #0070e0; // darker than accent so white text keeps >=4.5:1 contrast
