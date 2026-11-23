@@ -845,7 +845,7 @@ describe('Response Widget Component', () => {
     expect(screen.queryByText('Response 1')).not.toBeInTheDocument();
   });
 
-  describe('learned facts stat', () => {
+  describe('added to memory (one section per turn)', () => {
     const withConversation = (overrides = {}) => {
       mockUseConversation.mockReturnValue({
         setSelectedResponseForBlock: mockSetSelectedResponseForBlock,
@@ -869,23 +869,43 @@ describe('Response Widget Component', () => {
       totalTokens: 30,
       tokensReadFromCache: 0,
     };
+    const claudeMessage = {
+      ...baseMessage,
+      messageId: '11111111-aaaa-4bbb-8ccc-000000000002',
+      text: 'Another response',
+      aiVendor: AIVendor.CLAUDE,
+    };
 
     const FACTS = [
-      { memoryId: 'mem-1', text: 'Prefers dark mode' },
-      { memoryId: 'mem-2', text: 'Works in fintech' },
+      {
+        memoryId: 'mem-1',
+        text: 'Prefers dark mode',
+        kind: 'CORE',
+        runId: 'run-1',
+      },
+      {
+        memoryId: 'mem-2',
+        text: 'Works in fintech',
+        kind: 'EPISODIC',
+        runId: 'run-1',
+      },
     ];
 
-    /** Hover helper — the Tooltip's mouse handlers live on its wrapper div */
-    const hoverFactsCount = () => {
-      const trigger = screen.getByTestId('learned-facts-count');
-      fireEvent.mouseEnter(trigger.parentElement!);
+    const setWidth = (width: number) => {
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: width,
+      });
     };
+
+    beforeEach(() => setWidth(1280));
 
     afterEach(() => {
       jest.useRealTimers();
+      setWidth(1024);
     });
 
-    test('fresh response shows the pending brain then the fact count once extraction finishes', async () => {
+    test('a fresh turn shows the learning line, then the facts as Memory cards', async () => {
       jest.useFakeTimers();
       withConversation();
       mockGetLearnedFacts
@@ -894,24 +914,21 @@ describe('Response Widget Component', () => {
 
       render(<Response blockId="block-1" responseMessages={[baseMessage]} />);
 
-      expect(screen.getByTestId('learned-facts-pending')).toHaveAccessibleName(
-        'Learning facts…'
+      expect(screen.getByTestId('learned-memory-pending')).toHaveTextContent(
+        'Learning from this turn…'
       );
-
-      // First (immediate) poll: still pending
       await act(async () => {
         await Promise.resolve();
       });
-      expect(screen.getByTestId('learned-facts-pending')).toBeInTheDocument();
-
-      // Next poll 4s later: done with 2 facts
       await act(async () => {
         jest.advanceTimersByTime(4000);
       });
-      expect(screen.getByTestId('learned-facts-count')).toHaveTextContent('2');
-      expect(screen.getByTestId('learned-facts-count')).toHaveAccessibleName(
-        '2 facts added to memory'
-      );
+
+      const section = screen.getByTestId('learned-memory-section');
+      expect(section).toHaveTextContent('Added to memory · 2 facts added');
+      expect(screen.getAllByTestId('learned-memory-card')).toHaveLength(2);
+      expect(screen.getByText('Core')).toBeInTheDocument();
+      expect(screen.queryByText(/Used/)).not.toBeInTheDocument();
       expect(mockGetLearnedFacts).toHaveBeenCalledWith(
         'tok',
         'conv-1',
@@ -919,7 +936,7 @@ describe('Response Widget Component', () => {
       );
     });
 
-    test('fresh response with no learned facts settles on a zero count', async () => {
+    test('nothing learned is one muted line', async () => {
       withConversation();
       mockGetLearnedFacts.mockResolvedValue({ status: 'done', facts: [] });
 
@@ -928,30 +945,12 @@ describe('Response Widget Component', () => {
       await act(async () => {
         await Promise.resolve();
       });
-      expect(screen.getByTestId('learned-facts-none')).toHaveTextContent('0');
-      expect(screen.getByTestId('learned-facts-none')).toHaveAccessibleName(
-        'No new facts added to memory'
+      expect(screen.getByTestId('learned-memory-none')).toHaveTextContent(
+        'No new facts added to memory from this turn'
       );
     });
 
-    test('historical message renders its facts directly without polling', async () => {
-      withConversation();
-
-      render(
-        <Response
-          blockId="block-1"
-          responseMessages={[{ ...baseMessage, learnedFacts: FACTS }]}
-        />
-      );
-
-      expect(screen.getByTestId('learned-facts-count')).toHaveTextContent('2');
-      await act(async () => {
-        await Promise.resolve();
-      });
-      expect(mockGetLearnedFacts).not.toHaveBeenCalled();
-    });
-
-    test('historical message with a single fact uses the singular label', () => {
+    test('a historical turn renders its facts without polling, singular header for one', async () => {
       withConversation();
 
       render(
@@ -961,13 +960,33 @@ describe('Response Widget Component', () => {
         />
       );
 
-      expect(screen.getByTestId('learned-facts-count')).toHaveTextContent('1');
-      expect(screen.getByTestId('learned-facts-count')).toHaveAccessibleName(
-        '1 fact added to memory'
+      expect(screen.getByTestId('learned-memory-section')).toHaveTextContent(
+        'Added to memory · 1 fact added'
+      );
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(mockGetLearnedFacts).not.toHaveBeenCalled();
+    });
+
+    test('cards on an old turn carry the date of the turn, not "Just now"', () => {
+      withConversation();
+
+      render(
+        <Response
+          blockId="block-1"
+          sentAt={Date.UTC(2026, 8, 7, 12)}
+          responseMessages={[{ ...baseMessage, learnedFacts: [FACTS[0]] }]}
+        />
+      );
+
+      expect(screen.queryByText('Just now')).not.toBeInTheDocument();
+      expect(screen.getByTestId('learned-memory-card')).toHaveTextContent(
+        '2026'
       );
     });
 
-    test('historical message with unknown outcome (null) shows "No new facts" without polling', async () => {
+    test('an unknown outcome (null) shows the none line without polling', async () => {
       withConversation();
 
       render(
@@ -977,86 +996,189 @@ describe('Response Widget Component', () => {
         />
       );
 
-      expect(screen.getByTestId('learned-facts-none')).toBeInTheDocument();
+      expect(screen.getByTestId('learned-memory-none')).toBeInTheDocument();
       await act(async () => {
         await Promise.resolve();
       });
       expect(mockGetLearnedFacts).not.toHaveBeenCalled();
     });
 
-    test('hovering the count reveals a tooltip listing each fact', async () => {
+    test('two vendors share one section, and nothing polls until both have finished', async () => {
+      mockSelection = [AIVendor.OPENAI, AIVendor.CLAUDE];
       withConversation();
+      mockGetLearnedFacts.mockResolvedValue({ status: 'done', facts: FACTS });
 
-      render(
+      const { rerender } = render(
         <Response
           blockId="block-1"
-          responseMessages={[{ ...baseMessage, learnedFacts: FACTS }]}
+          responseMessages={[
+            baseMessage,
+            { ...claudeMessage, isLoading: true },
+          ]}
         />
       );
-
-      hoverFactsCount();
-
-      const list = await screen.findByTestId('learned-facts-list');
-      expect(list).toBeInTheDocument();
-      expect(screen.getByText('Prefers dark mode')).toBeInTheDocument();
-      expect(screen.getByText('Works in fintech')).toBeInTheDocument();
-      expect(screen.getAllByTestId('learned-fact-delete')).toHaveLength(2);
-    });
-
-    test('clicking ✗ deletes the fact, removes its line and adjusts the count', async () => {
-      withConversation();
-      mockDeleteMemoryFact.mockResolvedValue(undefined);
-
-      render(
-        <Response
-          blockId="block-1"
-          responseMessages={[{ ...baseMessage, learnedFacts: FACTS }]}
-        />
-      );
-
-      hoverFactsCount();
-      await screen.findByTestId('learned-facts-list');
-
-      fireEvent.click(
-        screen.getByRole('button', {
-          name: 'Delete fact from memory: Prefers dark mode',
-        })
-      );
-
       await act(async () => {
         await Promise.resolve();
       });
-      expect(mockDeleteMemoryFact).toHaveBeenCalledWith('tok', 'mem-1');
-      expect(screen.queryByText('Prefers dark mode')).not.toBeInTheDocument();
-      expect(screen.getByText('Works in fintech')).toBeInTheDocument();
-      expect(screen.getByTestId('learned-facts-count')).toHaveAccessibleName(
-        '1 fact added to memory'
+      expect(mockGetLearnedFacts).not.toHaveBeenCalled();
+      expect(
+        screen.queryByTestId('learned-memory-pending')
+      ).not.toBeInTheDocument();
+
+      rerender(
+        <Response
+          blockId="block-1"
+          responseMessages={[baseMessage, claudeMessage]}
+        />
       );
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(screen.getAllByTestId('learned-memory-section')).toHaveLength(1);
+      expect(screen.getByTestId('learned-memory-section')).toHaveTextContent(
+        'from your messages and every response'
+      );
+      expect(mockGetLearnedFacts).toHaveBeenCalledTimes(1);
     });
 
-    test('deleting the last fact switches to the none-state', async () => {
+    test('a turn whose responses disagree (old data) shows the facts some response has', () => {
       withConversation();
-      mockDeleteMemoryFact.mockResolvedValue(undefined);
 
       render(
         <Response
           blockId="block-1"
-          responseMessages={[{ ...baseMessage, learnedFacts: [FACTS[0]] }]}
+          responseMessages={[
+            { ...baseMessage, learnedFacts: [] },
+            { ...claudeMessage, learnedFacts: FACTS },
+          ]}
         />
       );
-
-      hoverFactsCount();
-      await screen.findByTestId('learned-facts-list');
-
-      fireEvent.click(screen.getByTestId('learned-fact-delete'));
-      await act(async () => {
-        await Promise.resolve();
-      });
 
       expect(
-        screen.queryByTestId('learned-facts-count')
+        screen.getAllByTestId('learned-memory-card').length
+      ).toBeGreaterThan(0);
+    });
+
+    test('Hide collapses the section to its header; Show all brings every card back', () => {
+      withConversation();
+
+      render(
+        <Response
+          blockId="block-1"
+          responseMessages={[{ ...baseMessage, learnedFacts: FACTS }]}
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('learned-memory-toggle'));
+      expect(
+        screen.queryByTestId('learned-memory-card')
       ).not.toBeInTheDocument();
-      expect(screen.getByTestId('learned-facts-none')).toBeInTheDocument();
+      expect(screen.getByTestId('learned-memory-toggle')).toHaveTextContent(
+        'Show all'
+      );
+
+      fireEvent.click(screen.getByTestId('learned-memory-toggle'));
+      expect(screen.getAllByTestId('learned-memory-card')).toHaveLength(2);
+    });
+
+    test('deleting asks first, then removes the card and updates the count', async () => {
+      withConversation();
+      mockDeleteMemoryFact.mockResolvedValue(undefined);
+
+      render(
+        <Response
+          blockId="block-1"
+          responseMessages={[{ ...baseMessage, learnedFacts: FACTS }]}
+        />
+      );
+
+      fireEvent.click(screen.getAllByTestId('learned-memory-card-actions')[0]);
+      fireEvent.click(screen.getByTestId('learned-memory-action-delete'));
+      expect(
+        screen.getByTestId('learned-memory-confirm-delete')
+      ).toHaveTextContent('Prefers dark mode');
+      expect(mockDeleteMemoryFact).not.toHaveBeenCalled();
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId('learned-memory-confirm-delete-button')
+        );
+      });
+
+      expect(mockDeleteMemoryFact).toHaveBeenCalledWith('tok', 'mem-1');
+      expect(screen.queryByText('Prefers dark mode')).not.toBeInTheDocument();
+      expect(screen.getByTestId('learned-memory-section')).toHaveTextContent(
+        'Added to memory · 1 fact added'
+      );
+    });
+
+    test('cancelling the confirmation keeps the fact', () => {
+      withConversation();
+
+      render(
+        <Response
+          blockId="block-1"
+          responseMessages={[{ ...baseMessage, learnedFacts: FACTS }]}
+        />
+      );
+
+      fireEvent.click(screen.getAllByTestId('learned-memory-card-actions')[0]);
+      fireEvent.click(screen.getByTestId('learned-memory-action-delete'));
+      fireEvent.click(screen.getByTestId('learned-memory-confirm-cancel'));
+
+      expect(mockDeleteMemoryFact).not.toHaveBeenCalled();
+      expect(screen.getAllByTestId('learned-memory-card')).toHaveLength(2);
+    });
+
+    test('a failed delete keeps the card listed', async () => {
+      withConversation();
+      mockDeleteMemoryFact.mockRejectedValue(new Error('boom'));
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      render(
+        <Response
+          blockId="block-1"
+          responseMessages={[{ ...baseMessage, learnedFacts: FACTS }]}
+        />
+      );
+
+      fireEvent.click(screen.getAllByTestId('learned-memory-card-actions')[0]);
+      fireEvent.click(screen.getByTestId('learned-memory-action-delete'));
+      await act(async () => {
+        fireEvent.click(
+          screen.getByTestId('learned-memory-confirm-delete-button')
+        );
+      });
+
+      expect(screen.getByText('Prefers dark mode')).toBeInTheDocument();
+    });
+
+    test('phones get a chip that opens the swipe-row sheet', () => {
+      setWidth(390);
+      withConversation();
+
+      render(
+        <Response
+          blockId="block-1"
+          responseMessages={[{ ...baseMessage, learnedFacts: FACTS }]}
+        />
+      );
+
+      expect(
+        screen.queryByTestId('learned-memory-section')
+      ).not.toBeInTheDocument();
+      const chip = screen.getByTestId('learned-memory-chip');
+      expect(chip).toHaveTextContent('2facts added to memory from this turn');
+
+      fireEvent.click(chip);
+      expect(screen.getByTestId('learned-memory-sheet')).toHaveTextContent(
+        '2 facts added to memory'
+      );
+      expect(screen.getAllByTestId('learned-memory-sheet-row')).toHaveLength(2);
+      expect(screen.getAllByTestId('learned-memory-sheet-delete')).toHaveLength(
+        2
+      );
     });
 
     test('does not poll for errored or still-placeholder messages', async () => {

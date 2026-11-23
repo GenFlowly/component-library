@@ -99,6 +99,12 @@ export interface ConversationWidgetServices {
     messageId: string
   ) => Promise<{ status: 'pending' | 'done'; facts: LearnedFact[] }>;
   deleteMemoryFact?: (token: string, memoryId: string) => Promise<void>;
+  /** Opens a memory on the Memory page. */
+  openMemory?: (memoryId: string) => void;
+  /** Opens "How it was inferred" for a memory learned by run [runId]. */
+  openMemoryInference?: (memoryId: string, runId: string) => void;
+  /** Opens the Memory page ("Manage in Memory"). */
+  openMemoryPage?: () => void;
   /** Sync vendor display-name lookup (host resolves it from its provider catalog). */
   getVendorDisplayName?: (vendorId: string) => string;
 }

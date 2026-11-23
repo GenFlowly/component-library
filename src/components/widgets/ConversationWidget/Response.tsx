@@ -18,12 +18,14 @@ import {
 import { useAskSelection } from './AskSelectionContext';
 import TextContainer from '../../common/TextContainer/TextContainer';
 import { ErrorBoundary } from '../../common/ErrorBoundary/ErrorBoundary';
-import { Icon } from '../../common/Icon/Icon';
 import { LearnedFact, Message, WebSource } from './conversation.models';
 import { AttachmentRef } from './attachment.models';
 import AttachmentCard from '../../common/AttachmentCard/AttachmentCard';
 import ActivityPanel from '../ActivityPanel/ActivityPanel';
 import { useLearnedFacts } from './useLearnedFacts';
+import { useWindowSize } from './useWindowSize';
+import { formatServerDateOnly } from './timeUtils';
+import LearnedMemorySection from '../LearnedMemory/LearnedMemorySection';
 import RectangleButton from '../../common/RectangleButton/RectangleButton';
 import PillButton from '../../common/PillButton/PillButton';
 import Tooltip from '../../common/Tooltip/Tooltip';
@@ -215,116 +217,8 @@ function GeneratedAttachmentsSection({
  */
 const PLACEHOLDER_MESSAGE_ID = /^(resp|error)-/;
 
-/**
- * "Facts learned about the user" item in the response footer stats row,
- * rendered as a brain icon + count. Pending → muted pulsing brain while the
- * async extraction runs; done → the count, with a tooltip that carries the
- * wording ("N facts added to memory" / "No new facts…") and, when there are
- * facts, an interactive list with a ✗ that deletes each from memory.
- */
-function LearnedFactsStat({
-  conversationId,
-  messageId,
-  initialFacts,
-  isFreshResponse,
-}: {
-  conversationId: string;
-  messageId: string;
-  initialFacts: LearnedFact[] | null | undefined;
-  isFreshResponse: boolean;
-}) {
-  const { t } = useTranslation();
-  const { status, facts, removeFact } = useLearnedFacts(
-    conversationId,
-    messageId,
-    initialFacts,
-    isFreshResponse
-  );
-
-  const handleDelete = async (memoryId: string) => {
-    try {
-      await removeFact(memoryId);
-    } catch (e) {
-      // Real failure (not a 404): keep the fact listed so the user can retry
-      console.error('Failed to delete memory fact', e);
-    }
-  };
-
-  if (status === 'pending') {
-    return (
-      <Tooltip content={t('conversation.response.learningFacts')}>
-        <span
-          className={`${styles.statItem} ${styles.learnedFactsPending}`}
-          aria-label={t('conversation.response.learningFacts')}
-          data-testid="learned-facts-pending"
-        >
-          <Icon src={ICONS.BRAIN} size={12} />
-          <span className={styles.pulse} />
-        </span>
-      </Tooltip>
-    );
-  }
-
-  if (facts.length === 0) {
-    return (
-      <Tooltip content={t('conversation.response.noNewFacts')}>
-        <span
-          className={`${styles.statItem} ${styles.learnedFactsNone}`}
-          aria-label={t('conversation.response.noNewFacts')}
-          data-testid="learned-facts-none"
-        >
-          <Icon src={ICONS.BRAIN} size={12} />0
-        </span>
-      </Tooltip>
-    );
-  }
-
-  return (
-    <Tooltip
-      interactive
-      content={
-        <div className={styles.learnedFactsTooltip}>
-          <div className={styles.learnedFactsLabel}>
-            {t('conversation.response.factsAddedToMemory', {
-              count: facts.length,
-            })}
-          </div>
-          <ul
-            className={styles.learnedFactsList}
-            data-testid="learned-facts-list"
-          >
-            {facts.map(fact => (
-              <li key={fact.memoryId} className={styles.learnedFactItem}>
-                <span className={styles.learnedFactText}>{fact.text}</span>
-                <button
-                  className={styles.learnedFactDelete}
-                  onClick={() => handleDelete(fact.memoryId)}
-                  aria-label={t('conversation.response.deleteFact', {
-                    fact: fact.text,
-                  })}
-                  data-testid="learned-fact-delete"
-                >
-                  ✗
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      }
-    >
-      <span
-        className={styles.statItem}
-        aria-label={t('conversation.response.factsAddedToMemory', {
-          count: facts.length,
-        })}
-        data-testid="learned-facts-count"
-      >
-        <Icon src={ICONS.BRAIN} size={12} />
-        {facts.length}
-      </span>
-    </Tooltip>
-  );
-}
+/** Up to this window width the memory section is a chip that opens the phone sheet. */
+const COMPACT_MEMORY_MAX_WIDTH = 1024;
 
 interface ResponseProps {
   blockId: string;
@@ -332,6 +226,8 @@ interface ResponseProps {
   onFollowUp?: (selectedMessageId: string) => void;
   disabled?: boolean;
   isLastResponseBlock?: boolean;
+  /** When the turn's prompt was sent (epoch ms): the learned cards' date on old turns. */
+  sentAt?: number;
 }
 
 // Memoized (see export): responseMessages keeps its identity for blocks a
@@ -342,6 +238,7 @@ function Response({
   onFollowUp,
   disabled = false,
   isLastResponseBlock = true,
+  sentAt,
   'data-testid': testId,
 }: ResponseProps & { 'data-testid'?: string }) {
   const { t } = useTranslation();
@@ -357,7 +254,14 @@ function Response({
     forkConversation,
     conversationId = '',
   } = useConversation();
-  const { getLearnedFacts } = useConversationServices();
+  const {
+    getLearnedFacts,
+    deleteMemoryFact,
+    openMemory,
+    openMemoryInference,
+    openMemoryPage,
+  } = useConversationServices();
+  const { width: windowWidth } = useWindowSize();
   const { queueAsk, enabled: asksEnabled } = useAskSelection();
   const { showToast } = useToast();
 
@@ -443,6 +347,82 @@ function Response({
   // to 0 without this guard).
   const vendorSwitchOperationIdRef = useRef(0);
   const maxVendors = useMaxVendors(containerEl);
+
+  // What this turn added to memory. Memory learns once per turn from every
+  // vendor's response and writes the same list onto each, so the turn polls
+  // through one response and shows one section.
+  const turnLoading = responseMessages.some(m => m.isLoading);
+  const memoryMessage = responseMessages.find(
+    m => !!m.messageId && !m.error && !PLACEHOLDER_MESSAGE_ID.test(m.messageId)
+  );
+  const turnFacts = useMemo(() => {
+    const lists = responseMessages
+      .map(m => m.learnedFacts)
+      .filter((f): f is LearnedFact[] => Array.isArray(f));
+    if (lists.length === 0) {
+      return responseMessages.some(m => m.learnedFacts === null)
+        ? null
+        : undefined;
+    }
+    return lists.find(list => list.length > 0) ?? lists[0];
+  }, [responseMessages]);
+  const turnIsFresh =
+    turnFacts === undefined && !!conversationId && !!memoryMessage;
+  const learned = useLearnedFacts(
+    conversationId,
+    memoryMessage?.messageId ?? '',
+    turnFacts,
+    turnIsFresh,
+    !turnLoading
+  );
+  const turnWentThrough = responseMessages.some(
+    m =>
+      m.inputTokens != null ||
+      m.outputTokens != null ||
+      m.totalTokens != null ||
+      m.tokensReadFromCache != null ||
+      m.costUsd != null ||
+      m.learnedFacts !== undefined
+  );
+  const showMemory =
+    !turnLoading &&
+    !!memoryMessage &&
+    turnWentThrough &&
+    (turnFacts !== undefined || !!getLearnedFacts);
+
+  const deleteLearnedFact = useCallback(
+    async (fact: LearnedFact) => {
+      try {
+        await learned.removeFact(fact.memoryId);
+        showToast(t('memoryPage.delete.deleted'));
+      } catch (e) {
+        console.error('Failed to delete memory fact', e);
+        showToast(t('memoryPage.delete.failed'));
+        throw e;
+      }
+    },
+    [learned, showToast, t]
+  );
+
+  const memorySection = showMemory ? (
+    <LearnedMemorySection
+      status={learned.status}
+      facts={learned.facts}
+      multiVendor={availableVendors.length > 1}
+      compact={windowWidth <= COMPACT_MEMORY_MAX_WIDTH}
+      onDelete={deleteMemoryFact ? deleteLearnedFact : undefined}
+      onOpenMemory={openMemory ? fact => openMemory(fact.memoryId) : undefined}
+      onOpenInference={
+        openMemoryInference
+          ? fact => fact.runId && openMemoryInference(fact.memoryId, fact.runId)
+          : undefined
+      }
+      onManage={openMemoryPage}
+      dateLabel={
+        turnIsFresh || !sentAt ? undefined : formatServerDateOnly(sentAt)
+      }
+    />
+  ) : null;
   const vendorDisplayName = useVendorDisplayNames();
 
   // 📱 The vendor toggle row scrolls horizontally when the pills overflow
@@ -718,6 +698,9 @@ function Response({
   };
   switchVendorRef.current = vendor => handleVendorSelectionChange([vendor]);
 
+  // Two cards side by side share one memory section under the row
+  const twoColumns = renderedResponses.length > 1;
+
   const rowClassName = [
     styles.inner,
     filteredResponseList.length === 1 ? styles.single : '',
@@ -772,12 +755,6 @@ function Response({
             activity,
             webSources,
             generatedAttachments,
-            inputTokens,
-            outputTokens,
-            totalTokens,
-            tokensReadFromCache,
-            costUsd,
-            learnedFacts,
             stopReason,
           }) => {
             const isSelected = selectedResponseId === messageId;
@@ -795,32 +772,6 @@ function Response({
               : swipe.phase !== 'idle'
                 ? styles.swipeCurrent
                 : '';
-
-            // Only a response generated in THIS session (learnedFacts
-            // never set — historical loads always set it, if only to
-            // null) with a real backend message id has an async memory
-            // extraction worth polling for. Errored/aborted messages
-            // never reached extraction.
-            const isFreshResponse =
-              learnedFacts === undefined &&
-              !error &&
-              !!conversationId &&
-              !!messageId &&
-              !PLACEHOLDER_MESSAGE_ID.test(messageId);
-
-            // A response that finished with usage data went through the
-            // whole pipeline, so it is the one memory extraction runs for
-            const hasUsage =
-              inputTokens != null ||
-              outputTokens != null ||
-              totalTokens != null ||
-              tokensReadFromCache != null ||
-              costUsd != null;
-
-            // The learned-facts stat is only meaningful when the host either
-            // preloaded facts on the message or injected the polling service
-            const showLearnedFacts =
-              learnedFacts !== undefined || !!getLearnedFacts;
 
             // Ask-from-selection mirrors the Follow up button's gating: only
             // where a follow-up could start from this response right now
@@ -916,16 +867,7 @@ function Response({
                     {!isLoading && stopReason && (
                       <StopReasonNote reason={stopReason} />
                     )}
-                    {!isLoading && hasUsage && showLearnedFacts && (
-                      <div className={styles.statsRow}>
-                        <LearnedFactsStat
-                          conversationId={conversationId}
-                          messageId={messageId}
-                          initialFacts={learnedFacts}
-                          isFreshResponse={isFreshResponse}
-                        />
-                      </div>
-                    )}
+                    {!twoColumns && memorySection}
                     {(() => {
                       // Fork needs a real persisted response (never a client
                       // placeholder or an errored stream) — the backend copies
@@ -1079,6 +1021,9 @@ function Response({
           }
         )}
       </div>
+      {twoColumns && memorySection && (
+        <div className={styles.turnMemory}>{memorySection}</div>
+      )}
     </div>
   );
 }

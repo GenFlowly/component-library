@@ -23,6 +23,10 @@ export interface WebSource {
 export interface LearnedFact {
   memoryId: string;
   text: string;
+  /** CORE or EPISODIC; absent on facts learned before kinds were sent. */
+  kind?: string | null;
+  /** The extraction run that learned it, for "How it was inferred". */
+  runId?: string | null;
 }
 
 /**

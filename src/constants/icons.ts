@@ -22,6 +22,7 @@ import brainIcon from '../assets/icons/brain.svg';
 import imageAttachmentIcon from '../assets/icons/image-attachment-icon.svg';
 import attachmentIcon from '../assets/icons/attachment.svg';
 import infoIcon from '../assets/icons/info.svg';
+import trashIcon from '../assets/icons/trash.svg';
 
 export const ICONS = {
   USER_CIRCLE: userCircle,
@@ -45,4 +46,5 @@ export const ICONS = {
   IMAGE_ATTACHMENT: imageAttachmentIcon,
   ATTACHMENT: attachmentIcon,
   INFO: infoIcon,
+  TRASH: trashIcon,
 };

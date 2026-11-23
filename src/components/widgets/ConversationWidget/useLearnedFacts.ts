@@ -40,7 +40,12 @@ export function useLearnedFacts(
   conversationId: string,
   messageId: string,
   initial: LearnedFact[] | null | undefined,
-  isFreshResponse: boolean
+  isFreshResponse: boolean,
+  /**
+   * False while any response of the turn is still generating: memory learns
+   * once the whole turn is in, so polling (and its timeout) starts then.
+   */
+  ready = true
 ): LearnedFactsState {
   const { getAccessTokenSilently } = useConversationAuth();
   const { getLearnedFacts, deleteMemoryFact } = useConversationServices();
@@ -69,8 +74,16 @@ export function useLearnedFacts(
   const deleteFactRef = useRef(deleteMemoryFact);
   deleteFactRef.current = deleteMemoryFact;
 
+  // A turn whose facts arrive later (a historical reload, a regenerate)
   useEffect(() => {
-    if (!shouldPoll) return;
+    if (Array.isArray(initial)) {
+      setFacts(initial);
+      setStatus('done');
+    }
+  }, [initial]);
+
+  useEffect(() => {
+    if (!shouldPoll || !ready) return;
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -107,7 +120,7 @@ export function useLearnedFacts(
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [shouldPoll, conversationId, messageId]);
+  }, [shouldPoll, ready, conversationId, messageId]);
 
   const removeFact = useCallback(async (memoryId: string) => {
     const deleteFact = deleteFactRef.current;

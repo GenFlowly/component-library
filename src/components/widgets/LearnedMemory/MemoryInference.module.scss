@@ -1,0 +1,381 @@
+@import '../../../styles/themes.scss';
+@import '../../../styles/mixins.scss';
+
+// How a memory was inferred: story column + side cards, measured against the
+// Memory detail page (cards radius 18 / 16, padding 24 28 / 18).
+
+.inference {
+  color: $color-text-primary;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  min-width: 0;
+}
+
+.memoryCard {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem 1.75rem;
+  background: $color-background-secondary;
+  border: 1px solid $color-border-light;
+  border-radius: 18px;
+
+  @include respond-to-tablet {
+    padding: 1rem 1.125rem;
+    border-radius: 14px;
+  }
+}
+
+.memoryTags {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.tag {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: $color-background-tertiary;
+  color: $color-text-secondary;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.tagKind {
+  background: $color-background-selected;
+  color: $color-primary;
+  font-weight: 600;
+}
+
+.memoryText {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+
+  @include respond-to-tablet {
+    font-size: 1.25rem;
+  }
+}
+
+.memoryMeta {
+  display: flex;
+  gap: 0.375rem;
+  font-size: 13px;
+  color: $color-text-muted;
+}
+
+.memoryVersion {
+  font-weight: 600;
+  color: $color-text-secondary;
+}
+
+.sectionTitle {
+  margin: 0 0 0.875rem;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+// ── Story timeline (the activity panel's rail and beats) ───────────────────
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.beat {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rail {
+  width: 20px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.railDot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-background-selected;
+
+  i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+}
+
+.dot-trigger {
+  background: var(--color-activity-plan);
+}
+.dot-read {
+  background: var(--color-activity-search);
+}
+.dot-decide {
+  background: var(--color-activity-reason);
+}
+.dot-save {
+  background: var(--color-activity-memory);
+}
+
+.railLine {
+  width: 2px;
+  flex-grow: 1;
+  margin: 3px 0;
+  background: $color-border;
+}
+
+.beatBody {
+  flex-grow: 1;
+  min-width: 0;
+  padding-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.beatHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.beatMeta {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+  color: $color-text-muted;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.beatText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: $color-text-secondary;
+}
+
+.beatNote {
+  margin: 0;
+  font-size: 12px;
+  color: $color-text-muted;
+}
+
+.quote {
+  margin: 0;
+  padding: 6px 10px;
+  border-left: 3px solid $color-border;
+  border-radius: 0 6px 6px 0;
+  background: $color-background-secondary;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quoteTaken {
+  border-left-color: $color-primary;
+  background: $color-background-selected;
+}
+
+.quoteText {
+  font-size: 13px;
+  line-height: 1.5;
+  color: $color-text-secondary;
+  overflow-wrap: anywhere;
+}
+
+.quoteMeta {
+  font-size: 11px;
+  color: $color-text-muted;
+}
+
+.ops {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.op {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border: 1px solid $color-border;
+  border-radius: 8px;
+  background: $color-background-secondary;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.opThis {
+  border-color: $color-primary;
+  background: $color-background-selected;
+}
+
+.opTag {
+  flex: none;
+  margin-top: 1px;
+  padding: 3px 8px;
+  border: 1px solid $color-border;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: $color-text-muted;
+}
+
+.opTag-add {
+  border-color: var(--color-activity-reason);
+  color: var(--color-activity-reason);
+}
+
+.opTag-update {
+  border-color: var(--color-activity-plan);
+  color: var(--color-activity-plan);
+}
+
+.opTag-delete {
+  border-color: $color-error;
+  color: $color-error;
+}
+
+.opBody {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.opText {
+  color: $color-text-primary;
+  overflow-wrap: anywhere;
+}
+
+.opWhy {
+  color: $color-text-muted;
+  font-size: 12px;
+}
+
+.opFoot {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: $color-text-muted;
+
+  &:empty {
+    display: none;
+  }
+
+  strong {
+    font-weight: 600;
+    color: $color-primary;
+  }
+}
+
+.opError {
+  color: $color-error;
+}
+
+// ── Side cards ─────────────────────────────────────────────────────────────
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.sideCard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  background: $color-background-secondary;
+  border: 1px solid $color-border-light;
+  border-radius: 16px;
+}
+
+.sideTitle {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: $color-text-muted;
+}
+
+.sideText {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: $color-text-secondary;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 0;
+  font-size: 12.5px;
+
+  dt {
+    color: $color-text-muted;
+  }
+
+  dd {
+    margin: 0;
+    min-width: 0;
+    color: $color-text-secondary;
+    overflow-wrap: anywhere;
+  }
+}
+
+.runId {
+  font-size: 12px;
+}
+
+.link {
+  @include interactive-base;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: $color-primary;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.deleteButton {
+  align-self: flex-start;
+  color: $color-error;
+}

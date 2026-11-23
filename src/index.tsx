@@ -364,3 +364,29 @@ export {
   formatServerDateOnly,
 } from './components/widgets/ConversationWidget/timeUtils';
 export type { PendingAttachment } from './components/widgets/ConversationWidget/AttachmentPreviewStrip';
+
+export { MemoryCard } from './components/common/MemoryCard/MemoryCard';
+export type {
+  MemoryCardProps,
+  MemoryCardAction,
+  MemoryCardTag,
+} from './components/common/MemoryCard/MemoryCard';
+export {
+  default as SwipeableRow,
+  SwipeRowsContext,
+} from './components/common/SidebarListPanel/SwipeableRow';
+export { LearnedMemorySection } from './components/widgets/LearnedMemory/LearnedMemorySection';
+export type { LearnedMemorySectionProps } from './components/widgets/LearnedMemory/LearnedMemorySection';
+export { LearnedMemorySheet } from './components/widgets/LearnedMemory/LearnedMemorySheet';
+export { ConfirmDeleteMemory } from './components/widgets/LearnedMemory/ConfirmDeleteMemory';
+export { MemoryInference } from './components/widgets/LearnedMemory/MemoryInference';
+export type { MemoryInferenceProps } from './components/widgets/LearnedMemory/MemoryInference';
+export type {
+  MemoryInference as MemoryInferenceData,
+  MemoryRun,
+  MemoryRunOperation,
+  MemoryRunResponse,
+  MemoryInferenceExcerpt,
+  MemoryInferenceChange,
+  MemoryInferenceMemory,
+} from './components/widgets/LearnedMemory/memoryInference.models';

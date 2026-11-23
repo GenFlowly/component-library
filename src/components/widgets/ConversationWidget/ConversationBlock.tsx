@@ -343,6 +343,7 @@ function ConversationBlock({
               onFollowUp={handleFollowUp}
               disabled={!hasAnyValidApiKey}
               isLastResponseBlock={isLastResponseBlock}
+              sentAt={conversationBlock.sentAt}
             />
           </div>
         )}

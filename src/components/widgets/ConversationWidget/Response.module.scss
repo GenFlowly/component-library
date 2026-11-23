@@ -406,27 +406,6 @@
   margin-bottom: 1rem;
 }
 
-.pulse {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: currentColor;
-  flex-shrink: 0;
-  animation: pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.35;
-    transform: scale(0.75);
-  }
-}
-
 // Step rows themselves live in ThinkingSteps.module.scss
 
 .errorBanner {
@@ -438,15 +417,6 @@
   font-size: 0.85rem;
   line-height: 1.4;
   word-break: break-word;
-}
-
-.statsRow {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 0.7rem;
-  color: $color-text-muted;
-  opacity: 0.8;
 }
 
 // Why generation ended (from the vendor's raw finish reason). Refusal is
@@ -493,77 +463,6 @@
   opacity: 0.7;
   font-variant: small-caps;
   letter-spacing: 0.02em;
-}
-
-.statItem {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
-}
-
-// --- Learned-facts item in the stats row ---
-
-.learnedFactsPending {
-  // Reuses .pulse for the subtle "extraction in progress" heartbeat
-  opacity: 0.7;
-}
-
-.learnedFactsNone {
-  opacity: 0.7;
-}
-
-// Fact list inside the interactive tooltip (portaled to body — these are
-// CSS-module classes so they apply there too)
-.learnedFactsTooltip {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  text-align: left;
-}
-
-.learnedFactsLabel {
-  font-weight: 600;
-}
-
-.learnedFactsList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  text-align: left;
-}
-
-.learnedFactItem {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.learnedFactText {
-  word-break: break-word;
-}
-
-.learnedFactDelete {
-  background: none;
-  border: none;
-  padding: 0 0.1rem;
-  flex-shrink: 0;
-  color: $color-error;
-  font-size: 0.8rem;
-  line-height: 1.2;
-  cursor: pointer;
-  opacity: 0.75;
-  transition: opacity 0.2s ease;
-
-  &:hover {
-    opacity: 1;
-  }
 }
 
 .sourcesSection {
@@ -637,13 +536,6 @@
   font-weight: 400;
   line-height: 20px;
   letter-spacing: 0;
-}
-
-.statsRow {
-  margin-top: 16px;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  opacity: 1;
 }
 
 .responseActionButtonsWrapper button {
@@ -733,10 +625,6 @@
     margin-bottom: 14px;
   }
 
-  .statsRow {
-    margin-top: 14px;
-  }
-
   .responseActionButtonsWrapper {
     // Spans the screen, so text scrolling beneath it never shows at its sides
     margin: auto calc(-1 * #{$mobile-content-inset}) 0;
@@ -749,5 +637,15 @@
     button {
       padding: 0 14px;
     }
+  }
+}
+
+// Two cards side by side share one "Added to memory" section under the row,
+// inset like the cards' text
+.turnMemory {
+  padding: 0 2rem 0.5rem;
+
+  @include respond-to-tablet {
+    padding: 0 $mobile-content-inset 0.5rem;
   }
 }
