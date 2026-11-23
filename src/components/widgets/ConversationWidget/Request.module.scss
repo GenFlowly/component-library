@@ -192,10 +192,31 @@
   }
 }
 
-// 📱 An unused follow-up editor: about two lines above the button strip
+// 📱 An unused follow-up editor: about two lines above the button strip,
+// showing the first line of a draft and none of the rest. Paint-only, so
+// CodeMirror's measured lines stay put and a tap still lands in the text.
 .container.followUp.idleFollowUp {
   @include respond-to-tablet {
     --editor-height: calc(3.75rem + var(--editor-button-strip));
+
+    :global(.cm-editor) {
+      max-height: calc(
+        max(var(--editor-height), var(--editor-floor)) - var(--frame)
+      );
+    }
+
+    // Not a scroll container while put away, so it shows the draft's start
+    :global(.cm-scroller) {
+      overflow: clip;
+    }
+
+    :global(.cm-content) > :first-child {
+      clip-path: inset(0 0 calc(100% - 1lh) 0);
+    }
+
+    :global(.cm-content) > :not(:first-child) {
+      visibility: hidden;
+    }
   }
 }
 
@@ -387,8 +408,11 @@
   width: 100%;
 }
 
+// Put away holding a draft, the one-line box shows the draft's first line
 .idle .composerText {
   flex: none;
+  max-height: 1.5rem;
+  overflow: clip;
 }
 
 .composerBar {

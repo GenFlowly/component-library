@@ -1112,14 +1112,71 @@ describe('Request Widget Component', () => {
       expect(container).toHaveAttribute('data-composer-sticky', 'true');
     });
 
-    test('a draft keeps it full size', () => {
+    test('put away with a draft, it rests small again', () => {
       render(<Request blockId="block-2" />);
-      fireEvent.change(screen.getByTestId('text-editor'), {
-        target: { value: 'Shorter' },
+      const container = screen.getByTestId('request-widget-container');
+      const editor = screen.getByTestId('text-editor');
+      fireEvent.focus(editor);
+      fireEvent.change(editor, { target: { value: 'Shorter\nand simpler' } });
+      expect(container).not.toHaveClass('idleFollowUp');
+
+      fireEvent.blur(editor);
+      expect(container).toHaveClass('idleFollowUp');
+      expect(container).toHaveAttribute('data-composer-state', 'idle');
+      expect(editor).toHaveValue('Shorter\nand simpler');
+    });
+
+    test('blank lines alone are dropped when it is put away', () => {
+      render(<Request blockId="block-2" />);
+      const editor = screen.getByTestId('text-editor');
+      fireEvent.focus(editor);
+      fireEvent.change(editor, { target: { value: ' \n\n ' } });
+
+      fireEvent.blur(editor);
+      expect(editor).toHaveValue('');
+    });
+
+    describe('dragging the conversation', () => {
+      const setUp = () => {
+        const scroller = document.createElement('div');
+        scroller.style.overflowY = 'auto';
+        const turn = document.createElement('p');
+        scroller.appendChild(turn);
+        const host = document.createElement('div');
+        scroller.appendChild(host);
+        document.body.appendChild(scroller);
+        render(<Request blockId="block-2" />, { container: host });
+        const editor = screen.getByTestId('text-editor');
+        act(() => editor.focus());
+        const drag = (target: Element, from: number[], to: number[]) => {
+          fireEvent.touchStart(target, {
+            touches: [{ clientX: from[0], clientY: from[1] }],
+          });
+          fireEvent.touchMove(target, {
+            touches: [{ clientX: to[0], clientY: to[1] }],
+          });
+        };
+        return { scroller, turn, editor, drag };
+      };
+
+      test('back up puts the editor away', () => {
+        const { scroller, turn, editor, drag } = setUp();
+        drag(turn, [100, 200], [104, 260]);
+        expect(editor).not.toHaveFocus();
+        expect(screen.getByTestId('request-widget-container')).toHaveClass(
+          'idleFollowUp'
+        );
+        scroller.remove();
       });
-      expect(screen.getByTestId('request-widget-container')).not.toHaveClass(
-        'idleFollowUp'
-      );
+
+      test('toward the end, sideways or inside the editor keeps it in use', () => {
+        const { scroller, turn, editor, drag } = setUp();
+        drag(turn, [100, 260], [100, 200]);
+        drag(turn, [100, 200], [180, 230]);
+        drag(editor, [100, 200], [100, 260]);
+        expect(editor).toHaveFocus();
+        scroller.remove();
+      });
     });
 
     test('reserves the height its text grows it to, without scrolling the conversation while typing', () => {
@@ -1425,23 +1482,54 @@ describe('Request Widget Component', () => {
         scroller.remove();
       });
 
-      test('a draft stays with the box on the bottom until a press takes it back to the top', () => {
+      test('a draft goes with the one-line box until a press takes it back to the top', () => {
         useBlocks(followUpBlocks('Shorter please'));
         const { scroller, composer, scrollTo } = setUp();
-        fireEvent.focus(screen.getByTestId('text-editor'));
+        const editor = screen.getByTestId('text-editor');
+        act(() => editor.focus());
         scrollTo(1000, 16);
         scrollIntoView.mockClear();
 
         scrollTo(300, 716);
         expect(composer).toHaveAttribute('data-composer-sticky', 'true');
-        expect(composer).toHaveAttribute('data-composer-state', 'grown');
+        expect(composer).toHaveAttribute('data-composer-state', 'idle');
+        expect(screen.getByTestId('composer-box').style.minHeight).toBe('');
+        expect(composer.style.minHeight).toBe('');
+        expect(editor).not.toHaveFocus();
+        expect(editor).toHaveValue('Shorter please');
 
         fireEvent.mouseDown(screen.getByTestId('composer-box'));
         expect(composer).toHaveAttribute('data-composer-sticky', 'false');
+        expect(composer).toHaveAttribute('data-composer-state', 'grown');
         expect(scrollIntoView).toHaveBeenCalledWith({
           behavior: 'smooth',
           block: 'start',
         });
+        scroller.remove();
+      });
+
+      test('its controls work where the box is left', () => {
+        useBlocks(followUpBlocks('Shorter please'));
+        const { scroller, composer, scrollTo } = setUp();
+        act(() => screen.getByTestId('text-editor').focus());
+        scrollTo(1000, 16);
+        scrollTo(300, 716);
+        scrollIntoView.mockClear();
+
+        const generate = screen.getByTestId('generate-button');
+        fireEvent.mouseDown(generate);
+        expect(composer).toHaveAttribute('data-composer-sticky', 'true');
+        expect(composer).toHaveAttribute('data-composer-state', 'idle');
+        expect(scrollIntoView).not.toHaveBeenCalled();
+
+        fireEvent.click(generate);
+        expect(mockGenerateResponsesStream).toHaveBeenCalledWith(
+          'block-2',
+          'Shorter please',
+          undefined,
+          undefined,
+          []
+        );
         scroller.remove();
       });
 

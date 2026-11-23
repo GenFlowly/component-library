@@ -44,6 +44,9 @@ interface RequestProps {
 /** Height the desktop editor box starts at while in use; its text grows it. */
 const GROWN_EDITOR_HEIGHT_PX = 300;
 
+/** How far a finger drags the conversation down before it counts as scrolling back up. */
+const SCROLL_BACK_UP_PX = 24;
+
 /** The nearest ancestor that scrolls vertically (the conversation scroller). */
 function findScrollParent(el: HTMLElement): HTMLElement | null {
   let node = el.parentElement;
@@ -509,8 +512,8 @@ function Request({
   // 🖥️ The desktop editor rests as a one-line box stuck to the bottom of the
   // view and grows to a large box at the top of the view while in use
   // (focused, or holding a draft), then on with its text, never scrolling
-  // inside. Scrolled back up out of view, it returns to the bottom: as the
-  // one-line box when empty, holding its draft otherwise, until a press or a
+  // inside. Scrolled back up out of view, it returns to the bottom as the
+  // one-line box, showing a draft's first line, until a press on it or a
   // keystroke takes it to the top again. A new chat's editor is always grown.
   const [isFocused, setFocused] = React.useState(false);
   const composerRef = React.useRef<HTMLDivElement | null>(null);
@@ -518,17 +521,15 @@ function Request({
     draftPrompt.trim().length > 0 ||
     pendingAttachments.length > 0 ||
     validatingCount > 0;
-  const isGrown = isNewChatBlock || isFocused || hasDraft;
+  const isInUse = isFocused || hasDraft;
   const [isLeftBehind, setLeftBehind] = React.useState(false);
-  const isAtTop =
-    !isNarrow && isFollowUpBlock && isEditorView && isGrown && !isLeftBehind;
-  const hasDraftRef = React.useRef(hasDraft);
-  hasDraftRef.current = hasDraft;
+  const isGrown = isNewChatBlock || (isInUse && !isLeftBehind);
+  const isAtTop = !isNarrow && isFollowUpBlock && isEditorView && isGrown;
   leaveBottomRef.current = () => setLeftBehind(false);
 
   useEffect(() => {
-    if (!isGrown) setLeftBehind(false);
-  }, [isGrown]);
+    if (!isInUse) setLeftBehind(false);
+  }, [isInUse]);
 
   // A grown follow-up editor reserves a full view of height below its top
   // edge, so the conversation can always scroll it up to the top of the view.
@@ -588,7 +589,7 @@ function Request({
         scroller.getBoundingClientRect().bottom;
       if (!outOfView) return;
       setLeftBehind(true);
-      if (!hasDraftRef.current && el.contains(document.activeElement)) {
+      if (el.contains(document.activeElement)) {
         (document.activeElement as HTMLElement).blur();
       }
     };
@@ -596,19 +597,59 @@ function Request({
     return () => scroller.removeEventListener('scroll', handleScroll);
   }, [isAtTop]);
 
+  // 📱 Dragging the conversation back up puts a focused docked editor away
+  // (the keyboard with it), as a native chat does
+  useEffect(() => {
+    const container = narrowContainerRef.current;
+    if (!isNarrow || !isFollowUpBlock || !isFocused || !container) return;
+    const scroller = findScrollParent(container);
+    if (!scroller) return;
+    let start: { x: number; y: number } | null = null;
+    const handleTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      start =
+        e.touches.length === 1 && !container.contains(e.target as Node)
+          ? { x: touch.clientX, y: touch.clientY }
+          : null;
+    };
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!start) return;
+      const touch = e.touches[0];
+      const down = touch.clientY - start.y;
+      if (down < SCROLL_BACK_UP_PX || down < Math.abs(touch.clientX - start.x))
+        return;
+      start = null;
+      if (container.contains(document.activeElement)) {
+        (document.activeElement as HTMLElement).blur();
+      }
+    };
+    scroller.addEventListener('touchstart', handleTouchStart, {
+      passive: true,
+    });
+    scroller.addEventListener('touchmove', handleTouchMove, { passive: true });
+    return () => {
+      scroller.removeEventListener('touchstart', handleTouchStart);
+      scroller.removeEventListener('touchmove', handleTouchMove);
+    };
+  }, [isNarrow, isFollowUpBlock, isFocused]);
+
   const handleComposerBlur = (e: React.FocusEvent<HTMLDivElement>) => {
     // Focus moving between the text and the box's own buttons keeps it open
     if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
     setFocused(false);
+    // Blank lines alone are no draft, and would hide the placeholder
+    if (draftPrompt !== '' && draftPrompt.trim() === '') handleEditorChange('');
   };
 
   // A press on the box outside the text and its controls puts the caret in
-  // the text, so the whole box is the target, not just the text line. Any
-  // press on a box left at the bottom takes it back to the top.
+  // the text, so the whole box is the target, not just the text line. Such a
+  // press on a box left at the bottom takes it back to the top; its controls
+  // work where the box is, or the box would move from under the click.
   const handleComposerMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    setLeftBehind(false);
     const target = e.target as HTMLElement;
-    if (target.closest('button, input, a, [role="button"], .cm-editor')) return;
+    if (target.closest('button, input, a, [role="button"]')) return;
+    setLeftBehind(false);
+    if (target.closest('.cm-editor')) return;
     e.preventDefault();
     editorHandleRef.current?.focusEnd();
   };
@@ -688,9 +729,9 @@ function Request({
   ) : null;
 
   if (isNarrow) {
-    // 📱 A follow-up editor nobody is using rests small; it takes its full
-    // docked size once focused or holding a draft
-    const isIdleFollowUp = isFollowUpBlock && !isFocused && !hasDraft;
+    // 📱 A follow-up editor rests small whenever it isn't focused, showing a
+    // draft's first line; it takes its full docked size while focused
+    const isIdleFollowUp = isFollowUpBlock && !isFocused;
     return (
       <div
         ref={narrowContainerRef}
