@@ -77,4 +77,29 @@ describe('placeTooltip', () => {
     const bottom = placeTooltip(box(24, 860), tooltip, phone);
     expect(bottom.top).toBe(842);
   });
+  it('prefers above the anchor when asked, though a side has room', () => {
+    const layout = placeTooltip(box(24, 400), tooltip, phone, 'vertical');
+    expect(layout.placement).toBe('top');
+    expect(layout.top).toBe(400 - 8 - 48);
+    const { left, right } = edges(layout, tooltip);
+    expect(left).toBeGreaterThanOrEqual(8);
+    expect(right).toBeLessThanOrEqual(phone.width - 8);
+  });
+
+  it('prefers below when there is no room above', () => {
+    const layout = placeTooltip(box(200, 20), tooltip, phone, 'vertical');
+    expect(layout.placement).toBe('bottom');
+    expect(layout.top).toBe(40 + 8);
+  });
+
+  it('keeps the arrow on the anchor when the box is pushed in from an edge', () => {
+    const layout = placeTooltip(
+      box(20, 400, 16, 16),
+      tooltip,
+      phone,
+      'vertical'
+    );
+    const { left } = edges(layout, tooltip);
+    expect(left + (layout.arrowLeft ?? 0)).toBeCloseTo(20 + 8, 0);
+  });
 });

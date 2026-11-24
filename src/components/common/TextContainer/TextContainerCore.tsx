@@ -386,8 +386,12 @@ export function normalizeMathDelimiters(markdown: string): string {
 // sibling typing) skip the re-parse when the text itself hasn't changed.
 const MarkdownContent = React.memo(function MarkdownContent({
   content,
+  components,
+  rehypePlugins,
 }: {
   content: string;
+  components: Options['components'];
+  rehypePlugins: Options['rehypePlugins'];
 }) {
   return (
     // The wrapper is the @container root the table/stacking rules measure
@@ -396,8 +400,8 @@ const MarkdownContent = React.memo(function MarkdownContent({
     <div className={styles.markdownBody}>
       <ReactMarkdown
         remarkPlugins={REMARK_PLUGINS}
-        rehypePlugins={REHYPE_PLUGINS}
-        components={MARKDOWN_COMPONENTS}
+        rehypePlugins={rehypePlugins}
+        components={components}
       >
         {normalizeMathDelimiters(content)}
       </ReactMarkdown>
@@ -425,6 +429,10 @@ export interface TextContainerCoreProps {
   onAskSelection?: (selectedText: string) => void;
   /** See TextContainer's `variant`. */
   variant?: 'card' | 'turn';
+  /** See TextContainer's `markdownComponents`. */
+  markdownComponents?: Options['components'];
+  /** See TextContainer's `markdownRehypePlugins`. */
+  markdownRehypePlugins?: Options['rehypePlugins'];
 }
 
 export default function TextContainerCore({
@@ -440,9 +448,25 @@ export default function TextContainerCore({
   subheader,
   onAskSelection,
   variant = 'card',
+  markdownComponents,
+  markdownRehypePlugins,
 }: TextContainerCoreProps) {
   const { t } = useTranslation();
   const selectionScopeRef = React.useRef<HTMLDivElement>(null);
+  const components = React.useMemo(
+    () =>
+      markdownComponents
+        ? { ...MARKDOWN_COMPONENTS, ...markdownComponents }
+        : MARKDOWN_COMPONENTS,
+    [markdownComponents]
+  );
+  const rehypePlugins = React.useMemo(
+    () =>
+      markdownRehypePlugins
+        ? [...markdownRehypePlugins, ...REHYPE_PLUGINS]
+        : REHYPE_PLUGINS,
+    [markdownRehypePlugins]
+  );
 
   const headerContent = typeof title === 'string' ? <h2>{title}</h2> : title;
 
@@ -482,7 +506,11 @@ export default function TextContainerCore({
         loadingContent
       ) : (
         <div className={styles.selectionScope} ref={selectionScopeRef}>
-          <MarkdownContent content={content} />
+          <MarkdownContent
+            content={content}
+            components={components}
+            rehypePlugins={rehypePlugins}
+          />
           {onAskSelection && (
             <SelectionAskButton
               scopeRef={selectionScopeRef}

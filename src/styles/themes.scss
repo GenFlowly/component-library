@@ -124,6 +124,9 @@
   // at, whatever the screen size.
   --reading-width-optimal: 70ch;
   --reading-width-chat: 48rem;
+  // Phones: conversation text sits this far in from the screen's edges (the
+  // editor keeps --mobile-content-inset)
+  --reading-inset-phone: 1.25rem;
 
   // Activity panel time phases. A categorical set validated for light mode on
   // the white response card (dataviz palette checker: lightness band, chroma,
@@ -312,4 +315,16 @@ $widget-padding-y: var(--widget-padding-y);
 $message-card-max-width: var(--message-card-max-width);
 $reading-width-optimal: var(--reading-width-optimal);
 $reading-width-chat: var(--reading-width-chat);
+$reading-inset-phone: var(--reading-inset-phone);
+
+// Typefaces. The UI face is the app's body font (Roboto, bundled by the app);
+// long-form text (ReaderFriendlyTextContainer) is set in Source Serif 4,
+// bundled here (assets/fonts/SourceSerif4, SIL OFL 1.1).
+$font-family-ui:
+  'Roboto',
+  -apple-system,
+  BlinkMacSystemFont,
+  'Segoe UI',
+  sans-serif;
+$font-family-reading: 'Source Serif 4', Georgia, 'Times New Roman', serif;
 $response-column-gap: var(--response-column-gap);

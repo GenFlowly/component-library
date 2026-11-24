@@ -16,7 +16,7 @@ import {
   useConversationUI,
   useToast,
 } from './ConversationWidgetContext';
-import TextContainer from '../../common/TextContainer/TextContainer';
+import ReaderFriendlyTextContainer from '../../common/ReaderFriendlyTextContainer/ReaderFriendlyTextContainer';
 import styles from './Request.module.scss';
 import { UserBrandName } from './BrandName';
 import { formatServerDateTime } from './timeUtils';
@@ -681,7 +681,7 @@ function Request({
         className={styles.resolvedRequestContainer}
         data-testid={testId || 'resolved-request-wrapper'}
       >
-        <TextContainer
+        <ReaderFriendlyTextContainer
           className={styles.requestWrapper}
           variant="turn"
           content={conversationBlock.prompt}
@@ -709,7 +709,7 @@ function Request({
               {formatServerDateTime(conversationBlock.sentAt)}
             </div>
           )}
-        </TextContainer>
+        </ReaderFriendlyTextContainer>
       </div>
     );
   }

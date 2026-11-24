@@ -8,6 +8,11 @@
   &.fullWidth {
     width: 100%;
   }
+
+  // Inside running text (as="span"): flows with the line instead of becoming a flex box
+  &.inline {
+    display: inline;
+  }
 }
 
 .tooltip {
@@ -81,6 +86,85 @@
       left: var(--tooltip-arrow-left, 50%);
       transform: translateX(-50%);
       border-bottom-color: $color-navbar-background;
+    }
+  }
+}
+
+// variant="card": a light surface for rich content (a source, a list). Its
+// arrow is outlined like the box: ::before draws the border's triangle and
+// ::after the surface's, one pixel smaller, on top of it.
+.tooltip.card {
+  background: $color-background-secondary;
+  color: $color-text-primary;
+  border: 1px solid $color-border;
+  border-radius: 8px;
+  padding: 10px 12px;
+  white-space: normal;
+  width: min(320px, calc(100vw - 32px));
+  max-width: none;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+
+  &::before {
+    border-width: 7px;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    border: 6px solid transparent;
+    pointer-events: none;
+  }
+
+  &.placement-top {
+    &::before {
+      border-top-color: $color-border;
+    }
+
+    &::after {
+      top: 100%;
+      left: var(--tooltip-arrow-left, 50%);
+      transform: translateX(-50%);
+      border-top-color: $color-background-secondary;
+    }
+  }
+
+  &.placement-bottom {
+    &::before {
+      border-bottom-color: $color-border;
+    }
+
+    &::after {
+      bottom: 100%;
+      left: var(--tooltip-arrow-left, 50%);
+      transform: translateX(-50%);
+      border-bottom-color: $color-background-secondary;
+    }
+  }
+
+  &.placement-right {
+    &::before {
+      border-right-color: $color-border;
+    }
+
+    &::after {
+      right: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      border-right-color: $color-background-secondary;
+    }
+  }
+
+  &.placement-left {
+    &::before {
+      border-left-color: $color-border;
+    }
+
+    &::after {
+      left: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      border-left-color: $color-background-secondary;
     }
   }
 }

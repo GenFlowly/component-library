@@ -573,3 +573,220 @@
     }
   }
 }
+
+// ---- Reading setting (ReaderFriendlyTextContainer) ----
+// Long text in a text serif at a measure-friendly size, leading and spacing;
+// headings, tables and code stay in the UI face. Only the markdown body
+// changes: the card's header and anything after the text keep the UI face.
+// A host can set the --reader-* properties on the article (the prompt reads
+// one size up).
+
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('../../../assets/fonts/SourceSerif4/SourceSerif4-Variable.woff2')
+    format('woff2');
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('../../../assets/fonts/SourceSerif4/SourceSerif4-Italic-Variable.woff2')
+    format('woff2');
+  font-weight: 200 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+.article.reader .markdownBody {
+  --reader-gap: var(--reader-block-gap, 28px);
+  --reader-rule: color-mix(in srgb, #{$color-text-primary} 16%, transparent);
+  --reader-rule-strong: color-mix(
+    in srgb,
+    #{$color-text-primary} 32%,
+    transparent
+  );
+
+  font-family: $font-family-reading;
+  font-size: var(--reader-font-size, 1.125rem);
+  font-weight: var(--reader-font-weight, 400);
+  line-height: var(--reader-line-height, 1.7222);
+  font-optical-sizing: auto;
+  color: $color-text-primary;
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+
+  p {
+    font-size: 1em;
+    margin: 0 0 var(--reader-gap);
+  }
+
+  ul,
+  ol {
+    margin: 0 0 var(--reader-gap);
+    padding-left: 22px;
+  }
+
+  li {
+    margin: 6px 0;
+  }
+
+  li > p {
+    margin-bottom: 0.5em;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  li > :is(ul, ol) {
+    margin: 6px 0 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: $font-family-ui;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    color: $color-text-primary;
+    margin: 40px 0 12px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+
+  h3 {
+    font-size: 1.0625rem;
+    line-height: 1.5rem;
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-size: 1rem;
+    line-height: 1.375rem;
+  }
+
+  blockquote,
+  pre,
+  .tableScroll {
+    margin: 0 0 var(--reader-gap);
+  }
+
+  // Tables: rules between rows, none between columns, no fills
+  table {
+    font-family: $font-family-ui;
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
+    background-color: transparent;
+
+    th,
+    td {
+      padding: 11px 12px;
+      border: none;
+      border-bottom: 1px solid var(--reader-rule);
+    }
+
+    th {
+      background: transparent;
+      color: $color-text-muted;
+      font-size: 0.75rem;
+      line-height: 1rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      vertical-align: bottom;
+      border-bottom: 2px solid var(--reader-rule-strong);
+    }
+  }
+
+  // Math reads at the text's size; a display formula sits on its own band
+  :global(.katex) {
+    font-size: 1.1em;
+  }
+
+  :global(.katex-display) {
+    margin: 8px 0 var(--reader-gap);
+    padding: 18px 16px;
+    border-radius: 8px;
+    background: $color-background-hover;
+
+    > :global(.katex) {
+      font-size: 1.15em;
+    }
+  }
+}
+
+// A stacked row is a card with its own border: its last field needs no rule
+@container (max-width: 760px) {
+  .article.reader table[data-stack='early'] td:last-child {
+    border-bottom: none;
+  }
+}
+
+@container (max-width: 500px) {
+  .article.reader table[data-stack='late'] td:last-child {
+    border-bottom: none;
+  }
+}
+
+// A run of citation chips stays on the line of the word it follows
+.citationRun {
+  white-space: nowrap;
+}
+
+// 📱 With the conversation's phone layout (the turn on the page itself)
+@include respond-to-tablet {
+  .article.reader .markdownBody {
+    --reader-gap: var(--reader-block-gap-phone, 24px);
+
+    font-size: var(--reader-font-size-phone, 1.0625rem);
+    line-height: var(--reader-line-height-phone, 1.6471);
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      margin: 36px 0 10px;
+    }
+
+    h1 {
+      font-size: 1.375rem;
+      line-height: 1.875rem;
+    }
+
+    h2 {
+      font-size: 1.1875rem;
+      line-height: 1.625rem;
+    }
+
+    table {
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+
+      th,
+      td {
+        padding: 9px 10px;
+      }
+    }
+  }
+}

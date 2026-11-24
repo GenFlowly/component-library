@@ -1,0 +1,88 @@
+@import '../../../styles/themes.scss';
+
+// Doubled: a chip is a link, and the text containers style every link
+// (`.article a`: underline, hover dimming)
+.chip.chip {
+  position: relative;
+  display: inline-block;
+  box-sizing: border-box;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  margin-left: 4px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  // Mixed from the text color, so the chip shows on every surface it sits on
+  // (white card, dark card, the phone's page)
+  background: color-mix(in srgb, #{$color-text-primary} 10%, transparent);
+  color: color-mix(in srgb, #{$color-text-primary} 72%, transparent);
+  font-family: $font-family-ui;
+  font-size: 0.65625rem;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  vertical-align: 0.15em;
+  opacity: 1;
+  cursor: pointer;
+
+  // The label is drawn, not written, so a selection copies the markers only
+  &::after {
+    content: attr(data-label);
+  }
+
+  // A 32px tall target for a finger, the chip itself staying 16px
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -8px -2px;
+  }
+
+  &:hover,
+  [data-open='true'] > & {
+    border-color: $color-primary;
+    background: $color-primary-light;
+    color: $color-primary-pressed;
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 1px;
+  }
+}
+
+// The pressed primary on the selected fill is too dim to read in dark
+:global([data-theme='dark']) .chip.chip:hover,
+:global([data-theme='dark']) [data-open='true'] > .chip.chip {
+  color: $color-text-primary;
+}
+
+.markers {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.sources {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+
+  > li:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+
+  > li:last-child {
+    padding-bottom: 0;
+  }
+}

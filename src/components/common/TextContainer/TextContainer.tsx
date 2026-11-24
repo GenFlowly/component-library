@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { Options } from 'react-markdown';
 import styles from './TextContainer.module.scss';
 
 const TextContainerCore = lazy(() => import('./TextContainerCore'));
@@ -29,6 +30,10 @@ export interface TextContainerProps {
    * conversation's type sizes. Below isNarrow it looks like the default card.
    */
   variant?: 'card' | 'turn';
+  /** Renderers for markdown elements, over the defaults (e.g. a custom `a`). */
+  markdownComponents?: Options['components'];
+  /** Rehype plugins that run before the default ones (tables, math, code). */
+  markdownRehypePlugins?: Options['rehypePlugins'];
 }
 
 export default function TextContainer({
@@ -44,6 +49,8 @@ export default function TextContainer({
   subheader,
   onAskSelection,
   variant = 'card',
+  markdownComponents,
+  markdownRehypePlugins,
 }: TextContainerProps) {
   const { t } = useTranslation();
 
@@ -82,6 +89,8 @@ export default function TextContainer({
         subheader={subheader}
         onAskSelection={onAskSelection}
         variant={variant}
+        markdownComponents={markdownComponents}
+        markdownRehypePlugins={markdownRehypePlugins}
       />
     </Suspense>
   );

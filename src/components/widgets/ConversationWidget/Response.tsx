@@ -16,7 +16,7 @@ import {
   useToast,
 } from './ConversationWidgetContext';
 import { useAskSelection } from './AskSelectionContext';
-import TextContainer from '../../common/TextContainer/TextContainer';
+import ReaderFriendlyTextContainer from '../../common/ReaderFriendlyTextContainer/ReaderFriendlyTextContainer';
 import { ErrorBoundary } from '../../common/ErrorBoundary/ErrorBoundary';
 import { LearnedFact, Message, WebSource } from './conversation.models';
 import { AttachmentRef } from './attachment.models';
@@ -37,25 +37,6 @@ import { ToggleOption } from '../../common/PillButtonGroup/PillButtonGroup';
 import CheckboxButtonGroup from '../../common/PillButtonGroup/CheckboxButtonGroup';
 import { useResponseSwipe } from './useResponseSwipe';
 import ResponseSwipeLabel from './ResponseSwipeLabel';
-
-/**
- * Turn bare [n] citation markers into markdown links to their web source, so
- * the markdown renderer makes them clickable. Only indices that exist in
- * webSources are linked — the model can occasionally emit a stray marker, and
- * an unknown index is left as plain text rather than a dead link. Markers
- * already followed by "(" are part of an existing markdown link and skipped.
- */
-function linkifyCitations(
-  text: string,
-  webSources?: WebSource[] | null
-): string {
-  if (!text || !webSources || webSources.length === 0) return text;
-  const byIndex = new Map(webSources.map(s => [s.index, s.url]));
-  return text.replace(/\[(\d{1,3})\](?!\()/g, (marker, n) => {
-    const url = byIndex.get(Number(n));
-    return url ? `[${marker}](${url})` : marker;
-  });
-}
 
 // Raw vendor finish reasons grouped by how they should read to the user. A
 // refusal/block means "no (or partial) answer, here's why"; a length cap means
@@ -810,10 +791,11 @@ function Response({
                   className={`${styles.responseWrapper} ${swipeClassName}`}
                   aria-hidden={isSwipeNeighbor || undefined}
                 >
-                  <TextContainer
+                  <ReaderFriendlyTextContainer
                     variant="turn"
                     title={HeaderComponent}
-                    content={linkifyCitations(text, webSources)}
+                    content={text}
+                    sources={webSources}
                     subheader={
                       <ActivityPanel
                         className={styles.activityPanel}
@@ -1004,7 +986,7 @@ function Response({
                         </div>
                       );
                     })()}
-                  </TextContainer>
+                  </ReaderFriendlyTextContainer>
                   {aiVendor && swipe.labelState !== 'hidden' && (
                     <ResponseSwipeLabel
                       vendor={aiVendor}

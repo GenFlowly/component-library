@@ -75,6 +75,12 @@
     border-radius: 0;
     background: transparent;
     font-size: 1.0625rem;
+    // The prompt reads one size up from the response
+    --reader-font-size: 1.1875rem;
+    --reader-line-height: 1.6842;
+    --reader-font-weight: 500;
+    --reader-font-size-phone: 1.125rem;
+    --reader-line-height-phone: 1.6667;
     min-width: 0;
     // message-card-base narrows a card in a narrow column with !important
     width: 100% !important;
@@ -97,10 +103,10 @@
     }
   }
 
-  // 📱 8px in from the screen's edges, as the phone boards draw it, and 16px
-  // below the header (the boards' first turn) or the turn above
+  // 📱 The reading inset in from the screen's edges, and 16px below the
+  // header (the boards' first turn) or the turn above
   @include respond-to-tablet {
-    padding: 16px $mobile-content-inset 0;
+    padding: 16px $reading-inset-phone 0;
 
     .requestWrapper {
       --turn-header-gap: 8px;

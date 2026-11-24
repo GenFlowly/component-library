@@ -46,6 +46,10 @@ export type {
 // Overlays and self-contained UI
 export { default as Modal } from './components/common/Modal/Modal';
 export { default as Tooltip } from './components/common/Tooltip/Tooltip';
+export { default as CitationTooltip } from './components/common/CitationTooltip/CitationTooltip';
+export type { CitationTooltipProps } from './components/common/CitationTooltip/CitationTooltip';
+export { default as CitationChip } from './components/common/CitationTooltip/CitationChip';
+export type { CitationChipProps } from './components/common/CitationTooltip/CitationChip';
 export { default as CopyToClipboard } from './components/common/CopyToClipboard/CopyToClipboard';
 export {
   SidebarListLoadMore,
@@ -131,6 +135,16 @@ export {
   PreBlock,
 } from './components/common/TextContainer/TextContainer';
 export type { TextContainerProps } from './components/common/TextContainer/TextContainer';
+export {
+  default as ReaderFriendlyTextContainer,
+  ReaderLink,
+} from './components/common/ReaderFriendlyTextContainer/ReaderFriendlyTextContainer';
+export type { ReaderFriendlyTextContainerProps } from './components/common/ReaderFriendlyTextContainer/ReaderFriendlyTextContainer';
+export {
+  linkifyCitations,
+  countCitations,
+  rehypeCitationRuns,
+} from './components/common/ReaderFriendlyTextContainer/citations';
 export { default as TextEditor } from './components/widgets/TextEditorWidget/TextEditor';
 
 // Pages

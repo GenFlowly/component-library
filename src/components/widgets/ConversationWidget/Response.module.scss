@@ -46,9 +46,9 @@
   }
 
   @include respond-to-tablet {
-    // Match the request widget / prompt editor geometry below isNarrow
-    padding-left: $mobile-content-inset;
-    padding-right: $mobile-content-inset;
+    // The conversation's text inset below isNarrow, shared with the prompt
+    padding-left: $reading-inset-phone;
+    padding-right: $reading-inset-phone;
   }
 }
 
@@ -401,9 +401,12 @@
 }
 
 // The activity panel sits inside each response card between the header and
-// the response text; the card owns the spacing below it.
+// the response text, ruled off from the text below it like a byline
 .activityPanel {
-  margin-bottom: 1rem;
+  margin-bottom: 22px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid
+    color-mix(in srgb, #{$color-text-primary} 12%, transparent);
 }
 
 // Step rows themselves live in ThinkingSteps.module.scss
@@ -602,11 +605,11 @@
   }
 }
 
-// 📱 The phone boards' response: on the page like the prompt, 8px in from the
-// screen's edges
+// 📱 The phone boards' response: on the page like the prompt, the reading
+// inset in from the screen's edges
 @include respond-to-tablet {
   .inner {
-    padding: 18px $mobile-content-inset 8px;
+    padding: 18px $reading-inset-phone 8px;
     // Clear of the overlay header when a vendor switch lands on it
     scroll-margin-top: $mobile-header-height;
   }
@@ -622,13 +625,14 @@
   }
 
   .activityPanel {
-    margin-bottom: 14px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
   }
 
   .responseActionButtonsWrapper {
     // Spans the screen, so text scrolling beneath it never shows at its sides
-    margin: auto calc(-1 * #{$mobile-content-inset}) 0;
-    width: calc(100% + 2 * #{$mobile-content-inset});
+    margin: auto calc(-1 * #{$reading-inset-phone}) 0;
+    width: calc(100% + 2 * #{$reading-inset-phone});
     padding: 16px 0 12px;
     border-radius: 0;
     // The page's own color: the bar only shows over text scrolled beneath it
@@ -646,6 +650,6 @@
   padding: 0 2rem 0.5rem;
 
   @include respond-to-tablet {
-    padding: 0 $mobile-content-inset 0.5rem;
+    padding: 0 $reading-inset-phone 0.5rem;
   }
 }

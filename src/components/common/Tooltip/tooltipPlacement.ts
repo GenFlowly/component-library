@@ -24,21 +24,26 @@ export interface TooltipLayout {
 
 const GAP = 8;
 
+export type TooltipPreference = 'side' | 'vertical';
+
 /**
- * Beside the anchor if a side has room, otherwise above or below it. Whichever
- * it is, the tooltip stays inside the viewport.
+ * 'side': beside the anchor if a side has room, otherwise above or below it.
+ * 'vertical': above the anchor if there is room, otherwise below it.
+ * Whichever it is, the tooltip stays inside the viewport. WebTooltip.swift's
+ * TooltipLayout.place gives the same answers.
  */
 export function placeTooltip(
   anchor: Box,
   tooltip: Size,
-  viewport: Size
+  viewport: Size,
+  prefer: TooltipPreference = 'side'
 ): TooltipLayout {
   const rightLeft = anchor.right + GAP;
   const leftLeft = anchor.left - GAP - tooltip.width;
   const fitsRight = rightLeft + tooltip.width <= viewport.width - GAP;
   const fitsLeft = leftLeft >= GAP;
 
-  if (fitsRight || fitsLeft) {
+  if (prefer === 'side' && (fitsRight || fitsLeft)) {
     const halfHeight = tooltip.height / 2;
     const centered = anchor.top + anchor.height / 2;
     const top = Math.max(
