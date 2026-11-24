@@ -28,8 +28,9 @@ const READONLY_EXTENSIONS = [
   EditorView.editable.of(false),
   EditorState.readOnly.of(true),
 ];
-// The chat composer draws its controls under the text and grows instead of
-// scrolling, so the page follows the caret: keep the controls in view too
+// The desktop chat composer draws its controls under the text and grows
+// instead of scrolling, so the page follows the caret: keep the controls in
+// view too. The phone one scrolls inside its docked box instead.
 const COMPOSER_CONTROLS_SPACE_PX = 64;
 const COMPOSER_EXTENSIONS = [
   ...EDITABLE_EXTENSIONS,
@@ -140,7 +141,7 @@ const TextEditorCore = React.forwardRef<TextEditorHandle, TextEditorCoreProps>(
                 extensions={
                   readOnly
                     ? READONLY_EXTENSIONS
-                    : variant === 'composer'
+                    : variant === 'composer' && !compact
                       ? COMPOSER_EXTENSIONS
                       : EDITABLE_EXTENSIONS
                 }

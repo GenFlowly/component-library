@@ -1103,6 +1103,40 @@ describe('Request Widget Component', () => {
       expect(container).toHaveClass('idleFollowUp');
     });
 
+    test('one box: the text, then the instruction chip left and attach and send right', () => {
+      mockComposer.controls = <button>Choose instruction</button>;
+      try {
+        render(<Request blockId="block-2" />);
+        const box = screen.getByTestId('composer-box');
+        const editor = screen.getByTestId('text-editor');
+        const chip = screen.getByRole('button', { name: 'Choose instruction' });
+        const attach = screen.getByTestId('attachment-button');
+        const send = screen.getByTestId('generate-button');
+        [editor, chip, attach, send].forEach(el =>
+          expect(box).toContainElement(el)
+        );
+        const follows = (a: Element, b: Element) =>
+          !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+        expect(follows(editor, chip)).toBe(true);
+        expect(follows(chip, attach)).toBe(true);
+        expect(follows(attach, send)).toBe(true);
+        // As tall as its text
+        expect(editor).toHaveAttribute('data-height', 'auto');
+      } finally {
+        delete mockComposer.controls;
+      }
+    });
+
+    test('a tap on the box outside its text and buttons puts the caret in the text', () => {
+      mockFocusEnd.mockClear();
+      render(<Request blockId="block-2" />);
+      fireEvent.mouseDown(screen.getByTestId('composer-box'));
+      expect(mockFocusEnd).toHaveBeenCalledTimes(1);
+
+      fireEvent.mouseDown(screen.getByTestId('generate-button'));
+      expect(mockFocusEnd).toHaveBeenCalledTimes(1);
+    });
+
     test('sticks to the bottom of the view, idle or in use', () => {
       render(<Request blockId="block-2" />);
       const container = screen.getByTestId('request-widget-container');

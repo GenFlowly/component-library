@@ -97,29 +97,34 @@
   -webkit-backdrop-filter: blur(6px);
 }
 
-// Tappable title: same text, plus a chevron, as one button
-.titleButton {
+// Tappable pill: the same lines as one button, a chevron ending the last line
+.pillButton {
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+
+  &:active {
+    background-color: rgba(127, 127, 127, 0.32);
+  }
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: $color-text-muted;
+  transform: rotate(90deg);
+
+  &.chevronUp {
+    transform: rotate(270deg);
+  }
+}
+
+.titleLine {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
   max-width: 100%;
   min-width: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
-
-.titleChevron {
-  flex-shrink: 0;
-  color: $color-text-muted;
-  transform: rotate(90deg);
-
-  &.titleChevronUp {
-    transform: rotate(270deg);
-  }
 }
 
 .title {
@@ -132,7 +137,7 @@
   text-overflow: ellipsis;
 }
 
-%subtitle-base {
+.subtitle {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -143,24 +148,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.subtitle {
-  @extend %subtitle-base;
-}
-
-.subtitleButton {
-  @extend %subtitle-base;
-  border: none;
-  background: transparent;
-  padding: 0;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.75rem;
-
-  &:active {
-    color: $color-text-primary;
-  }
 }
 
 .kebabWrapper {

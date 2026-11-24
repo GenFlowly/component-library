@@ -30,20 +30,15 @@
     // Positioning context for the absolutely-placed editor wrapper
     position: relative;
 
-    // Bottom strip reserved inside the editor for the floating
-    // attachment/generate buttons (44px tall, 0.75rem inset, 0.5rem gap
-    // above) — text must never render inside it
-    --editor-button-strip: calc(44px + 0.75rem + 0.5rem);
-    // The docked editor's resting size: ~3-4 visible lines PLUS the button
-    // strip, so the strip doesn't eat into the text area
-    --editor-height: calc(
-      clamp(12rem, 32svh, 16rem) + var(--editor-button-strip)
-    );
-    // The tallest its text grows it: from where it rests (the keyboard, or
-    // the screen's bottom) up to just under the header; it scrolls after that
+    // The tallest the box may be: half the space between the header and where
+    // it rests, on the keyboard or above the home indicator, so the
+    // conversation always keeps the other half
     --editor-max-height: calc(
-      var(--vvh, 100svh) - #{$mobile-header-height} -
-        0.5rem - env(safe-area-inset-bottom, 0px)
+      (
+          var(--vvh, 100svh) - #{$mobile-header-height} -
+            0.5rem - max(0px, env(safe-area-inset-bottom, 0px) - var(--kb))
+        ) /
+        2
     );
     // Height of the on-screen keyboard: the gap between the static page
     // (100svh) and the visual viewport; 0 while the keyboard is closed.
@@ -128,24 +123,19 @@
   }
 }
 
-// Hosts the editor, the floating mobile generate button and the attachment
-// strip. On desktop it just fills the container like the bare editor used to.
+// 📱 Hosts the phone editor's box
 .editorWrapper {
-  flex: 1 1 auto;
-  min-height: 0;
   width: 100%;
   display: flex;
   flex-direction: column;
-  position: relative; // Anchor for .mobileGenerateButton
 
   @include respond-to-tablet {
-    // A small (~3-4 line) editor box glued to the bottom of the VISIBLE
-    // viewport, chat-app style: resting on the screen bottom when the
-    // keyboard is closed, translated up to sit flush on the keyboard's
-    // top edge when it opens. Keeping the caret right above the keyboard
-    // also stops iOS Safari from force-scrolling the page to reveal it.
-    // Anchored by its bottom, it grows upward with its text (the limits are
-    // on .cm-editor below).
+    // The box glued to the bottom of the VISIBLE viewport, chat-app style:
+    // resting on the screen bottom when the keyboard is closed, translated
+    // up to sit flush on the keyboard's top edge when it opens. Keeping the
+    // caret right above the keyboard also stops iOS Safari from
+    // force-scrolling the page to reveal it. Anchored by its bottom, it
+    // grows upward with its text (the limit is on .phoneText).
     position: absolute;
     left: 0;
     right: 0;
@@ -155,7 +145,7 @@
     // viewport-fit=cover, so this is a no-op everywhere else). Additive with
     // the keyboard-riding transform below, not a replacement for it.
     bottom: env(safe-area-inset-bottom, 0px);
-    min-height: var(--editor-height);
+    padding: $mobile-content-inset;
     // Ride the keyboard with a transform (compositor-animated, no layout
     // work per frame) instead of `bottom`. iOS reports the final visual
     // viewport in one discrete event at the END of the keyboard
@@ -180,29 +170,23 @@
 // stuck to the bottom of the view, but the block only takes the editor's
 // height at the end of the conversation — plus the keyboard's height while it's open, so the space
 // the riding editor moves into is RESERVED in the layout rather than
-// overlapping the response above. Request.tsx keeps the conversation
-// scrolled to the end when --kb changes, which lands the editor flush on
-// the keyboard with the last response fully visible right above it. It also
-// publishes the editor's live height as its text grows it.
+// overlapping the response above. Request.tsx publishes the editor's live
+// height as its text grows it; until then, the one-line box's.
 .container.followUp {
   @include respond-to-tablet {
-    height: calc(var(--editor-live-height, var(--editor-height)) + var(--kb));
-    min-height: var(--editor-height);
+    height: calc(var(--editor-live-height, 7.6rem) + var(--kb));
+    min-height: 0;
     overflow: visible;
   }
 }
 
-// 📱 An unused follow-up editor: about two lines above the button strip,
-// showing the first line of a draft and none of the rest. Paint-only, so
-// CodeMirror's measured lines stay put and a tap still lands in the text.
+// 📱 An unused follow-up editor: one line, the first of a draft and none of
+// the rest. Paint-only, so CodeMirror's measured lines stay put and a tap
+// still lands in the text.
 .container.followUp.idleFollowUp {
   @include respond-to-tablet {
-    --editor-height: calc(3.75rem + var(--editor-button-strip));
-
     :global(.cm-editor) {
-      max-height: calc(
-        max(var(--editor-height), var(--editor-floor)) - var(--frame)
-      );
+      max-height: 2.1rem;
     }
 
     // Not a scroll container while put away, so it shows the draft's start
@@ -220,51 +204,83 @@
   }
 }
 
-.textEditorFullscreen {
-  flex: 1;
-  min-height: 0;
+// 📱 The phone editor's box: the desktop composer's surface at the panels'
+// radius, as tall as its text, its controls in a row under the text
+.phoneBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid $color-border;
+  border-radius: $widget-radius;
+  background-color: $color-background-secondary;
+  cursor: text;
+  transition:
+    border-color $transition-fast,
+    box-shadow $transition-fast;
+}
+
+// Its text grows it up to half the space above it, then scrolls inside
+.phoneText {
   width: 100%;
 
-  // Ensure internal containers fill height
-  :global(.w-md-editor) {
-    height: 100% !important;
+  :global(.cm-editor) {
+    // Less the box's padding, borders, gap and controls row
+    max-height: calc(var(--editor-max-height) - 72px);
+  }
+}
+
+.phoneBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 44px;
+  cursor: default;
+
+  // The instruction chip gives way to the buttons
+  > :first-child:not(.composerSpacer) {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+}
+
+%phone-round-button {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.phoneRoundButton {
+  @extend %phone-round-button;
+  background-color: $color-background-tertiary;
+  color: $color-text-primary;
+
+  &:active {
+    background-color: $color-background-hover;
+  }
+}
+
+.phoneSendButton {
+  @extend %phone-round-button;
+  background-color: $color-button-primary;
+  color: #ffffff;
+
+  &:active:not(:disabled) {
+    background-color: $color-primary-pressed;
   }
 
-  :global(.w-md-editor-content) {
-    height: 100% !important;
-  }
-
-  @include respond-to-tablet {
-    // Never shrink below two lines of text (2 × 1.6rem line-height) plus
-    // the editor's vertical padding and the button strip, however small
-    // --vvh gets
-    --editor-floor: calc(
-      2 * 1.6rem + 2 * 1.5rem + 4px + var(--editor-button-strip)
-    );
-    min-height: var(--editor-floor);
-
-    // The floating attachment/generate buttons overlay the editor's
-    // bottom-right corner. End the scrollable text area above them so no
-    // line can be typed or scrolled underneath — the reserved strip shows
-    // only the editor background, and CodeMirror keeps the caret inside
-    // the shortened scrollport.
-    // Sized by its text between the docked box's resting and tallest
-    // heights, less the compact editor's frame around it: its padding above
-    // and below, the gap over the box and the box's 1px borders.
-    :global(.cm-editor) {
-      padding-bottom: var(--editor-button-strip);
-      --frame: calc(2 * #{$mobile-content-inset} + 0.5rem + 2px);
-      min-height: calc(
-        max(var(--editor-height), var(--editor-floor)) - var(--frame)
-      );
-      max-height: calc(var(--editor-max-height) - var(--frame));
-    }
-
-    // The scroll area fills the box below short text too, so a tap anywhere
-    // in it lands in the text
-    :global(.cm-scroller) {
-      flex-grow: 1;
-    }
+  &:disabled {
+    background-color: $color-background-tertiary;
+    color: $color-text-muted;
+    cursor: not-allowed;
   }
 }
 
@@ -294,70 +310,6 @@
   &:hover {
     background-color: $color-background-selected;
   }
-}
-
-// 📱 Icon-only generate button floating inside the editor's bottom-right
-// corner (the mobile replacement for .buttonWrapper's full-width row)
-.mobileGenerateButton {
-  position: absolute;
-  // Inset past the editor's own $mobile-content-inset so the button sits
-  // visually inside the editor's rounded border
-  right: calc(#{$mobile-content-inset} + 0.75rem);
-  bottom: calc(#{$mobile-content-inset} + 0.75rem);
-  z-index: 10;
-  width: 44px; // Comfortable touch target
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 50%;
-  background-color: $color-button-primary;
-  color: white;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-
-  &:active {
-    background-color: $color-primary-pressed;
-  }
-
-  &:disabled {
-    background-color: $color-disabled;
-    opacity: 0.5;
-    cursor: not-allowed;
-    box-shadow: none;
-  }
-}
-
-// 📱 Secondary image-attachment button to the LEFT of the generate button
-// (same size/shape, secondary colors)
-.mobileAttachmentButton {
-  position: absolute;
-  // Generate button's inset + its 44px width + a 0.5rem gap
-  right: calc(#{$mobile-content-inset} + 0.75rem + 44px + 0.5rem);
-  bottom: calc(#{$mobile-content-inset} + 0.75rem);
-  z-index: 10;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid $color-border;
-  border-radius: 50%;
-  background-color: $color-background-secondary;
-  color: $color-text-primary;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-
-  &:active {
-    background-color: $color-background-selected;
-  }
-}
-
-// The current line's highlight read as an empty toolbar strip across the top
-// of an empty editor; the caret alone marks the line
-.textEditorFullscreen :global(.cm-activeLine) {
-  background-color: transparent;
 }
 
 // 🖥️ Desktop composer: one rounded box holding the text and its controls.

@@ -23,16 +23,17 @@ export interface MobileHeaderTrailingAction {
 
 export interface MobileHeaderProps {
   title: string;
-  /** Second line under the title (e.g. the loaded instruction persona). */
+  /** Second line under the title (e.g. the turn in view). */
   subtitle?: React.ReactNode;
-  /** Makes the subtitle tappable (e.g. to open an instruction picker). */
-  onSubtitleClick?: () => void;
-  /** Makes the title tappable, with a chevron (e.g. to open an outline sheet). */
-  onTitleClick?: () => void;
-  /** Accessible name of the tappable title; defaults to the title itself. */
-  titleActionLabel?: string;
-  /** What the title opens is showing: the chevron turns up. */
-  titleExpanded?: boolean;
+  /**
+   * Makes the whole pill one button, with a chevron at the end of its last
+   * line (e.g. to open the list of a conversation's turns).
+   */
+  onPillClick?: () => void;
+  /** Accessible name of the tappable pill; defaults to the title itself. */
+  pillActionLabel?: string;
+  /** What the pill opens is showing: the chevron turns up. */
+  pillExpanded?: boolean;
   /** Entries of the kebab (3-dot) menu on the right; omit to hide the kebab. */
   menuItems?: MobileHeaderMenuItem[];
   /** A round icon button on the right, shown when there is no kebab menu. */
@@ -53,10 +54,9 @@ export interface MobileHeaderProps {
 export default function MobileHeader({
   title,
   subtitle,
-  onSubtitleClick,
-  onTitleClick,
-  titleActionLabel,
-  titleExpanded = false,
+  onPillClick,
+  pillActionLabel,
+  pillExpanded = false,
   menuItems = [],
   trailingAction,
   onMenuClick,
@@ -81,6 +81,34 @@ export default function MobileHeader({
     return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [isMenuOpen]);
 
+  const chevron = onPillClick ? (
+    <Icon
+      src={ICONS.ALT_ARROW_RIGHT}
+      size={12}
+      className={`${styles.chevron} ${pillExpanded ? styles.chevronUp : ''}`}
+    />
+  ) : null;
+  const pillLines = (
+    <>
+      <span className={styles.titleLine}>
+        <span
+          className={styles.title}
+          title={title}
+          data-testid="mobile-header-title"
+        >
+          {title}
+        </span>
+        {subtitle == null && chevron}
+      </span>
+      {subtitle != null && (
+        <span className={styles.subtitle} data-testid="mobile-header-subtitle">
+          {subtitle}
+          {chevron}
+        </span>
+      )}
+    </>
+  );
+
   return (
     <>
       <div className={styles.header} data-testid="mobile-header">
@@ -94,49 +122,21 @@ export default function MobileHeader({
         </button>
 
         <div className={styles.center}>
-          <div className={styles.centerPill}>
-            {onTitleClick ? (
-              <button
-                type="button"
-                onClick={onTitleClick}
-                className={styles.titleButton}
-                aria-label={titleActionLabel}
-                aria-haspopup="dialog"
-                aria-expanded={titleExpanded}
-                data-testid="mobile-header-title"
-              >
-                <span className={styles.title} title={title}>
-                  {title}
-                </span>
-                <Icon
-                  src={ICONS.ALT_ARROW_RIGHT}
-                  size={12}
-                  className={`${styles.titleChevron} ${titleExpanded ? styles.titleChevronUp : ''}`}
-                />
-              </button>
-            ) : (
-              <span className={styles.title} title={title}>
-                {title}
-              </span>
-            )}
-            {subtitle != null &&
-              (onSubtitleClick ? (
-                <button
-                  onClick={onSubtitleClick}
-                  className={styles.subtitleButton}
-                  data-testid="mobile-header-subtitle"
-                >
-                  {subtitle}
-                </button>
-              ) : (
-                <span
-                  className={styles.subtitle}
-                  data-testid="mobile-header-subtitle"
-                >
-                  {subtitle}
-                </span>
-              ))}
-          </div>
+          {onPillClick ? (
+            <button
+              type="button"
+              onClick={onPillClick}
+              className={`${styles.centerPill} ${styles.pillButton}`}
+              aria-label={pillActionLabel ?? title}
+              aria-haspopup="dialog"
+              aria-expanded={pillExpanded}
+              data-testid="mobile-header-pill"
+            >
+              {pillLines}
+            </button>
+          ) : (
+            <div className={styles.centerPill}>{pillLines}</div>
+          )}
         </div>
 
         {menuItems.length > 0 ? (

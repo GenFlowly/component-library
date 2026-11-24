@@ -13,19 +13,45 @@ describe('MobileHeader', () => {
     expect(onMenuClick).toHaveBeenCalledTimes(1);
   });
 
-  test('renders a tappable subtitle that fires onSubtitleClick', () => {
-    const onSubtitleClick = jest.fn();
+  test('a tappable pill is one button ending its subtitle with the chevron', () => {
+    const onPillClick = jest.fn();
     render(
       <MobileHeader
-        title="My Chat"
-        subtitle="Coding Buddy"
-        onSubtitleClick={onSubtitleClick}
+        title="Water heater"
+        subtitle="Q3 Fix the pilot light"
+        onPillClick={onPillClick}
+        pillActionLabel="Turns: Water heater"
         onMenuClick={jest.fn()}
       />
     );
 
+    const pill = screen.getByRole('button', { name: 'Turns: Water heater' });
+    expect(pill).toHaveAttribute('aria-haspopup', 'dialog');
+    expect(pill).toHaveAttribute('aria-expanded', 'false');
+    expect(pill).toContainElement(screen.getByTestId('mobile-header-title'));
+    const subtitle = screen.getByTestId('mobile-header-subtitle');
+    expect(subtitle.lastElementChild).toHaveClass('chevron');
+    expect(
+      screen.getByTestId('mobile-header-title').parentElement
+    ).not.toContainElement(subtitle.lastElementChild as HTMLElement);
+
     fireEvent.click(screen.getByTestId('mobile-header-subtitle'));
-    expect(onSubtitleClick).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByTestId('mobile-header-title'));
+    expect(onPillClick).toHaveBeenCalledTimes(2);
+  });
+
+  test('without a subtitle the chevron follows the title', () => {
+    render(
+      <MobileHeader
+        title="Water heater"
+        onPillClick={jest.fn()}
+        onMenuClick={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.getByTestId('mobile-header-title').nextElementSibling
+    ).toHaveClass('chevron');
   });
 
   test('renders a plain subtitle when there is no click handler', () => {
@@ -95,49 +121,35 @@ describe('MobileHeader', () => {
     expect(onShare).not.toHaveBeenCalled();
   });
 
-  test('a tappable title fires onTitleClick, apart from the subtitle', () => {
-    const onTitleClick = jest.fn();
-    const onSubtitleClick = jest.fn();
-    render(
-      <MobileHeader
-        title="Water heater"
-        subtitle="Coding Buddy"
-        onTitleClick={onTitleClick}
-        titleActionLabel="Outline: Water heater"
-        onSubtitleClick={onSubtitleClick}
-        onMenuClick={jest.fn()}
-      />
-    );
-
-    const title = screen.getByRole('button', { name: 'Outline: Water heater' });
-    expect(title).toHaveAttribute('aria-haspopup', 'dialog');
-    expect(title).toHaveAttribute('aria-expanded', 'false');
-    expect(title).toHaveTextContent('Water heater');
-    fireEvent.click(title);
-    expect(onTitleClick).toHaveBeenCalledTimes(1);
-    expect(onSubtitleClick).not.toHaveBeenCalled();
-  });
-
-  test('titleExpanded marks the title expanded and turns its chevron up', () => {
+  test('pillExpanded marks the pill expanded and turns its chevron up', () => {
     const { container } = render(
       <MobileHeader
         title="Water heater"
-        onTitleClick={jest.fn()}
-        titleExpanded
+        subtitle="Q1 Fix the pilot light"
+        onPillClick={jest.fn()}
+        pillExpanded
         onMenuClick={jest.fn()}
       />
     );
 
-    expect(screen.getByTestId('mobile-header-title')).toHaveAttribute(
+    expect(screen.getByTestId('mobile-header-pill')).toHaveAttribute(
       'aria-expanded',
       'true'
     );
-    expect(container.querySelector('.titleChevronUp')).toBeInTheDocument();
+    expect(container.querySelector('.chevronUp')).toBeInTheDocument();
   });
 
-  test('the title is plain text without a click handler', () => {
-    render(<MobileHeader title="My Chat" onMenuClick={jest.fn()} />);
-    expect(screen.queryByTestId('mobile-header-title')).not.toBeInTheDocument();
+  test('without a click handler the pill is plain text, with no chevron', () => {
+    const { container } = render(
+      <MobileHeader
+        title="My Chat"
+        subtitle="In Trips"
+        onMenuClick={jest.fn()}
+      />
+    );
+    expect(screen.queryByTestId('mobile-header-pill')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'My Chat' })).toBeNull();
+    expect(container.querySelector('.chevron')).not.toBeInTheDocument();
   });
 
   test('hides the kebab when there are no menu items', () => {

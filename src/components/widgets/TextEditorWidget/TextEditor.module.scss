@@ -391,6 +391,12 @@ $editor-width: 75rem;
   }
 }
 
+// The phone composer keeps the docked editor's text size
+.container.composer.compact .mdxEditorRoot :global(.cm-content) {
+  font-size: 1.5rem;
+  line-height: 2.1rem;
+}
+
 /* Disable line numbers and enforce word wrap in CodeMirror editor */
 :global(.cm-gutters) {
   display: none !important;

@@ -24,8 +24,8 @@ export const Default: Story = {
 export const WithSubtitleAndActions: Story = {
   args: {
     title: 'Trip planning',
-    subtitle: '🧭 Travel Guide',
-    onSubtitleClick: () => {},
+    subtitle: 'Q2 Add a day trip to Nara  2 / 4',
+    onPillClick: () => {},
     onMenuClick: () => {},
     menuItems: [
       { label: 'New Chat', onClick: () => {} },
@@ -39,8 +39,8 @@ export const LongTitle: Story = {
   args: {
     title:
       'A very long conversation title that should truncate gracefully inside the center pill',
-    subtitle: 'An equally long instruction persona name that also truncates',
-    onSubtitleClick: () => {},
+    subtitle: 'An equally long turn prompt that also truncates in the pill',
+    onPillClick: () => {},
     onMenuClick: () => {},
     menuItems: [{ label: 'New Chat', onClick: () => {} }],
   },

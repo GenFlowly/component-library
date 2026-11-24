@@ -729,8 +729,9 @@ function Request({
   ) : null;
 
   if (isNarrow) {
-    // 📱 A follow-up editor rests small whenever it isn't focused, showing a
-    // draft's first line; it takes its full docked size while focused
+    // 📱 One rounded box docked at the bottom: as tall as its text, its
+    // controls in a row under it. A follow-up editor nobody is using shows
+    // one line, the draft's first.
     const isIdleFollowUp = isFollowUpBlock && !isFocused;
     return (
       <div
@@ -747,50 +748,58 @@ function Request({
           onFocus={() => setFocused(true)}
           onBlur={handleComposerBlur}
         >
-          <TextEditor
-            ref={editorHandleRef}
-            id={blockId}
-            value={draftPrompt}
-            onChange={handleEditorChange}
-            height="100%"
-            className={styles.textEditorFullscreen}
-            compact
-            placeholder={placeholder}
-            data-testid="text-editor"
-          />
-
-          {/* Compact icon-only generate button floating inside the editor's
-              bottom-right corner */}
-          <button
-            className={styles.mobileGenerateButton}
-            onClick={handleGenerate}
-            disabled={!canGenerate}
-            aria-label={t('conversation.request.generate')}
-            data-testid="generate-button"
+          <div
+            className={`${styles.phoneBox} ${isFocused ? styles.composerFocused : ''}`}
+            onMouseDown={handleComposerMouseDown}
+            data-testid="composer-box"
           >
-            <Icon src={ICONS.SEND} size={22} />
-          </button>
+            <TextEditor
+              ref={editorHandleRef}
+              id={blockId}
+              value={draftPrompt}
+              onChange={handleEditorChange}
+              height="auto"
+              variant="composer"
+              compact
+              placeholder={placeholder}
+              className={styles.phoneText}
+              data-testid="text-editor"
+            />
 
-          {fileInput}
+            <AttachmentPreviewStrip
+              attachments={pendingAttachments}
+              onRemove={removeAttachment}
+            />
 
-          {uploadAttachment && (
-            // Attachment picker to the LEFT of the generate button — this
-            // layout has no paste path, so it's the only way to attach a
-            // file (image or PDF) here.
-            <button
-              className={styles.mobileAttachmentButton}
-              onClick={() => attachmentInputRef.current?.click()}
-              aria-label={t('conversation.request.addAttachment')}
-              data-testid="attachment-button"
-            >
-              <Icon src={ICONS.ATTACHMENT} size={22} />
-            </button>
-          )}
+            <div className={styles.phoneBar}>
+              {composerControls}
+              <span className={styles.composerSpacer} />
+              {uploadAttachment && (
+                // The only way to attach here: phones have no paste path
+                <button
+                  type="button"
+                  className={styles.phoneRoundButton}
+                  onClick={() => attachmentInputRef.current?.click()}
+                  aria-label={t('conversation.request.addAttachment')}
+                  data-testid="attachment-button"
+                >
+                  <Icon src={ICONS.ATTACHMENT} size={20} />
+                </button>
+              )}
+              <button
+                type="button"
+                className={styles.phoneSendButton}
+                onClick={handleGenerate}
+                disabled={!canGenerate}
+                aria-label={t('conversation.request.generate')}
+                data-testid="generate-button"
+              >
+                <Icon src={ICONS.SEND} size={20} />
+              </button>
+            </div>
 
-          <AttachmentPreviewStrip
-            attachments={pendingAttachments}
-            onRemove={removeAttachment}
-          />
+            {fileInput}
+          </div>
         </div>
       </div>
     );
