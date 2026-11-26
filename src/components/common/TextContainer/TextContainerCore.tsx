@@ -357,6 +357,8 @@ const MARKDOWN_COMPONENTS = {
   table: MarkdownTable,
 };
 
+const ESCAPED_CITATION = /^\d{1,3}$/;
+
 /**
  * LLMs emit TeX-style math delimiters — \[...\] for display math and
  * \(...\) for inline — but remark-math only parses the dollar forms, so
@@ -364,7 +366,9 @@ const MARKDOWN_COMPONENTS = {
  * double-dollar form (block $$ fences for display, $$…$$ for inline)
  * because single-dollar parsing is disabled in REMARK_PLUGINS — currency
  * amounts would trigger it. Convert everywhere EXCEPT inside code fences
- * and inline code spans, which must stay byte-for-byte intact.
+ * and inline code spans, which must stay byte-for-byte intact. A bare
+ * number in \[...\] is a citation marker with its brackets escaped
+ * (markdown for a literal "[6]"), not a formula, and stays as written.
  */
 export function normalizeMathDelimiters(markdown: string): string {
   return markdown
@@ -372,9 +376,10 @@ export function normalizeMathDelimiters(markdown: string): string {
     .map(segment => {
       if (segment.startsWith('`')) return segment;
       return segment
-        .replace(
-          /\\\[([\s\S]+?)\\\]/g,
-          (_m, expr) => `\n$$\n${expr.trim()}\n$$\n`
+        .replace(/\\\[([\s\S]+?)\\\]/g, (match, expr) =>
+          ESCAPED_CITATION.test(expr.trim())
+            ? match
+            : `\n$$\n${expr.trim()}\n$$\n`
         )
         .replace(/\\\((.+?)\\\)/g, (_m, expr) => `$$${expr.trim()}$$`);
     })

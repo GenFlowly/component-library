@@ -40,6 +40,12 @@ describe('linkifyCitations', () => {
     );
   });
 
+  test('links markers written with escaped brackets, as plain markers', () => {
+    expect(
+      linkifyCitations('Growth: **300 req/min** \\[2\\] and \\[7\\].', sources)
+    ).toBe('Growth: **300 req/min** [[2]](https://two.example/b) and \\[7\\].');
+  });
+
   test('changes nothing without sources', () => {
     expect(linkifyCitations('A [1].', null)).toBe('A [1].');
     expect(linkifyCitations('A [1].', [])).toBe('A [1].');
@@ -52,6 +58,10 @@ describe('countCitations', () => {
     expect(counts.get(1)).toBe(3);
     expect(counts.get(2)).toBe(1);
     expect(counts.has(3)).toBe(false);
+  });
+
+  test('counts escaped markers too', () => {
+    expect(countCitations('a \\[1\\] b [1] c \\[2\\]').get(1)).toBe(2);
   });
 });
 

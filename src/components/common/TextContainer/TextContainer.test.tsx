@@ -249,6 +249,15 @@ describe('TextContainer Internals', () => {
       expect(out).not.toContain('\\[');
     });
 
+    test('leaves a citation marker with escaped brackets as text, not a formula', () => {
+      // Real prod answer: a model escaped its citations, which read as display math
+      const line = '- Growth: **300 req/min** \\[6\\]\n\n### Next';
+      expect(normalizeMathDelimiters(line)).toBe(line);
+      expect(normalizeMathDelimiters('x \\[ 2 + 2 \\]')).toContain(
+        '$$\n2 + 2\n$$'
+      );
+    });
+
     test('converts TeX inline math to double dollars (single-dollar math is disabled)', () => {
       expect(normalizeMathDelimiters('where \\( x^2 \\) grows')).toBe(
         'where $$x^2$$ grows'

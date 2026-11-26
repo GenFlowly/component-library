@@ -1,7 +1,8 @@
 import type { Element, ElementContent, Root, Text } from 'hast';
 import type { WebSource } from '../../widgets/ConversationWidget/conversation.models';
 
-const MARKER = /\[(\d{1,3})\](?!\()/g;
+// A marker may come with its brackets escaped, \[6\] (markdown for a literal "[6]")
+const MARKER = /\\?\[(\d{1,3})\\?\](?!\()/g;
 const MARKER_TEXT = /^\[(\d{1,3})\]$/;
 
 /** More chips than this in one run show as this many less one, then "+N". */
@@ -22,7 +23,7 @@ export function linkifyCitations(
   const byIndex = new Map(webSources.map(s => [s.index, s.url]));
   return text.replace(MARKER, (marker, n) => {
     const url = byIndex.get(Number(n));
-    return url ? `[${marker}](${url})` : marker;
+    return url ? `[[${n}]](${url})` : marker;
   });
 }
 
