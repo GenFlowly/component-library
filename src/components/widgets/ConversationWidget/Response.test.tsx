@@ -542,6 +542,8 @@ describe('Response Widget Component', () => {
         clientHeight: { value: 600, configurable: true },
         scrollTo: { value: scrollTo, configurable: true },
       });
+      scroller.getBoundingClientRect = () =>
+        ({ top: 0, bottom: 600 }) as DOMRect;
       const row = screen.getByTestId('response-row');
       Object.defineProperty(row, 'offsetHeight', {
         get: () => rowHeight.current,
@@ -574,30 +576,50 @@ describe('Response Widget Component', () => {
       expect(scrollTo).not.toHaveBeenCalled();
     });
 
-    test('starts a shorter response from its top when the viewport was inside the row', () => {
-      const rowHeight = { current: 14000 };
-      const scrollTo = setup(12000, rowHeight);
-
-      switchTo(rowHeight, 2000);
-
-      expect(scrollTo).toHaveBeenCalledWith({ top: 400, behavior: 'smooth' });
-    });
-
-    test('starts a longer response from its top when the viewport was inside the row', () => {
+    test('keeps the reading position inside the row in a longer response', () => {
       const rowHeight = { current: 8000 };
       const scrollTo = setup(7500, rowHeight);
 
       switchTo(rowHeight, 14000);
 
-      expect(scrollTo).toHaveBeenCalledWith({ top: 400, behavior: 'smooth' });
+      expect(scrollTo).not.toHaveBeenCalled();
     });
 
-    test('lands the row its scroll margin below the top of the view', () => {
+    test('keeps the reading position in a shorter response that still fills the view', () => {
+      const rowHeight = { current: 14000 };
+      const scrollTo = setup(1000, rowHeight);
+
+      switchTo(rowHeight, 2000);
+
+      expect(scrollTo).not.toHaveBeenCalled();
+    });
+
+    test('keeps the reading position when a shorter response still fills most of the view', () => {
+      const rowHeight = { current: 14000 };
+      const scrollTo = setup(1900, rowHeight);
+
+      switchTo(rowHeight, 2000);
+
+      // Row 400-2400 now: it ends 500px into the 600px view
+      expect(scrollTo).not.toHaveBeenCalled();
+    });
+
+    test('brings up the end of a shorter response the view would be past', () => {
+      const rowHeight = { current: 14000 };
+      const scrollTo = setup(12000, rowHeight);
+
+      switchTo(rowHeight, 2000);
+
+      // Row 400-2400 now: its end at the bottom of the 600px view
+      expect(scrollTo).toHaveBeenCalledWith({ top: 1800, behavior: 'smooth' });
+    });
+
+    test('shows all of a response shorter than the view, its scroll margin below the top', () => {
       const rowHeight = { current: 14000 };
       const scrollTo = setup(12000, rowHeight);
       screen.getByTestId('response-row').style.scrollMarginTop = '56px';
 
-      switchTo(rowHeight, 2000);
+      switchTo(rowHeight, 300);
 
       expect(scrollTo).toHaveBeenCalledWith({ top: 344, behavior: 'smooth' });
     });

@@ -38,17 +38,75 @@ describe('ActivityPanel', () => {
     expect(header()).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('stays open for the whole live turn and folds once when it ends', () => {
+  it('stays open while the agent thinks and folds once the answer streams', () => {
+    const upTo = (type: string, id: string) =>
+      completedEvents.slice(
+        0,
+        completedEvents.findIndex(
+          e => e.type === type && 'id' in e && e.id === id
+        ) + 1
+      );
     const { rerender } = render(
       <ActivityPanel events={liveEvents.slice(0, 6)} isLive />
     );
     expect(header()).toHaveAttribute('aria-expanded', 'true');
-    // New events, a preamble streaming into the answer and its reset all leave
-    // the panel alone: only the turn ending folds it.
-    rerender(<ActivityPanel events={liveEvents.slice(0, 10)} isLive />);
+    expect(screen.getByTestId('activity-panel')).toHaveAttribute(
+      'data-thinking',
+      'true'
+    );
+    // A round's preamble streams like an answer until its tool call starts
+    rerender(
+      <ActivityPanel events={upTo('step.progress', 'NODAGENT001:1')} isLive />
+    );
     rerender(<ActivityPanel events={liveEvents} isLive />);
     expect(header()).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByTestId('activity-story')).toBeInTheDocument();
+
+    // The answer: open through its first sentence, folded once it is more
+    rerender(
+      <ActivityPanel events={upTo('step.progress', 'NODAGENT001:3')} isLive />
+    );
+    expect(header()).toHaveAttribute('aria-expanded', 'true');
+    rerender(
+      <ActivityPanel events={upTo('step.writing', 'NODAGENT001:3')} isLive />
+    );
+    expect(header()).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByTestId('activity-panel')).not.toHaveAttribute(
+      'data-thinking'
+    );
+    expect(header()).toHaveTextContent('Thinking');
+
+    // The log ends a moment before the stream closes: still folded
+    rerender(<ActivityPanel events={completedEvents} isLive />);
+    expect(header()).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByTestId('activity-panel')).not.toHaveAttribute(
+      'data-thinking'
+    );
+  });
+
+  it('opens again when the agent goes back to tools after writing', () => {
+    const writing = completedEvents.slice(
+      0,
+      completedEvents.findIndex(e => e.type === 'step.writing') + 1
+    );
+    const { rerender } = render(<ActivityPanel events={writing} isLive />);
+    expect(header()).toHaveAttribute('aria-expanded', 'false');
+
+    rerender(
+      <ActivityPanel
+        events={[
+          ...writing,
+          { v: 2, at: 21500, type: 'step.calling', id: 'NODAGENT001:3' },
+        ]}
+        isLive
+      />
+    );
+    expect(header()).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('folds once when the turn ends', () => {
+    const { rerender } = render(<ActivityPanel events={liveEvents} isLive />);
+    expect(header()).toHaveAttribute('aria-expanded', 'true');
 
     rerender(
       <ActivityPanel

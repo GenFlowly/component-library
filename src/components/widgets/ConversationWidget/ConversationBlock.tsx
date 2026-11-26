@@ -9,6 +9,7 @@ import Response from './Response';
 import Request from './Request';
 import ChatReadingWidthContainer from '../../common/DesktopOptimalReadingWidthContainer/ChatReadingWidthContainer';
 import { landOnElement } from './landOnElement';
+import { usableViewBottom } from './usableViewBottom';
 import {
   useConversation,
   useConversationAuth,
@@ -19,6 +20,71 @@ import styles from './ConversationBlock.module.scss';
  * its place: a streaming answer must not scroll it away. */
 function isWritingAtTop(): boolean {
   return !!document.activeElement?.closest('[data-composer-sticky="false"]');
+}
+
+// Room kept between a followed activity panel's end and the view's bottom
+const FOLLOW_GAP_PX = 16;
+
+interface ActivityFollow {
+  /** The user scrolled the panel's end out of view. */
+  paused: boolean;
+  /** The panels that were thinking at the last look. */
+  thinking: HTMLElement[];
+}
+
+/** The response's activity panels whose agent is thinking, leaving out a
+ * swipe's incoming neighbour. */
+function thinkingPanels(response: HTMLElement): HTMLElement[] {
+  return Array.from(
+    response.querySelectorAll<HTMLElement>(
+      '[data-testid="activity-panel"][data-thinking]'
+    )
+  ).filter(panel => !panel.closest('[aria-hidden="true"]'));
+}
+
+/** How far the thinking panels' end sits below the usable view: above the
+ * trailing editor stuck to its bottom. Zero or less when it is in view. */
+function liveEndOverflow(response: HTMLElement, scroller: HTMLElement): number {
+  const panels = thinkingPanels(response);
+  if (panels.length === 0) return 0;
+  const end = Math.max(...panels.map(p => p.getBoundingClientRect().bottom));
+  const block = response.closest('.conversation-block-item');
+  return end + FOLLOW_GAP_PX - usableViewBottom(scroller, block);
+}
+
+/**
+ * While the agent thinks, the view keeps the end of its activity panel in
+ * sight, so the steps it adds stay visible. Once it stops (the answer
+ * streams, or the turn ends) and the panel folds, a view that had moved past
+ * the response's top goes back to it. A user who scrolled the panel's end out
+ * of view is left where they are, and so is one who switched to another
+ * vendor's response: its panel leaving the page is not the agent stopping.
+ */
+function followLiveActivity(
+  response: HTMLElement,
+  scroller: HTMLElement,
+  follow: ActivityFollow
+) {
+  const thinking = thinkingPanels(response);
+  if (thinking.length > 0) {
+    follow.thinking = thinking;
+    const overflow = liveEndOverflow(response, scroller);
+    if (!follow.paused && overflow > 0) scroller.scrollTop += overflow;
+    return;
+  }
+  const stopped = follow.thinking.some(
+    panel => response.contains(panel) && !panel.closest('[aria-hidden="true"]')
+  );
+  follow.thinking = [];
+  if (!stopped || follow.paused) return;
+  const row =
+    response.querySelector<HTMLElement>('[data-testid="response-row"]') ??
+    response;
+  const margin = parseFloat(getComputedStyle(row).scrollMarginTop) || 0;
+  const rowTop = row.getBoundingClientRect().top - margin;
+  if (rowTop < scroller.getBoundingClientRect().top - 0.5) {
+    row.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 // Memoized: the block list parent re-renders on unrelated layout/context
@@ -58,23 +124,7 @@ function ConversationBlock({
   // re-trigger that jump (it would yank the viewport back up to the prompt
   // above it — most visible on short/mobile viewports).
   const hasScrolledRef = useRef(false);
-  const isAutoScrollPausedRef = useRef(false);
-  // Gates the sticky-bottom-follow below. Unlike hasScrolledRef, this DOES
-  // reset every generation, but only arms after a short delay — otherwise a
-  // regenerate's immediate collapse to a short "thinking" placeholder would
-  // itself snap the viewport up to the placeholder's much-higher end point.
-  const isFollowArmedRef = useRef(false);
-
-  useEffect(() => {
-    if (!conversationBlock?.isLoading) return undefined;
-
-    isAutoScrollPausedRef.current = false;
-    isFollowArmedRef.current = false;
-    const armTimer = setTimeout(() => {
-      isFollowArmedRef.current = true;
-    }, 100);
-    return () => clearTimeout(armTimer);
-  }, [conversationBlock?.isLoading]);
+  const followRef = useRef<ActivityFollow>({ paused: false, thinking: [] });
 
   // A finished block appearing means a conversation is being opened. Only its
   // latest response takes the jump: the text renders lazily, so the page keeps
@@ -120,21 +170,24 @@ function ConversationBlock({
     isLastResponseBlock,
   ]);
 
-  // The view doesn't follow a streaming answer: it grows down from the prompt
-  // at the top. Only a follow-up being written at the top of the view is
-  // held there, so the answer growing above it doesn't push it down.
+  // The view follows the agent's thinking, not the answer: the answer grows
+  // down from the response's top. A follow-up being written at the top of
+  // the view is held there instead, so the turn growing above it doesn't
+  // push it down.
   useEffect(() => {
-    if (
-      conversationBlock?.isLoading &&
-      responseRef.current &&
-      isFollowArmedRef.current &&
-      !isAutoScrollPausedRef.current
-    ) {
+    const response = responseRef.current;
+    if (!response) return;
+    if (conversationBlock?.isLoading && isWritingAtTop()) {
       const writing = document.activeElement?.closest<HTMLElement>(
         '[data-composer-sticky="false"]'
       );
       writing?.scrollIntoView({ block: 'start' });
+      return;
     }
+    const scroller = response.closest<HTMLElement>(
+      '[data-testid="center-section-scroll"]'
+    );
+    if (scroller) followLiveActivity(response, scroller, followRef.current);
   }, [conversationBlock?.responseMessages, conversationBlock?.isLoading]);
 
   // A turn held at the top keeps a view of height from its top edge to the
@@ -175,56 +228,53 @@ function ConversationBlock({
     };
   }, [holdsTop, blockCount]);
 
-  // Detect user scroll to pause/resume auto-scroll
+  // While generating, the panel growing (a new step, a ticking query) moves
+  // the follow, and the user's own scrolling stops or resumes it: wheeling
+  // up or dragging the panel's end out of view stops it, bringing the end
+  // back into view resumes it. A tap or a sideways swipe scrolls nothing,
+  // so it changes nothing.
   useEffect(() => {
-    if (!conversationBlock?.isLoading || !responseRef.current) return;
-
-    const scrollElement = responseRef.current.closest(
-      '[data-testid*="center-section"]'
+    const response = responseRef.current;
+    const scroller = response?.closest<HTMLElement>(
+      '[data-testid="center-section-scroll"]'
     );
-    const scrollContainer = scrollElement || window;
-
+    if (!conversationBlock?.isLoading || !response || !scroller) {
+      return undefined;
+    }
+    const follow = followRef.current;
+    follow.paused = false;
+    let touching = false;
     const handleWheel = (e: WheelEvent) => {
-      if (e.deltaY < 0) {
-        // User scrolled up
-        isAutoScrollPausedRef.current = true;
-      }
+      if (e.deltaY < 0) follow.paused = true;
     };
-
-    const handleTouchStart = () => {
-      // Pause on touch interactions to allow manual drag
-      isAutoScrollPausedRef.current = true;
+    const handleTouch = (e: TouchEvent) => {
+      touching = e.type === 'touchstart';
     };
-
     const handleScroll = () => {
-      // Resume if user scrolls to the bottom of the container naturally
-      const container = scrollElement
-        ? (scrollElement as HTMLElement)
-        : document.documentElement;
-      const isNearBottom =
-        container.scrollHeight - container.scrollTop - container.clientHeight <
-        50;
-
-      if (isNearBottom) {
-        isAutoScrollPausedRef.current = false;
-      }
+      const endInView = liveEndOverflow(response, scroller) <= 0;
+      if (endInView) follow.paused = false;
+      else if (touching) follow.paused = true;
     };
-
-    scrollContainer.addEventListener('wheel', handleWheel as EventListener, {
-      passive: true,
-    });
-    scrollContainer.addEventListener('touchstart', handleTouchStart, {
-      passive: true,
-    });
-    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-
+    const observer =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => {
+            if (!isWritingAtTop())
+              followLiveActivity(response, scroller, follow);
+          })
+        : null;
+    observer?.observe(response);
+    scroller.addEventListener('wheel', handleWheel, { passive: true });
+    scroller.addEventListener('touchstart', handleTouch, { passive: true });
+    scroller.addEventListener('touchend', handleTouch, { passive: true });
+    scroller.addEventListener('touchcancel', handleTouch, { passive: true });
+    scroller.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
-      scrollContainer.removeEventListener(
-        'wheel',
-        handleWheel as EventListener
-      );
-      scrollContainer.removeEventListener('touchstart', handleTouchStart);
-      scrollContainer.removeEventListener('scroll', handleScroll);
+      observer?.disconnect();
+      scroller.removeEventListener('wheel', handleWheel);
+      scroller.removeEventListener('touchstart', handleTouch);
+      scroller.removeEventListener('touchend', handleTouch);
+      scroller.removeEventListener('touchcancel', handleTouch);
+      scroller.removeEventListener('scroll', handleScroll);
     };
   }, [conversationBlock?.isLoading]);
 

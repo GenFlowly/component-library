@@ -191,6 +191,44 @@ describe('reduceActivity — live mid-turn', () => {
   });
 });
 
+describe('reduceActivity — when the answer starts', () => {
+  const events = completed.events as ActivityEvent[];
+  /** The completed turn's log up to and including the first matching event. */
+  const upTo = (type: string, id: string) =>
+    events.slice(
+      0,
+      events.findIndex(e => e.type === type && 'id' in e && e.id === id) + 1
+    );
+  const answering = (log: ActivityEvent[]) =>
+    reduceActivity(log, { isLive: true }).answering;
+
+  it("takes the step for the answer once it writes more than a preamble's worth", () => {
+    expect(answering(upTo('step.progress', 'NODAGENT001:3'))).toBe(false);
+    expect(answering(upTo('step.writing', 'NODAGENT001:3'))).toBe(true);
+  });
+
+  it('never takes a preamble followed by a tool call for the answer', () => {
+    expect(answering(upTo('step.progress', 'NODAGENT001:1'))).toBe(false);
+    expect(answering(upTo('step.calling', 'NODAGENT001:1'))).toBe(false);
+    const longPreamble: ActivityEvent[] = [
+      ...upTo('step.writing', 'NODAGENT001:3'),
+      { v: 2, at: 21500, type: 'step.calling', id: 'NODAGENT001:3' },
+    ];
+    expect(answering(longPreamble)).toBe(false);
+  });
+
+  it('is the answer once the answer step ends, however short it was', () => {
+    expect(answering(upTo('step.end', 'NODAGENT001:3'))).toBe(true);
+  });
+
+  it('is thinking while a later step runs, and never once the log says the turn is over', () => {
+    expect(answering(live.events as ActivityEvent[])).toBe(false);
+    const ended = reduceActivity(events, { isLive: true });
+    expect(ended.status).toBe('done');
+    expect(ended.answering).toBe(false);
+  });
+});
+
 describe('reduceActivity — budget modes', () => {
   const view = reduce(denied as Fixture);
 

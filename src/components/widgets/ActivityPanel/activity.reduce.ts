@@ -150,6 +150,8 @@ export interface ActivityView {
   evidence: ActivityEvidenceGroup[];
   developer: ActivityDeveloperEntry[];
   current?: ActivityCurrent;
+  /** The answer is streaming, so the agent is done thinking (live only). */
+  answering: boolean;
 }
 
 export interface ReduceOptions {
@@ -169,6 +171,10 @@ interface StepRecord {
   name: string;
   startAt: number | null;
   firstTokenMs?: number;
+  /** The step began writing a tool call (`step.calling`). */
+  calling?: boolean;
+  /** The step wrote more than a preamble's worth of text (`step.writing`). */
+  writing?: boolean;
   end?: StepEndEvent;
   liveCalls: Map<string, ActivityToolCall>;
 }
@@ -177,6 +183,8 @@ const KNOWN_TYPES = new Set([
   'turn.start',
   'step.start',
   'step.progress',
+  'step.calling',
+  'step.writing',
   'step.call',
   'step.end',
   'turn.end',
@@ -281,6 +289,16 @@ export function reduceActivity(
       case 'step.progress': {
         const step = byId.get(event.id);
         if (step) step.firstTokenMs = event.first_token_ms;
+        break;
+      }
+      case 'step.calling': {
+        const step = byId.get(event.id);
+        if (step) step.calling = true;
+        break;
+      }
+      case 'step.writing': {
+        const step = byId.get(event.id);
+        if (step) step.writing = true;
         break;
       }
       case 'step.call': {
@@ -667,7 +685,20 @@ export function reduceActivity(
     developer,
     current:
       status === 'live' ? currentOf(steps, stepStatus, callsOf) : undefined,
+    answering: status === 'live' && isAnswering(steps, finalAnswer),
   };
+}
+
+/**
+ * The newest step is the answer: an llm step past a preamble's worth of text
+ * with no tool call (`step.writing`, never `step.calling`), or the answer step
+ * that just ended.
+ */
+function isAnswering(steps: StepRecord[], finalAnswer?: StepRecord): boolean {
+  const latest = steps[steps.length - 1];
+  if (!latest || latest.kind !== 'llm') return false;
+  if (latest.end) return latest === finalAnswer;
+  return !!latest.writing && !latest.calling;
 }
 
 const PHASE_ORDER: ActivityPhaseId[] = [

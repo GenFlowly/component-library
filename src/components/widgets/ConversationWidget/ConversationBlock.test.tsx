@@ -27,9 +27,21 @@ jest.mock('./Request', () => ({
 jest.mock('./Response', () => ({
   __esModule: true,
   default: (props: any) => {
-    const { blockId, onFollowUp, disabled, isLastResponseBlock } = props;
+    const {
+      blockId,
+      onFollowUp,
+      disabled,
+      isLastResponseBlock,
+      responseMessages,
+    } = props;
     return (
       <div data-testid={`mock-response-${blockId}`}>
+        <div data-testid="response-row">
+          <section
+            data-testid="activity-panel"
+            data-thinking={responseMessages?.[0]?.thinking || undefined}
+          />
+        </div>
         <button
           data-testid={`followup-${blockId}`}
           onClick={() => onFollowUp('msg-1')}
@@ -330,14 +342,14 @@ describe('ConversationBlock Component', () => {
 
     const renderTurn = (blocks: object[], testId = 'turn') => {
       mockUseConversation.mockReturnValue(conversation(blocks));
-      const result = render(
+      const view = render(
         <ConversationBlock id="block-1" data-testid={testId} />,
         {
           container: host,
         }
       );
       host.appendChild(editor);
-      return result;
+      return view;
     };
 
     test('goes to the top of the view: the prompt, not the response', () => {
@@ -375,6 +387,146 @@ describe('ConversationBlock Component', () => {
       });
 
       expect(mockScrollIntoView).not.toHaveBeenCalled();
+    });
+
+    describe('while the agent thinks', () => {
+      const thinking = (isThinking: boolean, text = '') => ({
+        ...generating(text),
+        responseMessages: [{ id: 'msg-1', text, thinking: isThinking }],
+      });
+      // The view shows 0-800 with the editor over its bottom from 680, so a
+      // followed panel's end stops at 664 (16px above the editor).
+      let scrollTop: number;
+      const layout = (panelBottom: number, rowTop = 100) => {
+        scroller.getBoundingClientRect = () =>
+          ({ top: 0, bottom: 800 }) as DOMRect;
+        editor.getBoundingClientRect = () => ({ top: 680 }) as DOMRect;
+        screen.getByTestId('activity-panel').getBoundingClientRect = () =>
+          ({ bottom: panelBottom }) as DOMRect;
+        screen.getByTestId('response-row').getBoundingClientRect = () =>
+          ({ top: rowTop }) as DOMRect;
+      };
+      beforeEach(() => {
+        scrollTop = 0;
+        Object.defineProperty(scroller, 'scrollTop', {
+          get: () => scrollTop,
+          set: (value: number) => {
+            scrollTop = value;
+          },
+          configurable: true,
+        });
+      });
+      const update = (
+        rerender: (ui: React.ReactElement) => void,
+        block: object,
+        testId: string
+      ) => {
+        mockUseConversation.mockReturnValue(
+          conversation([block, trailingDraft])
+        );
+        rerender(<ConversationBlock id="block-1" data-testid={testId} />);
+      };
+      const start = () => {
+        const { rerender } = renderTurn([thinking(true), trailingDraft]);
+        act(() => {
+          jest.advanceTimersByTime(200);
+        });
+        // JSDOM laid nothing out for that first look
+        scrollTop = 0;
+        mockScrollIntoView.mockClear();
+        return rerender;
+      };
+
+      test('keeps the end of its panel in view as the panel grows past the bottom', () => {
+        const rerender = start();
+        layout(600);
+        update(rerender, thinking(true, ' '), 'a');
+        expect(scrollTop).toBe(0);
+
+        layout(900);
+        update(rerender, thinking(true, '  '), 'b');
+        expect(scrollTop).toBe(236);
+      });
+
+      test('stops following once the user scrolls up, resumes when the end is back in view', () => {
+        const rerender = start();
+        layout(600);
+        update(rerender, thinking(true, ' '), 'a');
+        act(() => {
+          scroller.dispatchEvent(new WheelEvent('wheel', { deltaY: -40 }));
+        });
+        layout(900);
+        update(rerender, thinking(true, '  '), 'b');
+        expect(scrollTop).toBe(0);
+
+        layout(650);
+        act(() => {
+          scroller.dispatchEvent(new Event('scroll'));
+        });
+        layout(950);
+        update(rerender, thinking(true, '   '), 'c');
+        expect(scrollTop).toBe(286);
+      });
+
+      test('a tap or a sideways swipe does not stop the follow', () => {
+        const rerender = start();
+        layout(600);
+        update(rerender, thinking(true, ' '), 'a');
+        act(() => {
+          scroller.dispatchEvent(new Event('touchstart'));
+          scroller.dispatchEvent(new Event('touchend'));
+        });
+        layout(900);
+        update(rerender, thinking(true, '  '), 'b');
+        expect(scrollTop).toBe(236);
+      });
+
+      test("goes back to the response's top once the agent stops thinking", () => {
+        const rerender = start();
+        layout(900, -300);
+        update(rerender, thinking(false, 'The answer'), 'answer');
+
+        expect(mockScrollIntoView).toHaveBeenCalledTimes(1);
+        expect(mockScrollIntoView.mock.contexts[0]).toBe(
+          screen.getByTestId('response-row')
+        );
+        expect(mockScrollIntoView).toHaveBeenCalledWith({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      });
+
+      test("stays put when the response's top is still in view", () => {
+        const rerender = start();
+        layout(600, 100);
+        update(rerender, thinking(false, 'The answer'), 'answer');
+
+        expect(mockScrollIntoView).not.toHaveBeenCalled();
+      });
+
+      test("a switch to another vendor's response is not the agent stopping", () => {
+        const rerender = start();
+        layout(900, -300);
+        update(rerender, thinking(true, ' '), 'a');
+        // The thinking card is swapped for a vendor whose agent is answering
+        const panel = screen.getByTestId('activity-panel');
+        panel.remove();
+        update(rerender, thinking(false, 'The answer'), 'answer');
+
+        expect(mockScrollIntoView).not.toHaveBeenCalled();
+      });
+
+      test('leaves a user who scrolled away where they are', () => {
+        const rerender = start();
+        layout(900, -300);
+        update(rerender, thinking(true, ' '), 'a');
+        act(() => {
+          scroller.dispatchEvent(new WheelEvent('wheel', { deltaY: -40 }));
+        });
+        update(rerender, thinking(false, 'The answer'), 'answer');
+
+        expect(mockScrollIntoView).not.toHaveBeenCalled();
+      });
     });
 
     test('reserves the view down to the editor until a newer turn takes the top', () => {

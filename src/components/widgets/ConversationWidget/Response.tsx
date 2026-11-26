@@ -37,6 +37,7 @@ import { ToggleOption } from '../../common/PillButtonGroup/PillButtonGroup';
 import CheckboxButtonGroup from '../../common/PillButtonGroup/CheckboxButtonGroup';
 import { useResponseSwipe } from './useResponseSwipe';
 import ResponseSwipeLabel from './ResponseSwipeLabel';
+import { usableViewBottom } from './usableViewBottom';
 
 // Raw vendor finish reasons grouped by how they should read to the user. A
 // refusal/block means "no (or partial) answer, here's why"; a length cap means
@@ -645,16 +646,21 @@ function Response({
         return;
       }
 
-      // A viewport top above the row is left alone: content above it (the
-      // toggle the user just tapped) didn't move. One inside the row starts
-      // the new response from its top, since the old reading position means
-      // nothing in a different response and a shorter one would leave the
-      // view blank below its end. One past the row shifts up by the shrink,
-      // keeping whatever follows the row in place.
+      // The view stays where it is: the new response shows from the same
+      // point. Only one that would end in the top quarter of the view or
+      // above it moves the view up, as little as shows the most of it, so
+      // the view is never left near blank below its end. A viewport past the row shifts up
+      // by the shrink, keeping whatever follows the row in place.
       const shrink = Math.max(0, previousInnerHeight - naturalHeight);
       const rowStart =
         previousRowTop -
         (parseFloat(getComputedStyle(innerEl).scrollMarginTop) || 0);
+      const rowEnd = previousRowTop + naturalHeight;
+      const viewHeight =
+        usableViewBottom(
+          scroller,
+          containerEl.closest('.conversation-block-item')
+        ) - scroller.getBoundingClientRect().top;
       const maxScrollTop = Math.max(
         0,
         scroller.scrollHeight - shrink - scroller.clientHeight
@@ -662,8 +668,9 @@ function Response({
       const desired =
         previousScrollTop >= previousRowTop + previousInnerHeight
           ? previousScrollTop - shrink
-          : previousScrollTop > rowStart
-            ? rowStart
+          : previousScrollTop > rowStart &&
+              rowEnd < previousScrollTop + viewHeight / 4
+            ? Math.max(rowStart, rowEnd - viewHeight)
             : previousScrollTop;
       const target = Math.max(0, Math.min(desired, maxScrollTop));
       if (target !== previousScrollTop) {

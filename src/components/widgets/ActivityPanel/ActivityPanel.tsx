@@ -26,7 +26,7 @@ export type ActivityPanelView = 'story' | 'evidence';
 export interface ActivityPanelProps {
   /** The turn's activity log, in stream order. */
   events?: ActivityEvent[] | null;
-  /** The turn is still generating. Drives the open state and the live clock. */
+  /** The turn is still generating. Drives the live clock and, with the log, the open state. */
   isLive: boolean;
   /**
    * The message's sources. Older logs carry no citations on turn.end; for a
@@ -37,7 +37,7 @@ export interface ActivityPanelProps {
   stopReason?: string | null;
   /** The view the panel opens on. */
   defaultView?: ActivityPanelView;
-  /** Start expanded. Defaults to open while live and folded otherwise. */
+  /** Start expanded. Defaults to open while the agent thinks and folded otherwise. */
   defaultOpen?: boolean;
   className?: string;
   'data-testid'?: string;
@@ -76,11 +76,11 @@ function useLiveNow(
 /**
  * The agent's activity for one response: what it thought, what it ran and
  * why, what came back, how long each step took, and which sources the answer
- * rests on. Open for the whole live turn (it never reacts to the answer text,
- * so a tool-call preamble can't collapse it), folded to one summary line once
- * the turn ends, and reopened on demand. Two views of the same turn: Story,
- * the step-by-step narrative, and Evidence, every source grouped by the step
- * that found it.
+ * rests on. Open while the agent thinks, folded to one summary line once the
+ * answer streams (the log says so, never the answer text, so a tool-call
+ * preamble can't fold it) or the turn ends, and reopened on demand. Two views
+ * of the same turn: Story, the step-by-step narrative, and Evidence, every
+ * source grouped by the step that found it.
  */
 export default function ActivityPanel({
   events,
@@ -107,13 +107,14 @@ export default function ActivityPanel({
     [log, isLive, nowMs, stopReason, citedSources]
   );
 
-  const [open, setOpen] = useState(defaultOpen ?? isLive);
-  const wasLive = useRef(isLive);
+  const isThinking = view.status === 'live' && !view.answering;
+  const [open, setOpen] = useState(defaultOpen ?? isThinking);
+  const wasThinking = useRef(isThinking);
   useEffect(() => {
-    if (isLive && !wasLive.current) setOpen(true);
-    if (!isLive && wasLive.current) setOpen(false);
-    wasLive.current = isLive;
-  }, [isLive]);
+    if (isThinking && !wasThinking.current) setOpen(true);
+    if (!isThinking && wasThinking.current) setOpen(false);
+    wasThinking.current = isThinking;
+  }, [isThinking]);
 
   const [mode, setMode] = useState<ActivityPanelView>(defaultView);
   const [filter, setFilter] = useState<EvidenceFilter | null>(null);
@@ -159,6 +160,7 @@ export default function ActivityPanel({
       aria-label={t('conversation.activity.panelLabel')}
       data-testid={testId}
       data-status={view.status}
+      data-thinking={isThinking || undefined}
     >
       <button
         type="button"

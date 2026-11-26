@@ -58,8 +58,9 @@ const meta: Meta<typeof ActivityPanel> = {
           "It takes the turn's activity log and renders a receipt (time, searches, sources, memories and " +
           'where the time went), then two views of the same turn: **Story**, one beat per step with the ' +
           "agent's own reasons, its queries, results and timings; and **Evidence**, every source grouped by " +
-          'the step that found it, filterable by cited, not cited and failed. Open for the whole live turn, ' +
-          'folded to one line once it ends. Each story here renders one of the shared contract fixtures.',
+          'the step that found it, filterable by cited, not cited and failed. Open while the agent thinks, ' +
+          'folded to one line once the answer streams or the turn ends. Each story here renders one of the ' +
+          'shared contract fixtures.',
       },
     },
   },

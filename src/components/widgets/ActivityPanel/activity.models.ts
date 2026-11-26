@@ -90,6 +90,22 @@ export interface StepProgressEvent extends ActivityEventBase {
   first_token_ms: number;
 }
 
+/** A streaming llm step began writing a tool call: its text so far was a preamble. */
+export interface StepCallingEvent extends ActivityEventBase {
+  type: 'step.calling';
+  id: string;
+}
+
+/**
+ * A streaming llm step has written more text than a tool-call preamble runs
+ * to, and no tool call: it is writing the answer, unless a `step.calling`
+ * still follows.
+ */
+export interface StepWritingEvent extends ActivityEventBase {
+  type: 'step.writing';
+  id: string;
+}
+
 /** One call of a running tools step finished; its sources arrive with the step's end. */
 export interface StepCallEvent extends ActivityEventBase {
   type: 'step.call';
@@ -136,6 +152,8 @@ export type ActivityEvent =
   | TurnStartEvent
   | StepStartEvent
   | StepProgressEvent
+  | StepCallingEvent
+  | StepWritingEvent
   | StepCallEvent
   | StepEndEvent
   | TurnEndEvent;
