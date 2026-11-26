@@ -1,11 +1,13 @@
 import pica from 'pica';
 
-export const MAX_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024;
 /**
- * The retrieval server refuses a decode that doesn't fit in the memory free at that moment,
- * which on its 1 GB VM can be under 40 MB: a 12 MP phone photo costs ~90 MB there, a 5 MP PNG
- * ~30 MB. 5 MP is about what Anthropic's high-resolution tier (2576 px long edge) uses anyway.
+ * The retrieval server sends a PNG this size to the model without decoding it
+ * (4 MiB of base64, within every vendor's per-image limit, for up to 6 images
+ * in an Anthropic request). Anything larger it has to decode and shrink, which
+ * its small VM often hasn't the memory for.
  */
+export const MAX_IMAGE_UPLOAD_BYTES = 3 * 1024 * 1024;
+/** About what Anthropic's high-resolution tier (2576 px long edge) uses; more pixels only add bytes. */
 export const MAX_IMAGE_UPLOAD_PIXELS = 5_000_000;
 /** Anthropic rejects an image with an edge above 8000 px. */
 const MAX_EDGE_PX = 8000;
@@ -63,13 +65,13 @@ function pngName(name: string): string {
 }
 
 /**
- * The file to upload in place of `file`: every image this browser can decode
- * becomes an upright (EXIF/HEIF rotation applied), lossless PNG within
- * MAX_IMAGE_UPLOAD_BYTES and MAX_IMAGE_UPLOAD_PIXELS, so the retrieval server
- * never decodes a camera original on its small VM. A PNG already within both
- * (a screenshot) is returned as it is. PDFs, and anything this browser can't
- * decode even with heic-to (camera RAW, ...), are returned as-is for the
- * backend to convert. ConversationWidget calls it before uploadAttachment.
+ * The file to upload in place of `file`: every image this browser can decode,
+ * whatever its format and size, is re-encoded as an upright (EXIF/HEIF
+ * rotation applied), lossless PNG within MAX_IMAGE_UPLOAD_BYTES and
+ * MAX_IMAGE_UPLOAD_PIXELS, so the retrieval server never has to decode it.
+ * PDFs, and anything this browser can't decode even with heic-to (camera
+ * RAW, ...), are returned as-is for the backend to convert. ConversationWidget
+ * calls it before uploadAttachment.
  */
 export async function prepareImageForUpload(file: File): Promise<File> {
   if (file.type === 'application/pdf') return file;
@@ -87,23 +89,23 @@ async function toPng(
   file: File,
   { source, width, height }: Decoded
 ): Promise<File> {
-  if (
-    file.type === 'image/png' &&
-    file.size <= MAX_IMAGE_UPLOAD_BYTES &&
-    width * height <= MAX_IMAGE_UPLOAD_PIXELS
-  ) {
-    return file;
-  }
   resizer ??= pica();
   const maxScale = Math.min(
     1,
     MAX_EDGE_PX / Math.max(width, height),
     Math.sqrt(MAX_IMAGE_UPLOAD_PIXELS / (width * height))
   );
-  let scale = Math.min(
-    maxScale,
-    Math.sqrt(MAX_IMAGE_UPLOAD_BYTES / (width * height * PNG_BYTES_PER_PIXEL))
-  );
+  // A PNG already within the limit (a screenshot) re-encodes to about its own
+  // size; the per-pixel estimate is for photos and would shrink it needlessly.
+  let scale =
+    file.type === 'image/png' && file.size <= MAX_IMAGE_UPLOAD_BYTES
+      ? maxScale
+      : Math.min(
+          maxScale,
+          Math.sqrt(
+            MAX_IMAGE_UPLOAD_BYTES / (width * height * PNG_BYTES_PER_PIXEL)
+          )
+        );
   let best: Blob | undefined;
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
