@@ -104,6 +104,41 @@ export const MathAndTable: Story = {
   },
 };
 
+// Every row of TYPOGRAPHY.md, including a bold-only line beside a real h4
+export const TypeScale: Story = {
+  args: {
+    variant: 'turn',
+    title: 'OpenAI',
+    content: `# Heading one
+
+Body text sits under every heading level, so each one reads as **larger and bolder** than the prose around it, with *italic* and \`inline code\` at the text's own size.
+
+## Least harmful overall (harm reduction)
+
+### 1) Edibles or tinctures (oral), start very low
+
+**Pros**
+
+- No lung exposure.
+- Dose is easier to control than inhaling.
+
+#### Cons
+
+- Effects are slower and longer.
+
+> A quoted line reads in the serif italic.
+
+| Option | Onset |
+| --- | --- |
+| Edible | 30–90 min |
+| Tincture | 15–45 min |
+
+\`\`\`
+const dose = 2.5; // mg
+\`\`\``,
+  },
+};
+
 export const Phone: Story = {
   args: ResponseWithCitations.args,
   parameters: { viewport: { defaultViewport: 'mobile1' } },

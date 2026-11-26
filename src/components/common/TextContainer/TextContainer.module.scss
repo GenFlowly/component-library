@@ -575,8 +575,10 @@
 }
 
 // ---- Reading setting (ReaderFriendlyTextContainer) ----
-// Long text in a text serif at a measure-friendly size, leading and spacing;
-// headings, tables and code stay in the UI face. Only the markdown body
+// Long text in a text serif at a measure-friendly size, leading and spacing.
+// Faces and sizes follow TYPOGRAPHY.md (this folder), which the iOS app
+// mirrors: prose and headings in the serif, tables in the UI face, code in
+// monospace. Only the markdown body
 // changes: the card's header and anything after the text keep the UI face.
 // A host can set the --reader-* properties on the article (the prompt reads
 // one size up).
@@ -656,33 +658,33 @@
   h4,
   h5,
   h6 {
-    font-family: $font-family-ui;
+    font-family: inherit;
     font-weight: 600;
-    letter-spacing: -0.005em;
     color: $color-text-primary;
     margin: 40px 0 12px;
   }
 
   h1 {
-    font-size: 1.5rem;
-    line-height: 2rem;
+    font-size: 1.75rem;
+    line-height: 2.25rem;
   }
 
   h2 {
+    font-size: 1.4375rem;
+    line-height: 1.875rem;
+  }
+
+  h3 {
     font-size: 1.25rem;
     line-height: 1.75rem;
   }
 
-  h3 {
-    font-size: 1.0625rem;
-    line-height: 1.5rem;
-  }
-
+  // Body size, so a prompt's (one size up) never reads smaller than its text
   h4,
   h5,
   h6 {
-    font-size: 1rem;
-    line-height: 1.375rem;
+    font-size: 1em;
+    line-height: inherit;
   }
 
   blockquote,
@@ -770,11 +772,16 @@
     }
 
     h1 {
-      font-size: 1.375rem;
-      line-height: 1.875rem;
+      font-size: 1.5rem;
+      line-height: 2rem;
     }
 
     h2 {
+      font-size: 1.3125rem;
+      line-height: 1.75rem;
+    }
+
+    h3 {
       font-size: 1.1875rem;
       line-height: 1.625rem;
     }
