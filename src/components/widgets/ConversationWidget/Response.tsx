@@ -68,14 +68,17 @@ const TRUNCATION_STOP_REASONS = new Set([
 ]);
 // Not a vendor reason: the host marks a reply the user stopped mid-generation.
 const CANCELLED_STOP_REASON = 'cancelled';
+// Not a vendor reason: the host lost the generation before it finished (the
+// server stopped responding); the reply keeps whatever text had arrived.
+const INTERRUPTED_STOP_REASON = 'interrupted';
 
 /**
  * A note under the answer explaining why generation ended, from the vendor's
  * raw finish reason. Shown only when something noteworthy happened: a
  * refusal/block reads as a prominent warning (the card may otherwise be
  * blank), a length cap as a muted "cut off" line, a user Stop as a muted
- * "stopped" line, and an unrecognized reason as a quiet footnote. A normal
- * completion renders nothing.
+ * "stopped" line, a lost generation as a muted "interrupted" line, and an
+ * unrecognized reason as a quiet footnote. A normal completion renders nothing.
  */
 function StopReasonNote({ reason }: { reason: string }) {
   const r = reason.trim().toLowerCase();
@@ -114,6 +117,18 @@ function StopReasonNote({ reason }: { reason: string }) {
         data-reason={r}
       >
         You stopped this response.
+      </div>
+    );
+  }
+  if (r === INTERRUPTED_STOP_REASON) {
+    return (
+      <div
+        className={styles.stopReasonInterrupted}
+        data-testid="stop-reason"
+        data-reason={r}
+      >
+        This response was interrupted before it finished. Regenerate to try
+        again.
       </div>
     );
   }

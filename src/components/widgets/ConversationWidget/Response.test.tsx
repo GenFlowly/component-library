@@ -1451,6 +1451,27 @@ describe('Response Widget Component', () => {
       expect(screen.getAllByTestId('response-message')).toHaveLength(1);
     });
 
+    test('a reply interrupted before any text keeps its card, a note, and Regenerate', () => {
+      // The server lost the generation: the stop reason alone must explain
+      // the empty card instead of "No responses were generated".
+      mockSelection = [AIVendor.OPENAI];
+      render(
+        <Response
+          blockId="block-1"
+          responseMessages={msg('interrupted', '')}
+          onFollowUp={jest.fn()}
+        />
+      );
+      expect(screen.getAllByTestId('response-message')).toHaveLength(1);
+      const note = screen.getByTestId('stop-reason');
+      expect(note).toHaveAttribute('data-reason', 'interrupted');
+      expect(note.textContent).toMatch(/interrupted before it finished/i);
+      expect(screen.getByTestId('regenerate-button')).toBeInTheDocument();
+      expect(
+        screen.queryByText('conversation.response.noResponsesGenerated')
+      ).not.toBeInTheDocument();
+    });
+
     test('a reply stopped before any text keeps its card and vendor', () => {
       // Stopped while thinking: no text, no error — the stop reason alone
       // keeps the card (and the vendor's pill) on screen.
