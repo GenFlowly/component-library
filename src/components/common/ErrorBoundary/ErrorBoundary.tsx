@@ -19,6 +19,24 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
+export type ErrorBoundaryReporter = (
+  error: Error,
+  info: React.ErrorInfo
+) => void;
+
+let reporter: ErrorBoundaryReporter | undefined;
+
+/**
+ * Sends every error any ErrorBoundary catches to [next] (e.g. a crash
+ * reporter), including boundaries deep inside library widgets that the app
+ * can't pass an onError to. Pass undefined to stop.
+ */
+export function setErrorBoundaryReporter(
+  next: ErrorBoundaryReporter | undefined
+): void {
+  reporter = next;
+}
+
 /**
  * Stops a render-time throw from blanking the whole app. React only catches
  * render errors at a class-component boundary (no hook equivalent) — wrap
@@ -43,6 +61,7 @@ export class ErrorBoundary extends React.Component<
       error,
       info.componentStack
     );
+    reporter?.(error, info);
     this.props.onError?.(error, info);
   }
 

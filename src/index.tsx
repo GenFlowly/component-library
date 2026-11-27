@@ -19,8 +19,14 @@ export {
 export { default as Breadcrumbs } from './components/common/Breadcrumbs/Breadcrumbs';
 export type { BreadcrumbItem } from './components/common/Breadcrumbs/Breadcrumbs';
 
-export { ErrorBoundary } from './components/common/ErrorBoundary/ErrorBoundary';
-export type { ErrorBoundaryProps } from './components/common/ErrorBoundary/ErrorBoundary';
+export {
+  ErrorBoundary,
+  setErrorBoundaryReporter,
+} from './components/common/ErrorBoundary/ErrorBoundary';
+export type {
+  ErrorBoundaryProps,
+  ErrorBoundaryReporter,
+} from './components/common/ErrorBoundary/ErrorBoundary';
 export { default as ScrollArea } from './components/common/ScrollArea/ScrollArea';
 export type { ScrollAreaProps } from './components/common/ScrollArea/ScrollArea';
 export { Grid, GridCol } from './components/common/Grid/Grid';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { ErrorBoundary } from './ErrorBoundary';
+import { ErrorBoundary, setErrorBoundaryReporter } from './ErrorBoundary';
 
 function Boom(): React.ReactElement {
   throw new Error('render blew up');
@@ -17,6 +17,39 @@ describe('ErrorBoundary', () => {
   });
   afterEach(() => {
     consoleErrorSpy.mockRestore();
+    setErrorBoundaryReporter(undefined);
+  });
+
+  test('sends a caught error to the registered reporter as well as onError', () => {
+    const reporter = jest.fn();
+    const onError = jest.fn();
+    setErrorBoundaryReporter(reporter);
+    render(
+      <ErrorBoundary onError={onError}>
+        <Boom />
+      </ErrorBoundary>
+    );
+
+    expect(reporter).toHaveBeenCalledTimes(1);
+    expect(reporter.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect(reporter.mock.calls[0][1].componentStack).toEqual(
+      expect.any(String)
+    );
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
+  test('stops reporting once the reporter is cleared', () => {
+    const reporter = jest.fn();
+    setErrorBoundaryReporter(reporter);
+    setErrorBoundaryReporter(undefined);
+    render(
+      <ErrorBoundary>
+        <Boom />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByTestId('error-boundary-fallback')).toBeInTheDocument();
+    expect(reporter).not.toHaveBeenCalled();
   });
 
   test('renders children when nothing throws', () => {
