@@ -1384,6 +1384,33 @@ describe('Response Widget Component', () => {
       expect(section).toHaveTextContent('(from training knowledge)');
     });
 
+    test('keeps a long training reference whole instead of cutting it off', () => {
+      const reference =
+        'Kendall et al., Muscles: Testing and Function with Posture and Pain, 5th ed., 2005';
+      const messages = [
+        {
+          messageId: 'msg-1',
+          text: 'Cited answer [1]',
+          aiVendor: AIVendor.OPENAI,
+          isLoading: false,
+          webSources: [
+            {
+              index: 1,
+              title: reference,
+              url: '',
+              origin: 'training' as const,
+            },
+          ],
+        },
+      ];
+      render(<Response blockId="block-1" responseMessages={messages} />);
+      const row = screen.getByTestId('sources-section-training');
+      // The wrapping style, not the link's one-line ellipsis.
+      expect(row).toHaveClass('sourceReference');
+      expect(row).not.toHaveClass('sourceLink');
+      expect(row).toHaveTextContent(`${reference} (from training knowledge)`);
+    });
+
     test('hides the sources list while the message is still streaming', () => {
       const messages = [
         {

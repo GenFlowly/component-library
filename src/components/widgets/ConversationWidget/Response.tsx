@@ -161,18 +161,17 @@ function SourcesSection({ sources }: { sources: WebSource[] }) {
           <li key={source.index}>
             <span className={styles.sourceIndex}>[{source.index}]</span>
             {isTrainingSource(source) ? (
-              <>
-                <span
-                  className={styles.sourceLink}
-                  title={source.title}
-                  data-testid="sources-section-training"
-                >
-                  {source.title}
-                </span>
+              // No page to open, so the reference is the only place it can be
+              // read: it wraps whole instead of ending in an ellipsis.
+              <span
+                className={styles.sourceReference}
+                data-testid="sources-section-training"
+              >
+                {source.title}{' '}
                 <span className={styles.sourceOrigin}>
                   {t('conversation.response.fromTraining')}
                 </span>
-              </>
+              </span>
             ) : (
               <a
                 className={styles.sourceLink}
