@@ -22,6 +22,7 @@ import {
 } from './activity.reduce';
 import { beatTitle, formatDuration } from './activity.format';
 import SourceRow, { SiteIcon } from './SourceRow';
+import { isTrainingSource } from '../ConversationWidget/conversation.models';
 import styles from './ActivityPanel.module.scss';
 
 const PREVIEW_SOURCES = 3;
@@ -302,6 +303,7 @@ function BeatDetail({
   beat: ActivityBeat;
   onShowEvidence?: (stepId: string) => void;
 }) {
+  const { t } = useTranslation();
   switch (beat.type) {
     case 'memory':
       return beat.texts ? <MemoryTexts texts={beat.texts} /> : null;
@@ -314,19 +316,34 @@ function BeatDetail({
     case 'answer':
       return beat.citedSources.length > 0 ? (
         <div className={styles.chips} data-testid="activity-answer-sources">
-          {beat.citedSources.map(source => (
-            <a
-              key={source.index}
-              className={styles.chip}
-              href={source.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={source.title}
-            >
-              <SiteIcon url={source.url} favicon={source.favicon} />[
-              {source.index}] {source.domain}
-            </a>
-          ))}
+          {beat.citedSources.map(source =>
+            isTrainingSource(source) ? (
+              <span
+                key={source.index}
+                className={styles.chip}
+                title={source.title}
+              >
+                <SiteIcon
+                  url={source.url}
+                  favicon={source.favicon}
+                  origin={source.origin}
+                />
+                [{source.index}] {t('conversation.activity.evidence.training')}
+              </span>
+            ) : (
+              <a
+                key={source.index}
+                className={styles.chip}
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={source.title}
+              >
+                <SiteIcon url={source.url} favicon={source.favicon} />[
+                {source.index}] {source.domain}
+              </a>
+            )
+          )}
         </div>
       ) : null;
     default:

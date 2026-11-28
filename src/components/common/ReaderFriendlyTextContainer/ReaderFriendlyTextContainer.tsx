@@ -9,6 +9,7 @@ import CitationChip from '../CitationTooltip/CitationChip';
 import CitationTooltip from '../CitationTooltip/CitationTooltip';
 import type { WebSource } from '../../widgets/ConversationWidget/conversation.models';
 import {
+  citationHref,
   countCitations,
   linkifyCitations,
   rehypeCitationRuns,
@@ -66,7 +67,7 @@ export function ReaderLink(props: any) {
           <CitationChip
             label={t('common.citation.more', { count: sources.length })}
             markers={textOf(children)}
-            href={sources[0].url}
+            href={sources[0].url || undefined}
             aria-label={t('common.citation.moreLabel', {
               count: sources.length,
             })}
@@ -79,7 +80,7 @@ export function ReaderLink(props: any) {
 
   const marker = /^\[(\d{1,3})\]$/.exec(textOf(children));
   const source = marker ? lookup?.byIndex.get(Number(marker[1])) : undefined;
-  if (marker && source && source.url === href) {
+  if (marker && source && citationHref(source) === href) {
     return (
       <CitationTooltip
         sources={[source]}
@@ -89,7 +90,7 @@ export function ReaderLink(props: any) {
         <CitationChip
           label={marker[1]}
           markers={marker[0]}
-          href={source.url}
+          href={source.url || undefined}
           aria-label={t('common.citation.label', {
             index: source.index,
             title: source.title || source.url,

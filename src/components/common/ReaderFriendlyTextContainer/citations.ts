@@ -9,6 +9,13 @@ const MARKER_TEXT = /^\[(\d{1,3})\]$/;
 export const MAX_CHIPS_IN_RUN = 4;
 
 /**
+ * Where a citation's link points: its source's page, or, for a source with no
+ * page (cited from the model's own knowledge), a fragment naming it.
+ */
+export const citationHref = (source: WebSource): string =>
+  source.url || `#cite-${source.index}`;
+
+/**
  * Turn bare [n] citation markers into markdown links to their web source, so
  * the markdown renderer makes them clickable. Only indices that exist in
  * webSources are linked — the model can occasionally emit a stray marker, and
@@ -20,7 +27,7 @@ export function linkifyCitations(
   webSources?: WebSource[] | null
 ): string {
   if (!text || !webSources || webSources.length === 0) return text;
-  const byIndex = new Map(webSources.map(s => [s.index, s.url]));
+  const byIndex = new Map(webSources.map(s => [s.index, citationHref(s)]));
   return text.replace(MARKER, (marker, n) => {
     const url = byIndex.get(Number(n));
     return url ? `[[${n}]](${url})` : marker;

@@ -148,6 +148,8 @@ export interface ActivityView {
   memoryTexts?: { core: string[]; recalled: string[] };
   beats: ActivityBeat[];
   evidence: ActivityEvidenceGroup[];
+  /** Cited from the model's own knowledge: counted with the sources, found by no step. */
+  knowledge: ActivitySourceView[];
   developer: ActivityDeveloperEntry[];
   current?: ActivityCurrent;
   /** The answer is streaming, so the agent is done thinking (live only). */
@@ -162,6 +164,11 @@ export interface ReduceOptions {
   stopReason?: string | null;
   /** Cited source indices for logs whose turn.end carries none (older records). */
   citedFallback?: number[] | null;
+  /**
+   * Sources the answer cites from the model's own knowledge. No step found
+   * them, so they come from the message's source list, not the log.
+   */
+  knowledgeSources?: ActivitySource[] | null;
 }
 
 interface StepRecord {
@@ -195,6 +202,8 @@ const KNOWLEDGE_TOOLS = new Set(['search_knowledge_base']);
 const SUBAGENT_TOOLS = new Set(['spawn_agent']);
 const PLAN_TOOLS = new Set(['write_todos']);
 const FILE_TOOLS = new Set(['fs_read', 'fs_write', 'fs_list']);
+/** The step id knowledge sources carry: no step of the log found them. */
+const KNOWLEDGE_STEP = 'knowledge';
 
 export function toolFamily(names: string[]): ActivityToolFamily {
   if (names.length === 0) return 'other';
@@ -650,9 +659,25 @@ export function reduceActivity(
   const cited = citedIndices
     ? Array.from(foundSources.values()).filter(s => citedIndices.has(s.index))
     : null;
+  const knowledge: ActivitySourceView[] =
+    status === 'live'
+      ? []
+      : (options.knowledgeSources ?? []).map(source => ({
+          ...source,
+          domain: '',
+          cited: true,
+          stepId: KNOWLEDGE_STEP,
+          callSeq: 0,
+        }));
+  const citedCount =
+    cited || knowledge.length > 0
+      ? (cited?.length ?? 0) + knowledge.length
+      : null;
   for (const beat of beats) {
-    if (beat.type === 'answer' && cited) {
-      beat.citedSources = [...cited].sort((a, b) => a.index - b.index);
+    if (beat.type === 'answer' && citedCount != null) {
+      beat.citedSources = [...(cited ?? []), ...knowledge].sort(
+        (a, b) => a.index - b.index
+      );
     }
   }
 
@@ -664,6 +689,7 @@ export function reduceActivity(
       totalMs != null ||
       searchesUsed > 0 ||
       foundSources.size > 0 ||
+      knowledge.length > 0 ||
       memories.core + memories.recalled > 0,
     totalMs,
     phases: phasesOf(steps, {
@@ -675,13 +701,14 @@ export function reduceActivity(
     }),
     searches: { used: searchesUsed, max: searchMax },
     sources: {
-      found: foundSources.size,
-      cited: cited ? cited.length : null,
+      found: foundSources.size + knowledge.length,
+      cited: citedCount,
     },
     memories,
     memoryTexts,
     beats,
     evidence,
+    knowledge,
     developer,
     current:
       status === 'live' ? currentOf(steps, stepStatus, callsOf) : undefined,

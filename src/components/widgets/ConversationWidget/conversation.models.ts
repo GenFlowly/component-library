@@ -14,7 +14,16 @@ export interface WebSource {
   favicon?: string;
   /** Publish date as the provider sent it; a calendar date. */
   published_date?: string;
+  /**
+   * "training": the model cited its own knowledge. Such a source has a
+   * reference for a title and no page (`url` is empty).
+   */
+  origin?: 'training';
 }
+
+/** A citation from the model's own knowledge, which has no page to open. */
+export const isTrainingSource = (source: Pick<WebSource, 'origin'>): boolean =>
+  source.origin === 'training';
 
 /**
  * One fact the async memory-extraction pipeline learned about the user from an

@@ -142,6 +142,44 @@ describe('reduceActivity — the design 6 completed turn', () => {
   });
 });
 
+describe("reduceActivity — citations from the model's own knowledge", () => {
+  const knowledgeSources = [
+    {
+      index: 1,
+      title: 'Madrian & Shea, QJE, 2001',
+      url: '',
+      origin: 'training' as const,
+    },
+  ];
+
+  it('counts them as cited sources and lists them with the answer', () => {
+    const view = reduceActivity(
+      (memoryOnly as Fixture).events as ActivityEvent[],
+      {
+        isLive: false,
+        knowledgeSources,
+      }
+    );
+    expect(view.sources).toEqual({ found: 1, cited: 1 });
+    expect(view.knowledge.map(s => s.index)).toEqual([1]);
+    expect(view.knowledge[0].cited).toBe(true);
+    const answer = view.beats.find(b => b.type === 'answer');
+    expect(
+      answer &&
+        answer.type === 'answer' &&
+        answer.citedSources.map(s => s.index)
+    ).toEqual([1]);
+  });
+
+  it('adds nothing while the turn is live', () => {
+    const view = reduceActivity((live as Fixture).events as ActivityEvent[], {
+      isLive: true,
+      knowledgeSources,
+    });
+    expect(view.knowledge).toEqual([]);
+  });
+});
+
 describe('reduceActivity — live mid-turn', () => {
   const view = reduce(live as Fixture, 14300);
 

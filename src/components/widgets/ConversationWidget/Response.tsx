@@ -18,7 +18,12 @@ import {
 import { useAskSelection } from './AskSelectionContext';
 import ReaderFriendlyTextContainer from '../../common/ReaderFriendlyTextContainer/ReaderFriendlyTextContainer';
 import { ErrorBoundary } from '../../common/ErrorBoundary/ErrorBoundary';
-import { LearnedFact, Message, WebSource } from './conversation.models';
+import {
+  LearnedFact,
+  Message,
+  WebSource,
+  isTrainingSource,
+} from './conversation.models';
 import { AttachmentRef } from './attachment.models';
 import AttachmentCard from '../../common/AttachmentCard/AttachmentCard';
 import ActivityPanel from '../ActivityPanel/ActivityPanel';
@@ -155,15 +160,30 @@ function SourcesSection({ sources }: { sources: WebSource[] }) {
         {sources.map(source => (
           <li key={source.index}>
             <span className={styles.sourceIndex}>[{source.index}]</span>
-            <a
-              className={styles.sourceLink}
-              href={source.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={source.url}
-            >
-              {source.title || source.url}
-            </a>
+            {isTrainingSource(source) ? (
+              <>
+                <span
+                  className={styles.sourceLink}
+                  title={source.title}
+                  data-testid="sources-section-training"
+                >
+                  {source.title}
+                </span>
+                <span className={styles.sourceOrigin}>
+                  {t('conversation.response.fromTraining')}
+                </span>
+              </>
+            ) : (
+              <a
+                className={styles.sourceLink}
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={source.url}
+              >
+                {source.title || source.url}
+              </a>
+            )}
           </li>
         ))}
       </ul>

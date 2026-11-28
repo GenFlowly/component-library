@@ -1357,6 +1357,33 @@ describe('Response Widget Component', () => {
       expect(links[1]).toHaveAttribute('href', 'https://example.com/mkt');
     });
 
+    test("lists a citation from the model's own knowledge without a link", () => {
+      const messages = [
+        {
+          messageId: 'msg-1',
+          text: 'Cited answer [1] and [4]',
+          aiVendor: AIVendor.OPENAI,
+          isLoading: false,
+          webSources: [
+            ...webSources,
+            {
+              index: 4,
+              title: 'Madrian & Shea, QJE, 2001',
+              url: '',
+              origin: 'training' as const,
+            },
+          ],
+        },
+      ];
+      render(<Response blockId="block-1" responseMessages={messages} />);
+      const section = screen.getByTestId('sources-section');
+      expect(section.querySelectorAll('a')).toHaveLength(2);
+      expect(screen.getByTestId('sources-section-training')).toHaveTextContent(
+        'Madrian & Shea, QJE, 2001'
+      );
+      expect(section).toHaveTextContent('(from training knowledge)');
+    });
+
     test('hides the sources list while the message is still streaming', () => {
       const messages = [
         {

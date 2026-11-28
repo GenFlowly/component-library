@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Brain } from 'lucide-react';
 import { ActivitySource } from './activity.models';
+import { isTrainingSource } from '../ConversationWidget/conversation.models';
 import {
   domainOf,
   formatSourceDate,
@@ -22,10 +24,29 @@ export interface SourceRowProps {
 
 /**
  * The site's own icon, or its first letter when there is none or it fails to
- * load. Loaded straight from the site without a referrer.
+ * load. Loaded straight from the site without a referrer. A source cited from
+ * the model's own knowledge has no site and shows the thinking icon.
  */
-export function SiteIcon({ url, favicon }: { url: string; favicon?: string }) {
+export function SiteIcon({
+  url,
+  favicon,
+  origin,
+}: {
+  url: string;
+  favicon?: string;
+  origin?: ActivitySource['origin'];
+}) {
   const [failed, setFailed] = useState(false);
+  if (isTrainingSource({ origin })) {
+    return (
+      <Brain
+        className={styles.siteIcon}
+        size={16}
+        aria-hidden="true"
+        data-testid="activity-training-icon"
+      />
+    );
+  }
   const src = usableFavicon(favicon);
   const domain = domainOf(url);
   if (src && !failed) {
@@ -63,9 +84,33 @@ export default function SourceRow({
   'data-testid': testId = 'activity-source',
 }: SourceRowProps) {
   const { t, i18n } = useTranslation();
-  const domain = domainOf(source.url);
+  const training = isTrainingSource(source);
+  const domain = training
+    ? t('conversation.activity.evidence.training')
+    : domainOf(source.url);
   const date = formatSourceDate(source.published_date, i18n?.language);
   const title = source.title || source.url;
+  // A source with no page names it without a link.
+  const link = (
+    className: string,
+    linkTitle: string,
+    children: React.ReactNode
+  ) =>
+    training ? (
+      <span className={className} title={linkTitle}>
+        {children}
+      </span>
+    ) : (
+      <a
+        className={className}
+        href={source.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={linkTitle}
+      >
+        {children}
+      </a>
+    );
   const badge =
     cited === true ? (
       <span className={styles.citedBadge}>
@@ -83,30 +128,36 @@ export default function SourceRow({
         data-testid={testId}
         data-cited={cited === null ? undefined : String(cited)}
       >
-        {cited === true && (
-          <a
-            className={styles.indexBadge}
-            href={source.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={t('conversation.activity.evidence.citedBadge', {
-              index: source.index,
-            })}
-          >
-            [{source.index}]
-          </a>
-        )}
-        <SiteIcon url={source.url} favicon={source.favicon} />
+        {cited === true &&
+          (training ? (
+            <span
+              className={styles.indexBadge}
+              aria-label={t('conversation.activity.evidence.citedBadge', {
+                index: source.index,
+              })}
+            >
+              [{source.index}]
+            </span>
+          ) : (
+            <a
+              className={styles.indexBadge}
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t('conversation.activity.evidence.citedBadge', {
+                index: source.index,
+              })}
+            >
+              [{source.index}]
+            </a>
+          ))}
+        <SiteIcon
+          url={source.url}
+          favicon={source.favicon}
+          origin={source.origin}
+        />
         <span className={styles.sourceStack}>
-          <a
-            className={styles.sourceTitle}
-            href={source.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={source.url}
-          >
-            {title}
-          </a>
+          {link(styles.sourceTitle, training ? title : source.url, title)}
           <span className={styles.sourceMeta}>{line}</span>
         </span>
       </li>
@@ -119,17 +170,13 @@ export default function SourceRow({
       data-testid={testId}
       data-cited={cited === null ? undefined : String(cited)}
     >
-      <SiteIcon url={source.url} favicon={source.favicon} />
+      <SiteIcon
+        url={source.url}
+        favicon={source.favicon}
+        origin={source.origin}
+      />
       <span className={styles.sourceDomain}>{domain}</span>
-      <a
-        className={styles.sourceTitle}
-        href={source.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        title={date ? `${title} · ${date}` : title}
-      >
-        {title}
-      </a>
+      {link(styles.sourceTitle, date ? `${title} · ${date}` : title, title)}
       {badge}
     </li>
   );

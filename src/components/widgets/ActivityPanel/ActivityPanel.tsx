@@ -9,7 +9,10 @@ import React, {
 import { useTranslation } from 'react-i18next';
 import { Check } from 'lucide-react';
 import Chevron from '../../common/SidebarListPanel/Chevron';
-import { WebSource } from '../ConversationWidget/conversation.models';
+import {
+  WebSource,
+  isTrainingSource,
+} from '../ConversationWidget/conversation.models';
 import { ActivityEvent } from './activity.models';
 import { reduceActivity } from './activity.reduce';
 import { headerParts } from './activity.format';
@@ -103,6 +106,7 @@ export default function ActivityPanel({
         nowMs,
         stopReason,
         citedFallback: citedSources?.map(s => s.index) ?? null,
+        knowledgeSources: citedSources?.filter(isTrainingSource) ?? null,
       }),
     [log, isLive, nowMs, stopReason, citedSources]
   );

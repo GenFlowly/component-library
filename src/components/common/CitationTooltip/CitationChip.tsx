@@ -9,8 +9,11 @@ export interface CitationChipProps {
    * the text keeps them, though the chip shows only its label.
    */
   markers: string;
-  /** The page the chip opens when its tooltip isn't in the way (no script, a new-tab click). */
-  href: string;
+  /**
+   * The page the chip opens when its tooltip isn't in the way (no script, a
+   * new-tab click). None for a citation from the model's own knowledge.
+   */
+  href?: string;
   /** What a screen reader announces, e.g. "Source 16: Form 4 …". */
   'aria-label': string;
   'data-testid'?: string;
@@ -27,9 +30,9 @@ export default function CitationChip({
   return (
     <a
       className={styles.chip}
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
+      {...(href
+        ? { href, target: '_blank', rel: 'noopener noreferrer' }
+        : { role: 'button', tabIndex: 0 })}
       aria-label={ariaLabel}
       data-label={label}
       data-testid={testId}

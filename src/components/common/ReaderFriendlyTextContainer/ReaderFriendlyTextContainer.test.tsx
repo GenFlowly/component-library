@@ -69,6 +69,31 @@ const click = (element: Element) => {
 };
 
 describe('ReaderFriendlyTextContainer', () => {
+  test("a citation from the model's own knowledge is a chip that opens nothing", async () => {
+    render(
+      <ReaderFriendlyTextContainer
+        content="Defaults work [4]."
+        sources={[
+          {
+            index: 4,
+            title: 'Madrian & Shea, QJE, 2001',
+            url: '',
+            origin: 'training',
+          },
+        ]}
+      />
+    );
+    const chip = await screen.findByTestId('citation-chip');
+    expect(chip).toHaveAttribute('data-label', '4');
+    expect(chip).not.toHaveAttribute('href');
+    expect(chip).toHaveAttribute('role', 'button');
+    click(chip);
+    const row = await screen.findByTestId('citation-source');
+    expect(row).toHaveTextContent('Madrian & Shea, QJE, 2001');
+    expect(row).toHaveTextContent('From training knowledge');
+    expect(row.querySelector('a')).toBeNull();
+  });
+
   test('turns citation markers with a source into chips', async () => {
     render(
       <ReaderFriendlyTextContainer

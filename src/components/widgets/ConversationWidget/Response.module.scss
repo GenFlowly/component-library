@@ -518,6 +518,12 @@
   white-space: nowrap;
 }
 
+.sourceOrigin {
+  color: $color-text-muted;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 // The V3 boards' response at every width: the vendor's name on the left with a
 // model tag, the conversation's type sizes, and pill-shaped actions
 .responseWrapper {

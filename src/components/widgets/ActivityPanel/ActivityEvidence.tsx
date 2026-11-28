@@ -47,7 +47,7 @@ export default function ActivityEvidence({
 }: ActivityEvidenceProps) {
   const { t } = useTranslation();
   const citationsKnown = view.sources.cited != null;
-  const all = view.evidence.flatMap(g => g.sources);
+  const all = [...view.evidence.flatMap(g => g.sources), ...view.knowledge];
   const counts = {
     all: all.length,
     cited: all.filter(s => s.cited).length,
@@ -93,7 +93,11 @@ export default function ActivityEvidence({
   }, [view.beats]);
 
   const groups = view.evidence.filter(g => g.calls.length > 0);
-  const anyRows = groups.some(g => rowsOf(g, activeFilter).length > 0);
+  const knowledge =
+    activeFilter === 'all' || activeFilter === 'cited' ? view.knowledge : [];
+  const anyRows =
+    knowledge.length > 0 ||
+    groups.some(g => rowsOf(g, activeFilter).length > 0);
 
   return (
     <div className={styles.evidence} data-testid="activity-evidence">
@@ -118,12 +122,12 @@ export default function ActivityEvidence({
           ))}
         </div>
       )}
-      {groups.length === 0 && (
+      {groups.length === 0 && view.knowledge.length === 0 && (
         <p className={styles.emptyNote}>
           {t('conversation.activity.evidence.noSources')}
         </p>
       )}
-      {groups.length > 0 && !anyRows && (
+      {(groups.length > 0 || view.knowledge.length > 0) && !anyRows && (
         <p className={styles.emptyNote} data-testid="activity-evidence-empty">
           {t('conversation.activity.evidence.none')}
         </p>
@@ -140,6 +144,28 @@ export default function ActivityEvidence({
           focused={focusedStepId === group.stepId}
         />
       ))}
+      {knowledge.length > 0 && (
+        <div className={styles.group} data-testid="activity-evidence-knowledge">
+          <div className={styles.groupHead}>
+            <span className={styles.groupTitle}>
+              {t('conversation.activity.evidence.knowledge', {
+                count: knowledge.length,
+              })}
+            </span>
+          </div>
+          <ul className={styles.groupRows}>
+            {knowledge.map(source => (
+              <SourceRow
+                key={`k-${source.index}`}
+                source={source}
+                cited
+                variant="ledger"
+                data-testid="activity-evidence-source"
+              />
+            ))}
+          </ul>
+        </div>
+      )}
       <div className={styles.sections}>
         <MemorySection view={view} />
         {view.developer.length > 0 && <DeveloperSection view={view} />}
