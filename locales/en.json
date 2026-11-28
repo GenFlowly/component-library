@@ -435,7 +435,6 @@
       "delete": "Delete from memory",
       "sheetTitle_one": "{{count}} fact added to memory",
       "sheetTitle_other": "{{count}} facts added to memory",
-      "sheetHint": "Tap a fact to see how it was inferred. Swipe left to delete it.",
       "manage": "Manage in Memory",
       "done": "Done",
       "justNow": "Just now"

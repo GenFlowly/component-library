@@ -73,9 +73,6 @@ export function LearnedMemorySheet({
           <Icon src={ICONS.BRAIN} size={16} aria-hidden={true} />
           {t('conversation.learnedMemory.sheetTitle', { count: facts.length })}
         </div>
-        <p className={styles.sheetHint}>
-          {t('conversation.learnedMemory.sheetHint')}
-        </p>
         <SwipeRowsContext.Provider value={swipeContext}>
           <ul className={styles.sheetRows}>
             {facts.map(fact => (

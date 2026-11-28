@@ -26,6 +26,9 @@ describe('LearnedMemorySheet', () => {
       '7 facts added to memory'
     );
     expect(screen.getAllByTestId('learned-memory-sheet-row')).toHaveLength(7);
+    // No usage hint under the title (UA-21): the rows' chevrons and swipe tray say it
+    expect(screen.queryByText(/swipe left/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/how it was inferred/i)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getAllByTestId('learned-memory-sheet-open')[2]);
     expect(onOpenFact).toHaveBeenCalledWith(FACTS[2]);
