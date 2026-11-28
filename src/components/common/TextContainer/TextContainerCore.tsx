@@ -247,8 +247,9 @@ export function markLongTokens(cell: any) {
  * TextContainer.module.scss needs: data-stack on the <table> (when/if it
  * should restack in narrow containers), data-label on each <td> (its column
  * header, shown by CSS when the header row is hidden), data-numeric on the
- * cells of a column of numbers, and data-token spans around long unbreakable
- * runs in cells.
+ * cells of a column of numbers, data-align in place of the alignment the
+ * markdown gives a column, and data-token spans around long unbreakable runs
+ * in cells.
  * Pure decoration — the DOM stays a semantic table in both presentations.
  */
 export function rehypeTableMeta() {
@@ -289,6 +290,16 @@ function markNumericColumns(table: any, thead: any) {
   }
 }
 
+// react-markdown renders a cell's align as an inline text-align, which no
+// stylesheet rule can undo, so stacked cards showed a right-aligned column's
+// label and value against the right edge. As data-align, the grid applies
+// it and stacked cards keep every row reading from the left.
+function moveAlignToData(cell: any) {
+  const { align, ...properties } = cell.properties || {};
+  if (!align) return;
+  cell.properties = { ...properties, dataAlign: align };
+}
+
 export function decorateTable(table: any) {
   const [thead] = elementChildren(table, 'thead');
   const [headerRow] = elementChildren(thead, 'tr');
@@ -303,6 +314,7 @@ export function decorateTable(table: any) {
       for (const cell of row.children || []) {
         if (isElement(cell, 'th') || isElement(cell, 'td')) {
           markLongTokens(cell);
+          moveAlignToData(cell);
         }
       }
     }

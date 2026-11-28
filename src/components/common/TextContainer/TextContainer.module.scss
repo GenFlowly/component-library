@@ -123,6 +123,17 @@
       font-variant-numeric: tabular-nums;
     }
 
+    // The alignment the markdown gives a column (---: or :---:), which
+    // rehypeTableMeta moves to data-align. Grid only: stacked cards undo it
+    // below like the numeric rule.
+    :is(th, td)[data-align='right'] {
+      text-align: right;
+    }
+
+    :is(th, td)[data-align='center'] {
+      text-align: center;
+    }
+
     th {
       background: $color-background-tertiary;
       font-weight: 600;

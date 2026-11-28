@@ -433,6 +433,57 @@ describe('TextContainer Internals', () => {
       });
     });
 
+    describe('author alignment', () => {
+      // remark-gfm puts a column's ---: / :---: on each of its cells as align
+      const aligned = (align: string) => {
+        const table = makeTable(
+          ['Product', 'Probable status', 'Reason'],
+          [
+            ['Mobile app', 'Not affected', 'Uses a different stack'],
+            ['Web app', 'Affected', 'Same vendor SDK'],
+          ]
+        );
+        const mark = (node: any) => {
+          const column = node.tagName === 'tr' ? node.children : [];
+          if (column[1]) {
+            column[1].properties = { ...column[1].properties, align };
+          }
+          (node.children || []).forEach(mark);
+        };
+        mark(table);
+        return run(table);
+      };
+      const columnCells = (table: any) => [
+        table.children[1].children[0].children[1],
+        ...bodyCells(table).filter((_: any, i: number) => i % 3 === 1),
+      ];
+
+      test.each(['right', 'center'])(
+        'a %s-aligned column carries it as data-align, not align',
+        align => {
+          const table = aligned(align);
+          for (const cell of columnCells(table)) {
+            expect(cell.properties.align).toBeUndefined();
+            expect(cell.properties.dataAlign).toBe(align);
+          }
+          // The label for the stacked cards is still stamped
+          expect(bodyCells(table)[1].properties.dataLabel).toBe(
+            'Probable status'
+          );
+        }
+      );
+
+      test('cells without an alignment get no data-align', () => {
+        const table = aligned('right');
+        const others = bodyCells(table).filter(
+          (_: any, i: number) => i % 3 !== 1
+        );
+        expect(others.every((td: any) => !('dataAlign' in td.properties))).toBe(
+          true
+        );
+      });
+    });
+
     test('5+ column tables stack early, cells carry their header label', () => {
       const table = run(
         makeTable(
