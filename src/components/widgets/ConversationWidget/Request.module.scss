@@ -151,7 +151,12 @@
     // viewport-fit=cover, so this is a no-op everywhere else). Additive with
     // the keyboard-riding transform below, not a replacement for it.
     bottom: env(safe-area-inset-bottom, 0px);
+    // No inset under the box while the keyboard is closed: Safari already
+    // keeps a strip between the page and its floating toolbar, and the two
+    // stacked read as an empty band under the editor (UA-24). The inset
+    // comes back on the keyboard so the box doesn't touch its top edge.
     padding: $mobile-content-inset;
+    padding-bottom: min(var(--kb), #{$mobile-content-inset});
     // Ride the keyboard with a transform (compositor-animated, no layout
     // work per frame) instead of `bottom`. iOS reports the final visual
     // viewport in one discrete event at the END of the keyboard
