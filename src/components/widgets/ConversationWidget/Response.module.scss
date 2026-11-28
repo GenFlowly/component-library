@@ -518,9 +518,15 @@
   white-space: nowrap;
 }
 
+// A training reference has no link to open, so it wraps instead of truncating;
+// its origin note runs on after the last word
+.sourceReference {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .sourceOrigin {
   color: $color-text-muted;
-  flex-shrink: 0;
   white-space: nowrap;
 }
 
