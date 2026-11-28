@@ -328,7 +328,10 @@ function BeatDetail({
                   favicon={source.favicon}
                   origin={source.origin}
                 />
-                [{source.index}] {t('conversation.activity.evidence.training')}
+                {/* No site to name, so the chip names the reference itself. */}
+                [{source.index}]{' '}
+                {source.title.trim() ||
+                  t('conversation.activity.evidence.training')}
               </span>
             ) : (
               <a

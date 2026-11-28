@@ -202,6 +202,31 @@ describe('ActivityPanel', () => {
     expect(beats[1]).toHaveTextContent('Those three wedges were inferences');
   });
 
+  it('names the reference on a training-knowledge chip, not just its number', () => {
+    render(
+      <ActivityPanel
+        events={completedEvents}
+        isLive={false}
+        citedSources={[
+          ...completed.web_sources,
+          {
+            index: 31,
+            title: 'Madrian & Shea, QJE, 2001',
+            url: '',
+            origin: 'training' as const,
+          },
+          { index: 32, title: ' ', url: '', origin: 'training' as const },
+        ]}
+      />
+    );
+    fireEvent.click(header());
+    const chips = screen.getByTestId('activity-answer-sources');
+    expect(chips).toHaveTextContent('[31] Madrian & Shea, QJE, 2001');
+    // A reference that came back empty still says where the citation is from.
+    expect(chips).toHaveTextContent('[32] From training knowledge');
+    expect(chips).toHaveTextContent('[26] thoroughcare.net');
+  });
+
   it('switches to the evidence ledger on the cited sources', () => {
     render(
       <ActivityPanel
